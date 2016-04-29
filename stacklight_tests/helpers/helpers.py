@@ -14,12 +14,17 @@
 
 import os
 import urllib2
+import time
 
 from devops.helpers import helpers
 from fuelweb_test import logger
 from proboscis import asserts
 
 from stacklight_tests import settings
+
+
+class NotFound(Exception):
+    message = "Not Found."
 
 
 def create_cluster(
@@ -85,7 +90,8 @@ class PluginHelper(object):
         self.fuel_web.deploy_cluster_wait(self.cluster_id)
 
     def run_ostf(self, *args, **kwargs):
-        self.fuel_web.run_ostf(self.cluster_id, *args, **kwargs)
+        kwargs.update({"cluster_id": self.cluster_id})
+        self.fuel_web.run_ostf(*args, **kwargs)
 
     def add_node_to_cluster(self, node, redeploy=True, check_services=False):
         """Method to add node to cluster
@@ -139,3 +145,84 @@ class PluginHelper(object):
         logger.info('Wait a %s node offline status', devops_node.name)
         helpers.wait(lambda: not self.fuel_web.get_nailgun_node_by_devops_node(
             devops_node)['online'], timeout=60 * 5, timeout_msg=msg)
+
+    def get_fuel_node_name(self, changed_node):
+        with self.env.d_env.get_admin_remote() as remote:
+            result = remote.execute("fuel nodes | grep {0} | awk "
+                                    "'{{print $1}}'".format(changed_node))
+            return 'node-' + result['stdout'][0].rstrip()
+
+    def clear_local_mail(self, node):
+        with self.fuel_web.get_ssh_for_node(node.name) as remote:
+            result = remote.execute("rm -f $MAIL")
+            asserts.assert_equal(0, result['exit_code'],
+                                 'Failed to delete local mail on {0}: '
+                                 'Exit code is {1}: {2}'
+                                 .format(node.name, result['exit_code'],
+                                         result['stderr']))
+
+    def change_service_state(self, service, action, service_nodes):
+        for service_node in service_nodes:
+            with self.fuel_web.get_ssh_for_node(service_node.name) as remote:
+                result = remote.execute("service {0} {1}"
+                                        .format(service[0], action))
+                asserts.assert_equal(0, result['exit_code'],
+                                     'Failed to {0} service {1} on {2}: {3}'
+                                     .format(action, service[0],
+                                             service_node.name,
+                                             result['stderr']))
+
+        time.sleep(180)
+
+    def check_local_mail(self, node, message):
+        attempts = 5
+        with self.fuel_web.get_ssh_for_node(node.name) as remote:
+            while True:
+                attempts -= 1
+                result = remote.execute("cat $MAIL | "
+                                        "grep '{0}'".format(message))
+                if result['exit_code'] and attempts:
+                    logger.warning("Unable to get email on {0}."
+                                   " {1} attempts remain..."
+                                   .format(node.name, attempts))
+                    time.sleep(60)
+                elif result['exit_code']:
+                    raise NotFound('Email with {0} was not found on {1}: '
+                                   'Exit code is {2}: {3}'
+                                   .format(message, node.name,
+                                           result['exit_code'],
+                                           result['stderr']))
+                else:
+                    break
+
+    def fill_mysql_space(self, node, parameter):
+        with self.fuel_web.get_ssh_for_node(node) as remote:
+            result = remote.execute("fallocate -l $(df | grep "
+                                    "/dev/mapper/mysql-root |"
+                                    " awk '{{ printf(\"%.0f\\n\", "
+                                    "1024 * ((($3 + $4) * {0} / 100)"
+                                    " - $3))}}') /var/lib/mysql/test"
+                                    .format(parameter))
+            asserts.assert_equal(0, result['exit_code'],
+                                 'Failed to run command on {0}: {1}'
+                                 .format(node, result['stderr']))
+        time.sleep(120)
+
+    def clean_mysql_space(self, service_nodes):
+        for service_node in service_nodes:
+            with self.fuel_web.get_ssh_for_node(service_node) as remote:
+                result = remote.execute("rm /var/lib/mysql/test")
+                asserts.assert_equal(0, result['exit_code'],
+                                     'Failed to delete '
+                                     '/var/lib/mysql/test on {0}: {1}'
+                                     .format(service_node, result['stderr']))
+
+        time.sleep(120)
+
+#TODO: TEMPORARY!
+    def check_influxdb_status(self, nodes):
+        for node in nodes:
+            with self.fuel_web.get_ssh_for_node(node.name) as remote:
+                result = remote.execute("service influxdb status | "
+                                        "awk '{print $6}'")
+                asserts.assert_equal('OK', result['stdout'][0].rstrip())
