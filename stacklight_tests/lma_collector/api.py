@@ -13,30 +13,22 @@
 #    under the License.
 
 from stacklight_tests import base_test
-from stacklight_tests.influxdb_grafana import api as influx_grafana_api
-from stacklight_tests.lma_collector import api as lma_collector_api
+from stacklight_tests.lma_collector import plugin_settings
 
 
-class Collector(base_test.PluginApi):
-    def __init__(self):
-        super(Collector, self).__init__()
-        self.plugins = [influx_grafana_api.InfluxdbPluginApi(),
-                        lma_collector_api.LMACollectorPluginApi]
-
+class LMACollectorPluginApi(base_test.PluginApi):
     def get_plugin_settings(self):
-        pass
+        return plugin_settings
 
     def prepare_plugin(self):
-        for plugin in self.plugins:
-            plugin.prepare_plugin()
+        self.helpers.prepare_plugin(self.settings.plugin_path)
 
     def activate_plugin(self):
-        for plugin in self.plugins:
-            plugin.activate_plugin()
+        self.helpers.activate_plugin(
+            self.settings.name, self.settings.version, self.settings.options)
 
     def get_plugin_vip(self):
         pass
 
     def check_plugin_online(self):
-        for plugin in self.plugins:
-            plugin.check_plugin_online()
+        pass
