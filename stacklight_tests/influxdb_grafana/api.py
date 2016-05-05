@@ -82,17 +82,17 @@ class InfluxdbPluginApi(base_test.PluginApi):
             nodes_count_responsed)
         asserts.assert_equal(nodes_count, nodes_count_responsed, msg)
 
-    def get_influxdb_master_node(self):
+    def get_influxdb_master_node(self, excluded_nodes_fqdns=()):
         influx_master_node = self.helpers.get_master_node_by_role(
-            self.settings.role_name)
+            self.settings.role_name, excluded_nodes_fqdns=excluded_nodes_fqdns)
         return influx_master_node
 
-    def wait_for_rotation_influx_master(self,
-                                        old_master, timeout=5 * 60):
+    def wait_for_rotation_influx_master(self, old_master, timeout=5 * 60):
         logger.info('Wait a influxDB master node rotation')
         msg = "Failed influxDB master rotation from {0}".format(old_master)
         devops_helpers.wait(
-            lambda: old_master != self.get_influxdb_master_node()['fqdn'],
+            lambda: old_master != self.get_influxdb_master_node(
+                excluded_nodes_fqdns=(old_master,))['fqdn'],
             timeout=timeout, timeout_msg=msg)
 
     def wait_plugin_online(self, timeout=5 * 60):

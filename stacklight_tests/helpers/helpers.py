@@ -15,6 +15,7 @@
 import os
 import urllib2
 
+from devops.helpers import helpers
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -84,5 +85,57 @@ class PluginHelper(object):
         self.fuel_web.deploy_cluster_wait(self.cluster_id)
 
     def run_ostf(self, *args, **kwargs):
-        kwargs.update({"cluster_id": self.cluster_id})
-        self.fuel_web.run_ostf(*args, **kwargs)
+        self.fuel_web.run_ostf(self.cluster_id, *args, **kwargs)
+
+    def add_node_to_cluster(self, node, redeploy=True, check_services=False):
+        """Method to add node to cluster
+        :param node: node to add to cluster
+        :param redeploy: redeploy or just update settings
+        :param check_services: run OSTF after redeploy or not
+        """
+        self.fuel_web.update_nodes(
+            self.cluster_id,
+            node,
+        )
+        if redeploy:
+            self.fuel_web.deploy_cluster_wait(self.cluster_id,
+                                              check_services=check_services)
+
+    def remove_node_from_cluster(self, node, redeploy=True,
+                                 check_services=False):
+        """Method to remove node to cluster
+            :param node: node to add to cluster
+            :param redeploy: redeploy or just update settings
+            :param check_services: run OSTF after redeploy or not
+            """
+        self.fuel_web.update_nodes(
+            self.cluster_id,
+            node,
+            pending_addition=False, pending_deletion=True,
+        )
+        if redeploy:
+            self.fuel_web.deploy_cluster_wait(self.cluster_id,
+                                              check_services=check_services)
+
+    def get_master_node_by_role(self, role_name, excluded_nodes_fqdns=()):
+        nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.cluster_id, role_name)
+        nodes = [node for node in nodes
+                 if node['fqdn'] not in set(excluded_nodes_fqdns)]
+        with self.fuel_web.get_ssh_for_nailgun_node(nodes[0]) as remote:
+            stdout = remote.check_call(
+                'pcs status cluster | grep "Current DC:"')["stdout"][0]
+        for node in nodes:
+            if node['fqdn'] in stdout:
+                return node
+
+    def hard_shutdown_node(self, fqdn):
+        devops_node = self.fuel_web.get_devops_node_by_nailgun_fqdn(
+            fqdn)
+        msg = 'Node {0} has not become offline after hard shutdown'.format(
+            devops_node.name)
+        logger.info('Destroy node %s', devops_node.name)
+        devops_node.destroy()
+        logger.info('Wait a %s node offline status', devops_node.name)
+        helpers.wait(lambda: not self.fuel_web.get_nailgun_node_by_devops_node(
+            devops_node)['online'], timeout=60 * 5, timeout_msg=msg)

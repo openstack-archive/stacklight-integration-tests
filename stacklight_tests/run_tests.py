@@ -41,7 +41,9 @@ class CloseSSHConnectionsPlugin(plugins.Plugin):
 
 
 def import_tests():
+    from stacklight_tests.influxdb_grafana import test_destructive  # noqa
     from stacklight_tests.influxdb_grafana import test_smoke_bvt  # noqa
+    from stacklight_tests.influxdb_grafana import test_system  # noqa
 
 
 def run_tests():
