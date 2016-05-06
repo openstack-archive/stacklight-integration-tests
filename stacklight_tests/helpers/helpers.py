@@ -13,6 +13,7 @@
 #    under the License.
 
 import os
+import time
 import urllib2
 
 from devops.helpers import helpers
@@ -139,3 +140,37 @@ class PluginHelper(object):
         logger.info('Wait a %s node offline status', devops_node.name)
         helpers.wait(lambda: not self.fuel_web.get_nailgun_node_by_devops_node(
             devops_node)['online'], timeout=60 * 5, timeout_msg=msg)
+
+    @staticmethod
+    def block_network_by_interface(interface):
+        if interface.network.is_blocked:
+            raise Exception('Network {0} is blocked'.format(interface))
+        else:
+            interface.network.block()
+
+    @staticmethod
+    def unblock_network_by_interface(interface):
+        if interface.network.is_blocked:
+            interface.network.unblock()
+        else:
+            raise Exception(
+                'Network {0} was not blocked'.format(interface))
+
+    def emulate_whole_network_disaster(self, delay_before_recover=5 * 60,
+                                       wait_become_online=True):
+
+        nodes = [node for node in self.env.d_env.get_nodes()
+                 if node.driver.node_active(node)]
+
+        networks_interfaces = nodes[1].interfaces
+
+        for interface in networks_interfaces:
+            self.block_network_by_interface(interface)
+
+        time.sleep(delay_before_recover)
+
+        for interface in networks_interfaces:
+            self.unblock_network_by_interface(interface)
+
+        if wait_become_online:
+            self.fuel_web.wait_nodes_get_online_state(nodes[1:])
