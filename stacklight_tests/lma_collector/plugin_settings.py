@@ -12,15 +12,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from stacklight_tests.influxdb_grafana import (
-    plugin_settings as influxdb_grafana_settings)
-from stacklight_tests.lma_collector import (
-    plugin_settings as lma_collector_settings)
+from stacklight_tests import settings
 
-name = 'toolchain'
+
+name = 'lma_collector'
 version = '0.9.0'
+role_name = []  # NOTE(rpromyshlennikov): there is no role name
+# because lma collector is installed on all nodes in cluster
+plugin_path = settings.LMA_COLLECTOR_PLUGIN_PATH
 
-role_name = list(set(
-    influxdb_grafana_settings.role_name +
-    lma_collector_settings.role_name
-))
+options = {
+    'environment_label/value': 'deploy_lma_toolchain',
+    'elasticsearch_mode/value': 'local',
+    'influxdb_mode/value': 'local',
+    'alerting_mode/value': 'local',
+}
