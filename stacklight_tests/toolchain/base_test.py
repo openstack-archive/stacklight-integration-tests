@@ -14,12 +14,14 @@
 
 from stacklight_tests import base_test
 from stacklight_tests.influxdb_grafana import api as influx_grafana_api
+from stacklight_tests.lma_collector import api as lma_collector_api
 
 
-class Collector(base_test.PluginApi):
+class ToolchainApi(base_test.PluginApi):
     def __init__(self):
-        super(Collector, self).__init__()
-        self.plugins = [influx_grafana_api.InfluxdbPluginApi()]
+        super(ToolchainApi, self).__init__()
+        self.plugins = [influx_grafana_api.InfluxdbPluginApi(),
+                        lma_collector_api.LMACollectorPluginApi]
 
     def get_plugin_settings(self):
         pass

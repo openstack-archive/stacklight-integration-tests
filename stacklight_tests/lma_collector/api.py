@@ -12,15 +12,23 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from stacklight_tests.influxdb_grafana import (
-    plugin_settings as influxdb_grafana_settings)
-from stacklight_tests.lma_collector import (
-    plugin_settings as lma_collector_settings)
+from stacklight_tests import base_test
+from stacklight_tests.lma_collector import plugin_settings
 
-name = 'toolchain'
-version = '0.9.0'
 
-role_name = list(set(
-    influxdb_grafana_settings.role_name +
-    lma_collector_settings.role_name
-))
+class LMACollectorPluginApi(base_test.PluginApi):
+    def get_plugin_settings(self):
+        return plugin_settings
+
+    def prepare_plugin(self):
+        self.helpers.prepare_plugin(self.settings.plugin_path)
+
+    def activate_plugin(self):
+        self.helpers.activate_plugin(
+            self.settings.name, self.settings.version, self.settings.options)
+
+    def get_plugin_vip(self):
+        pass
+
+    def check_plugin_online(self):
+        pass
