@@ -174,3 +174,15 @@ class PluginHelper(object):
 
         if wait_become_online:
             self.fuel_web.wait_nodes_get_online_state(nodes[1:])
+
+    def uninstall_plugin(self, plugin_name, plugin_version, exit_code=0,
+                         msg=None):
+        msg = msg or "Plugin {0} deletion failed: exit code is {1}"
+        with self.env.d_env.get_admin_remote() as remote:
+            exec_res = remote.execute("fuel plugins --remove"
+                                      " {0}=={1}".format(plugin_name,
+                                                         plugin_version))
+            asserts.assert_equal(exit_code, exec_res['exit_code'],
+                                 msg.format(plugin_name, exit_code))
+
+
