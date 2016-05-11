@@ -4,9 +4,9 @@ BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 pip install -U pip || true
 
-VIRTUALENV_EXIST=`dpkg -l | grep python-virtualenv && pip list | grep virtualenv`
+VIRTUALENV_EXIST=`dpkg -l | grep python-virtualenv || pip list | grep virtualenv`
 
-if [[ -z "VIRTUALENV_EXIST" ]]; then
+if [[ -z "${VIRTUALENV_EXIST}" ]]; then
     echo 'There is no virtualnev'
     pip install virtualenv || apt-get install python-virtualenv || true
 fi
