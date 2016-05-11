@@ -10,19 +10,22 @@ It is based on two other projects:
 
 ## Getting started
 
-1. Prepare the environment:
+1. Provision the SQL database for fuel-qa (see the [official
+   documentation](https://docs.fuel-infra.org/fuel-dev/devops.html#configuring-database)
+for the detailed procedure).
+2. Prepare the environment:
 
-```
-vi openrc
-. openrc
-./utils/fuel-qa-builder/prepare_env.sh
-```
+        vi openrc
+        . openrc
+        ./utils/fuel-qa-builder/prepare_env.sh
 
-2. Run the tests:
+3. Activate the Python virtual environment:
 
-```
-./utils/jenkins/system_tests.sh -k -K -j fuelweb_test -t test -w $(pwd) -o --group=<your_test_group_to_run>
-```
+        . $VENV_PATH/bin/activate
+
+3. Run the tests:
+
+        ./utils/jenkins/system_tests.sh -k -K -j fuelweb_test -t test -w $(pwd) -o --group=<your_test_group_to_run>
 
 ## Contributing
 
