@@ -46,6 +46,8 @@ def import_tests():
     from stacklight_tests.influxdb_grafana import test_system  # noqa
     from stacklight_tests.lma_collector import test_smoke_bvt  # noqa
 
+    from stacklight_tests.lma_infrastructure_alerting import test_smoke_bvt
+
 
 def run_tests():
     from proboscis import TestProgram  # noqa
