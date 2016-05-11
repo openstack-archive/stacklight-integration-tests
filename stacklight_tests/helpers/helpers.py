@@ -13,14 +13,18 @@
 #    under the License.
 
 import os
-import time
 import urllib2
+import time
 
 from devops.helpers import helpers
 from fuelweb_test import logger
 from proboscis import asserts
 
 from stacklight_tests import settings
+
+
+class NotFound(Exception):
+    message = "Not Found."
 
 
 def create_cluster(
@@ -86,7 +90,8 @@ class PluginHelper(object):
         self.fuel_web.deploy_cluster_wait(self.cluster_id)
 
     def run_ostf(self, *args, **kwargs):
-        self.fuel_web.run_ostf(self.cluster_id, *args, **kwargs)
+        kwargs.update({"cluster_id": self.cluster_id})
+        self.fuel_web.run_ostf(*args, **kwargs)
 
     def add_node_to_cluster(self, node, redeploy=True, check_services=False):
         """Method to add node to cluster
@@ -141,36 +146,111 @@ class PluginHelper(object):
         helpers.wait(lambda: not self.fuel_web.get_nailgun_node_by_devops_node(
             devops_node)['online'], timeout=60 * 5, timeout_msg=msg)
 
-    @staticmethod
-    def block_network_by_interface(interface):
-        if interface.network.is_blocked:
-            raise Exception('Network {0} is blocked'.format(interface))
-        else:
-            interface.network.block()
+    def get_fuel_node_name(self, changed_node):
+        with self.env.d_env.get_admin_remote() as remote:
+            result = remote.execute("fuel nodes | grep {0} | awk "
+                                    "'{{print $1}}'".format(changed_node))
+            return 'node-' + result['stdout'][0].rstrip()
 
-    @staticmethod
-    def unblock_network_by_interface(interface):
-        if interface.network.is_blocked:
-            interface.network.unblock()
-        else:
-            raise Exception(
-                'Network {0} was not blocked'.format(interface))
+    def clear_local_mail(self, node):
+        with self.fuel_web.get_ssh_for_node(node.name) as remote:
+            result = remote.execute("rm -f $MAIL")
+            asserts.assert_equal(0, result['exit_code'],
+                                 'Failed to delete local mail on {0}: '
+                                 'Exit code is {1}: {2}'
+                                 .format(node.name, result['exit_code'],
+                                         result['stderr']))
 
-    def emulate_whole_network_disaster(self, delay_before_recover=5 * 60,
-                                       wait_become_online=True):
+    def change_service_state(self, service, action, service_nodes):
+        for service_node in service_nodes:
+            with self.fuel_web.get_ssh_for_node(service_node.name) as remote:
+                result = remote.execute("service {0} {1}"
+                                        .format(service[0], action))
+                asserts.assert_equal(0, result['exit_code'],
+                                     'Failed to {0} service {1} on {2}: {3}'
+                                     .format(action, service[0],
+                                             service_node.name,
+                                             result['stderr']))
 
-        nodes = [node for node in self.env.d_env.get_nodes()
-                 if node.driver.node_active(node)]
+        time.sleep(180)
 
-        networks_interfaces = nodes[1].interfaces
+    def check_local_mail(self, node, message, timeout=5 * 60):
+        def check_mail():
+            with self.fuel_web.get_ssh_for_node(node.name) as remote:
+                result = remote.execute("cat $MAIL | grep '{0}'"
+                                        .format(message))
+                if not result['exit_code']:
+                    return True
+                else:
+                    return False
+        msg = "Email with {0} was not found on {1}".format(message, node.name)
+        helpers.wait(check_mail, timeout=timeout, timeout_msg=msg)
 
-        for interface in networks_interfaces:
-            self.block_network_by_interface(interface)
+    def fill_mysql_space(self, node, parameter):
+        with self.fuel_web.get_ssh_for_node(node) as remote:
+            result = remote.execute("fallocate -l $(df | grep "
+                                    "/dev/mapper/mysql-root |"
+                                    " awk '{{ printf(\"%.0f\\n\", "
+                                    "1024 * ((($3 + $4) * {0} / 100)"
+                                    " - $3))}}') /var/lib/mysql/test"
+                                    .format(parameter))
+            asserts.assert_equal(0, result['exit_code'],
+                                 'Failed to run command on {0}: {1}'
+                                 .format(node, result['stderr']))
+        time.sleep(120)
 
-        time.sleep(delay_before_recover)
+    def clean_mysql_space(self, service_nodes):
+        for service_node in service_nodes:
+            with self.fuel_web.get_ssh_for_node(service_node) as remote:
+                result = remote.execute("rm /var/lib/mysql/test")
+                asserts.assert_equal(0, result['exit_code'],
+                                     'Failed to delete '
+                                     '/var/lib/mysql/test on {0}: {1}'
+                                     .format(service_node, result['stderr']))
 
-        for interface in networks_interfaces:
-            self.unblock_network_by_interface(interface)
+        time.sleep(120)
 
-        if wait_become_online:
-            self.fuel_web.wait_nodes_get_online_state(nodes[1:])
+    def uninstall_plugin(self, plugin_name, plugin_version, exit_code=0,
+                         msg=None):
+        msg = msg or "Plugin {0} deletion failed: exit code is {1}"
+        with self.env.d_env.get_admin_remote() as remote:
+            exec_res = remote.execute("fuel plugins --remove {0}=={1}"
+                                      .format(plugin_name,
+                                              plugin_version))
+            asserts.assert_equal(exit_code, exec_res['exit_code'],
+                                 msg.format(plugin_name, exit_code))
+
+    def fuel_createmirror(self, option="", exit_code=0):
+        logger.info("Executing 'fuel-createmirror' command.")
+        with self.env.d_env.get_admin_remote() as remote:
+            exec_res = remote.execute(
+                "fuel-createmirror {0}".format(option))
+            asserts.assert_equal(exit_code, exec_res['exit_code'],
+                                 'fuel-createmirror failed: {0}'
+                                 .format(exec_res['stderr']))
+
+    def fuel_createmirror_mos(self):
+        logger.info("Executing 'fuel-createmirror -M' command.")
+        # TODO: fuel-createmirror -M will fail during the execution.
+        #  CHANGED!
+        self.fuel_createmirror("-M", 1)
+        with self.env.d_env.get_admin_remote() as remote:
+            exec_res = remote.execute(
+                "fuel nodes | grep ready | awk '{{print $1}}'")
+            nodes = [ind.rstrip() for ind in exec_res['stdout']]
+            ' '.join(nodes)
+            cmd = "fuel --env {0} node --node-id " \
+                  "{1} --tasks setup_repositories"\
+                .format(self.helpers.cluster_id, nodes)
+            exec_res = remote.execute(cmd)
+            asserts.assert_equal(0, exec_res['exit_code'],
+                                 'Command {0} failed: {1}'
+                                 .format(cmd, exec_res['stderr']))
+
+    # NOTE: Might become handy in influxdb check.
+    def check_influxdb_status(self, nodes):
+        for node in nodes:
+            with self.fuel_web.get_ssh_for_node(node.name) as remote:
+                result = remote.execute("service influxdb status | "
+                                        "awk '{print $6}'")
+                asserts.assert_equal('OK', result['stdout'][0].rstrip())
