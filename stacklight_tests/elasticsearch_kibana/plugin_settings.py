@@ -21,5 +21,5 @@ role_name = ['elasticsearch_kibana']
 vip_name = 'es_vip_mgmt'
 plugin_path = settings.ELASTICSEARCH_KIBANA_PLUGIN_PATH
 
-elasticsearch_url = "http://{}:9200/"
+elasticsearch_url = "http://{}:9200{}"
 kibana_url = "http://{}/"

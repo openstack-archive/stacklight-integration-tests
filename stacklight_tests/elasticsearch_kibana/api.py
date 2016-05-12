@@ -13,6 +13,7 @@
 #    under the License.
 
 from fuelweb_test import logger
+from proboscis import asserts
 
 from stacklight_tests import base_test
 from stacklight_tests.elasticsearch_kibana import plugin_settings
@@ -32,15 +33,26 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
-    def check_plugin_online(self):
-        es_server_ip = self.get_plugin_vip()
-
-        logger.debug("Check that Elasticsearch is ready")
+    def make_request_to_elasticsearch(self, params='', expected_code=200):
         msg = "Elasticsearch responded with {0}, expected {1}"
-        self.checkers.check_http_get_response(
-            self.settings.elasticsearch_url.format(es_server_ip), msg=msg)
+        r = self.checkers.check_http_get_response(
+            self.settings.elasticsearch_url.format(
+                self.get_plugin_vip(), params),
+            expected_code=expected_code, msg=msg)
+        return r
+
+    def check_plugin_online(self):
+        logger.debug("Check that Elasticsearch is ready")
+        self.make_request_to_elasticsearch()
 
         logger.debug("Check that Kibana is running")
         msg = "Kibana responded with {0}, expected {1}"
         self.checkers.check_http_get_response(
-            self.settings.kibana_url.format(es_server_ip), msg=msg)
+            self.settings.kibana_url.format(self.get_plugin_vip()), msg=msg)
+
+    def check_elasticsearch_nodes_count(self, expected_count):
+        response = self.make_request_to_elasticsearch(params='/_nodes')
+        nodes_count = len(response.json()['nodes'])
+        msg = ("Expected count of elasticsearch nodes {}, "
+               "actual count {}".format(expected_count, nodes_count))
+        asserts.assert_equal(expected_count, nodes_count, msg)
