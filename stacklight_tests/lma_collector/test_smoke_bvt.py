@@ -20,7 +20,7 @@ from stacklight_tests.lma_collector import api
 
 
 @test(groups=["plugins"])
-class TestInfluxdbPlugin(api.LMACollectorPluginApi):
+class TestLMACollectorPlugin(api.LMACollectorPluginApi):
     """Class for smoke testing the LMA Collector plugin."""
 
     @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_3],
