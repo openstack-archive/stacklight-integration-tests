@@ -12,14 +12,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from stacklight_tests.helpers import helpers
 from stacklight_tests import settings
 
 
 name = 'elasticsearch_kibana'
-version = '0.9.0'
 role_name = ['elasticsearch_kibana']
 vip_name = 'es_vip_mgmt'
 plugin_path = settings.ELASTICSEARCH_KIBANA_PLUGIN_PATH
+version = helpers.get_plugin_version(plugin_path)
 
 elasticsearch_url = "http://{}:9200/"
 kibana_url = "http://{}/"
