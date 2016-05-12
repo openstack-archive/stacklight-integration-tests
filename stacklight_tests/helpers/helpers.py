@@ -13,6 +13,7 @@
 #    under the License.
 
 import os
+import re
 import time
 import urllib2
 
@@ -23,10 +24,28 @@ from proboscis import asserts
 from stacklight_tests import settings
 
 
+PACKAGE_VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)')
+
+
 def create_cluster(
         env, name, cluster_settings=None, mode=settings.DEPLOYMENT_MODE):
     return env.fuel_web.create_cluster(
         name=name, settings=cluster_settings, mode=mode)
+
+
+def get_plugin_version(filename):
+    """Extract the plugin version from the package filename.
+
+    :param filename: the plugin's filename.
+    :type filename: str
+    :returns: the plugin's version or None if not found
+    :rtype: str
+    """
+    m = PACKAGE_VERSION_RE.search(filename)
+    if m:
+        return m.group(1)
+    else:
+        return None
 
 
 class PluginHelper(object):

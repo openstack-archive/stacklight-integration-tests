@@ -12,14 +12,15 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from stacklight_tests.helpers import helpers
 from stacklight_tests import settings
 
 
 name = 'lma_collector'
-version = '0.9.0'
 role_name = []  # NOTE(rpromyshlennikov): there is no role name
 # because lma collector is installed on all nodes in cluster
 plugin_path = settings.LMA_COLLECTOR_PLUGIN_PATH
+version = helpers.get_plugin_version(plugin_path)
 
 options = {
     'environment_label/value': 'deploy_lma_toolchain',

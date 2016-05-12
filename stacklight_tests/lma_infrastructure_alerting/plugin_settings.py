@@ -12,13 +12,14 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from stacklight_tests.helpers import helpers
 from stacklight_tests import settings
 
 name = 'lma_infrastructure_alerting'
-version = '0.10.0'
 role_name = ['infrastructure_alerting']
 vip_name = 'infrastructure_alerting_mgmt_vip'
 plugin_path = settings.LMA_INFRA_ALERTING_PLUGIN_PATH
+version = helpers.get_plugin_version(plugin_path)
 
 nagios_user = 'nagiosadmin'
 nagios_password = 'r00tme'
