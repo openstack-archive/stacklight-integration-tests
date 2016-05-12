@@ -17,6 +17,18 @@ import requests
 
 
 def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
+    """Perform a HTTP GET request and assert that the HTTP server replies with
+    the expected code.
+
+    :param url: the request URL
+    :type url: str
+    :param expected_code: the expected HTTP response code. Defaults to 200
+    :type expected_code: int
+    :param msg: the assertion message. Defaults to None
+    :type msg: str
+    :returns: HTTP response object
+    :rtype: requests.Response
+    """
     msg = msg or "%s responded with {0}, expected {1}" % url
     r = requests.get(url, **kwargs)
     asserts.assert_equal(

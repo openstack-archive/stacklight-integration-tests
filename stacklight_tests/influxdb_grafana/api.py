@@ -35,52 +35,72 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
-    def make_request_to_influx(self,
-                               db=plugin_settings.influxdb_db_name,
-                               user=plugin_settings.influxdb_rootuser,
-                               password=plugin_settings.influxdb_rootpass,
-                               query="",
-                               expected_code=200):
-        influxdb_vip = self.get_plugin_vip()
+    def get_grafana_url(self, resource=''):
+        return "http://{0}:8000/{1}".format(self.get_plugin_vip(), resource)
 
-        params = {
-            "db": db,
-            "u": user,
-            "p": password,
-            "q": query,
-        }
+    def get_influxdb_url(self, resource=''):
+        return "http://{0}:8086/{1}".format(self.get_plugin_vip(), resource)
 
-        msg = "InfluxDB responded with {0}, expected {1}"
-        r = self.checkers.check_http_get_response(
-            self.settings.influxdb_url.format(influxdb_vip),
-            expected_code=expected_code, msg=msg, params=params)
-        return r
+    def do_influxdb_query(self,
+                          query,
+                          db=plugin_settings.influxdb_db_name,
+                          user=plugin_settings.influxdb_user,
+                          password=plugin_settings.influxdb_pass,
+                          expected_code=200):
+        return self.checkers.check_http_get_response(
+            url=self.get_influxdb_url('query'),
+            expected_code=expected_code,
+            params={"db": db, "u": user, "p": password, "q": query})
 
     def check_plugin_online(self):
-        self.make_request_to_influx(query="show measurements")
-
-        logger.debug("Check that the Grafana server is running")
-
-        msg = "Grafana server responded with {0}, expected {1}"
+        logger.debug("Check that the InfluxDB server replies to ping requests")
         self.checkers.check_http_get_response(
-            self.settings.grafana_url.format(
-                self.settings.grafana_user, self.settings.grafana_pass,
-                self.get_plugin_vip()),
-            msg=msg
-        )
+            url=self.get_influxdb_url('ping'),
+            expected_code=204)
 
-    def check_influxdb_nodes_count(self, nodes_count=1):
-        response = self.make_request_to_influx(
+        logger.debug("Check that the InfluxDB API requires authentication")
+        self.do_influxdb_query("show measurements",
+                               user=plugin_settings.influxdb_user,
+                               password='rogue', expected_code=401)
+
+        logger.debug("Check that the InfluxDB user is authorized")
+        self.do_influxdb_query("show measurements")
+
+        logger.debug("Check that the InfluxDB user doesn't have admin rights")
+        self.do_influxdb_query("show servers", expected_code=401)
+
+        logger.debug("Check that the InfluxDB root user has admin rights")
+        self.do_influxdb_query("show servers",
+                               user=plugin_settings.influxdb_rootuser,
+                               password=plugin_settings.influxdb_rootpass)
+
+        logger.debug("Check that the Grafana UI server is running")
+        self.checkers.check_http_get_response(
+            self.get_grafana_url('login'))
+
+        logger.debug("Check that the Grafana user is authorized")
+        self.checkers.check_http_get_response(
+            self.get_grafana_url('api/org'),
+            auth=(plugin_settings.grafana_user, plugin_settings.grafana_pass))
+
+        logger.debug("Check that the Grafana API requires authentication")
+        self.checkers.check_http_get_response(
+            self.get_grafana_url('api/org'),
+            auth=(plugin_settings.grafana_user, 'rogue'), expected_code=401)
+
+    def check_influxdb_nodes_count(self, count=1):
+        logger.debug('Check the number of InfluxDB servers')
+        response = self.do_influxdb_query(
+            "show servers",
             user=self.settings.influxdb_rootuser,
-            password=self.settings.influxdb_rootpass,
-            query="show servers")
+            password=self.settings.influxdb_rootpass)
 
         nodes_count_responsed = len(
             response.json()["results"][0]["series"][0]["values"])
 
-        msg = "InfluxDB nodes count expected, received instead: {}".format(
-            nodes_count_responsed)
-        asserts.assert_equal(nodes_count, nodes_count_responsed, msg)
+        msg = "Expected {0} InfluxDB nodes, got {}".format(
+            count, nodes_count_responsed)
+        asserts.assert_equal(count, nodes_count_responsed, msg)
 
     def get_influxdb_master_node(self, excluded_nodes_fqdns=()):
         influx_master_node = self.helpers.get_master_node_by_role(
