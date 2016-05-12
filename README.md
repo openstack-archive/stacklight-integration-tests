@@ -42,7 +42,7 @@ Guidelines:
 
 * Run `tox` before submitting a review.
 
-* Declare test groups using the following pattern:
+* Declare test groups using the @test decorator (see the [Proboscis](https://pythonhosted.org/proboscis) documentation for details)
 
 ```
 @test(groups=["<full_unique_name_of_test>",
@@ -51,13 +51,15 @@ Guidelines:
               "<test_category>"])
 ```
 
- For example:
+ For example
 
 ```
 @test(groups=["install_influxdb_grafana",
               "install",
               "influxdb_grafana",
               "smoke"])
+def install_influxdb_grafana():
+    ....
 ```
 
 ## Communication
