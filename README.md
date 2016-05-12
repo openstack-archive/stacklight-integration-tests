@@ -15,7 +15,8 @@ It is based on two other projects:
 for the detailed procedure).
 2. Prepare the environment:
 
-        vi openrc
+        cp openrc.default openrc
+        # Edit the openrc file as needed
         . openrc
         ./utils/fuel-qa-builder/prepare_env.sh
 
@@ -66,4 +67,3 @@ The *OpenStack Development Mailing List* is the preferred way to communicate
 with the members of the project.
 Emails should be sent to `openstack-dev@lists.openstack.org` with the subject
 prefixed by `[fuel][plugins][lma]`.
-
