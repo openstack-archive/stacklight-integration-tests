@@ -13,13 +13,14 @@
 #    under the License.
 
 from stacklight_tests import settings
+from stacklight_tests.helpers import helpers
 
 
 name = 'influxdb_grafana'
-version = '0.9.0'
 role_name = ['influxdb_grafana']
 vip_name = 'influxdb'
 plugin_path = settings.INFLUXDB_GRAFANA_PLUGIN_PATH
+version = helpers.get_plugin_version(plugin_path)
 
 influxdb_db_name = "lma"
 influxdb_user = 'influxdb'
