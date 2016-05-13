@@ -26,11 +26,9 @@ influxdb_user = 'influxdb'
 influxdb_pass = 'influxdbpass'
 influxdb_rootuser = 'root'
 influxdb_rootpass = 'r00tme'
-influxdb_url = "http://{0}:8086/query"
 
 grafana_user = 'grafana'
 grafana_pass = 'grafanapass'
-grafana_url = "http://{0}:{1}@{2}:8000/api/org"
 
 mysql_mode = 'local'
 mysql_dbname = 'grafanalma'
