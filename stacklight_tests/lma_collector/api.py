@@ -31,4 +31,16 @@ class LMACollectorPluginApi(base_test.PluginApi):
         pass
 
     def check_plugin_online(self):
-        pass
+        # Run OSTF test to check pacemaker status
+        self.helpers.run_single_ostf(
+            test_sets=['ha'],
+            test_name='fuel_health.tests.ha.test_pacemaker_status.'
+                      'TestPacemakerStatus.test_check_pacemaker_resources')
+
+        # Check that heka and collectd processes are started on all nodes
+        node_names = [node.name for node in self.d_env.get_nodes()
+                      if node.driver.node_active(node)]
+        for node_name in node_names:
+            _ip = self.helpers.get_node_ip_by_name(node_name)
+            self.helpers.verify_service(_ip, 'hekad', 1)
+            self.helpers.verify_service(_ip, 'collectd', 2)
