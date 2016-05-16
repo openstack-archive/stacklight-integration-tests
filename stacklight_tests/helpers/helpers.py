@@ -212,3 +212,18 @@ class PluginHelper(object):
                                                          plugin_version))
             asserts.assert_equal(exit_code, exec_res['exit_code'],
                                  msg.format(plugin_name, exit_code))
+
+    def get_fuel_node_name(self, changed_node):
+        for node in self.fuel_web.client.list_cluster_nodes(self.cluster_id):
+            if node["name"] == changed_node:
+                return node["hostname"]
+        return None
+
+    def fuel_createmirror(self, option="", exit_code=0):
+        logger.info("Executing 'fuel-createmirror' command.")
+        with self.env.d_env.get_admin_remote() as remote:
+            exec_res = remote.execute(
+                "fuel-createmirror {0}".format(option))
+            asserts.assert_equal(exit_code, exec_res['exit_code'],
+                                 'fuel-createmirror failed:'
+                                 ' {0}'.format(exec_res['stderr']))
