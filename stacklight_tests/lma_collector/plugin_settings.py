@@ -23,7 +23,9 @@ plugin_path = settings.LMA_COLLECTOR_PLUGIN_PATH
 
 options = {
     'environment_label/value': 'deploy_lma_toolchain',
-    'elasticsearch_mode/value': 'local',
-    'influxdb_mode/value': 'local',
+    'elasticsearch_mode/value': 'remote',
+    'influxdb_mode/value': 'remote',
     'alerting_mode/value': 'local',
+    'elasticsearch_address/value': '1.2.3.4',
+    'influxdb_address': '1.2.3.4'
 }
