@@ -13,6 +13,11 @@
 #    under the License.
 
 from fuelweb_test import logger
+from proboscis import asserts
+
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.support.ui import WebDriverWait
 
 from stacklight_tests import base_test
 from stacklight_tests.lma_infrastructure_alerting import(
@@ -34,10 +39,61 @@ class InfraAlertingPluginApi(base_test.PluginApi):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
     def check_plugin_online(self):
-        lma_alerting_vip = self.get_plugin_vip()
-
         logger.info("Check that the Nagios server is running")
-        self.checkers.check_http_get_response(
-            "http://{0}:{1}@{2}:8001".format(
-                self.settings.nagios_user, self.settings.nagios_password,
-                lma_alerting_vip))
+        self.checkers.check_http_get_response(self.get_nagios_url())
+
+    def get_nagios_url(self):
+        return "http://{0}:{1}@{2}:8001".format(self.settings.nagios_user,
+                                                self.settings.nagios_password,
+                                                self.get_plugin_vip())
+
+    def get_primary_lma_node(self, exclude=None):
+        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, self.settings.role_name)
+        lma_nodes = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
+            nailgun_nodes)
+        if exclude:
+            for node in lma_nodes:
+                if node.name != exclude:
+                    lma_node = node
+                    break
+        else:
+            lma_node = lma_nodes[0]
+        return self.fuel_web.get_pacemaker_resource_location(
+            lma_node.name, "vip__infrastructure_alerting_mgmt_vip")[0]
+
+    def open_nagios_page(self, link_text, anchor):
+        driver = self.ui_tester.get_driver(self.get_nagios_url(),
+                                           "//frame[2]", "Nagios Core")
+        driver.switch_to.default_content()
+        driver.switch_to.frame(driver.find_element_by_name("side"))
+        link = driver.find_element_by_link_text(link_text)
+        link.click()
+        driver.switch_to.default_content()
+        driver.switch_to.frame(driver.find_element_by_name("main"))
+        WebDriverWait(driver, 120).until(
+            EC.presence_of_element_located((By.XPATH, anchor)))
+        return driver
+
+    def get_nagios_hosts_page(self):
+        return self.open_nagios_page('Hosts', "//table[@class='headertable']")
+
+    def check_node_in_nagios(self, changed_node, state):
+        driver = self.get_nagios_hosts_page()
+        try:
+            asserts.assert_equal(state, self.node_is_present(
+                driver, changed_node), "Failed to find node '{0}' on nagios!"
+                .format(changed_node))
+        finally:
+            driver.close()
+
+    def node_is_present(self, driver, name):
+        table = self.ui_tester.get_table(driver,
+                                         "/html/body/div[2]/table/tbody")
+        for ind in xrange(2, self.ui_tester.get_table_size(table) + 1):
+            node_name = self.ui_tester.get_table_cell(
+                table, ind, 1).text.rstrip()
+            if name == node_name:
+                return True
+
+        return False
