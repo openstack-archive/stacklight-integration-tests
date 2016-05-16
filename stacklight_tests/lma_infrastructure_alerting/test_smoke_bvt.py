@@ -69,7 +69,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
         Snapshot deploy_lma_alerting_plugin
         """
 
-        self.check_run('deploy_lma_alerting_plugin')
+        self.check_run('deploy_lma_infrastructure_alerting')
 
         self.env.revert_snapshot("ready_with_3_slaves")
 

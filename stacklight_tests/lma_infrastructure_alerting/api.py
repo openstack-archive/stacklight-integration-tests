@@ -13,6 +13,7 @@
 #    under the License.
 
 from fuelweb_test import logger
+from proboscis import asserts
 
 from stacklight_tests import base_test
 from stacklight_tests.lma_infrastructure_alerting import(
@@ -41,3 +42,31 @@ class InfraAlertingPluginApi(base_test.PluginApi):
             "http://{0}:{1}@{2}:8001".format(
                 self.settings.nagios_user, self.settings.nagios_password,
                 lma_alerting_vip))
+
+    def get_nagios_main_page(self):
+        return self.ui_tester.get_driver("http://{0}:{1}@{2}:8001".format(
+            self.settings.nagios_user, self.settings.nagios_password,
+            self.get_plugin_vip()), "//frame[2]", "Nagios Core")
+
+    def get_primary_lma_node(self):
+        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, self.settings.role_name)
+        lma_node = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
+            nailgun_nodes)[0]
+        with self.fuel_web.get_ssh_for_node(lma_node.name) as remote:
+            result = remote.execute(
+                "crm status | grep vip__infrastructure_alerting_mgmt_vip"
+                " | awk '{print $4}'")
+            return self.fuel_web.get_devops_node_by_nailgun_fqdn(
+                result['stdout'][0].rstrip())
+
+    def check_node_in_nagios(self, changed_node, state):
+        driver = self.get_nagios_main_page()
+
+        try:
+            driver = self.ui_tester.get_nagios_hosts_page(driver)
+            asserts.assert_equal(state, self.ui_tester.node_is_present(
+                driver, changed_node), "Failed to find node '{0}' on nagios!"
+                .format(changed_node))
+        finally:
+            driver.close()
