@@ -144,7 +144,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
         self.env.make_snapshot("deploy_ha_lma_infrastructure_alerting",
                                is_make=True)
 
-    @test(depends_on=[deploy_ha_lma_infrastructure_alerting],
+    @test(depends_on=[deploy_lma_infrastructure_alerting],
           groups=["uninstall_deployed_lma_infrastructure_alerting",
                   "uninstall", "lma_infrastructure_alerting", "smoke"])
     @log_snapshot_after_test

@@ -107,6 +107,16 @@ class PluginHelper(object):
     def run_ostf(self, *args, **kwargs):
         self.fuel_web.run_ostf(self.cluster_id, *args, **kwargs)
 
+    def run_single_ostf(self, test_sets, test_name, *args, **kwargs):
+        self.fuel_web.run_single_ostf_test(self.cluster_id, test_sets,
+                                           test_name, *args, **kwargs)
+
+    def get_node_ip_by_name(self, node_name):
+        return self.fuel_web.get_nailgun_node_by_name(node_name)['ip']
+
+    def verify_service(self, ip, service_name, count, *args, **kwargs):
+        self.fuel_web.verify_service(ip, service_name, count, *args, **kwargs)
+
     def add_node_to_cluster(self, node, redeploy=True, check_services=False):
         """Method to add node to cluster
         :param node: node to add to cluster
