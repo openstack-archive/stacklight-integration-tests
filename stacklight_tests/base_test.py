@@ -35,7 +35,7 @@ class PluginApi(object):
         self.helpers = helpers.PluginHelper(self.env)
         self.checkers = checkers
         self.remote_ops = remote_ops
-        self.ui_tester = ui_tester.UITester()
+        self.ui_tester = ui_tester
 
     def __getattr__(self, item):
         return getattr(self.test, item)
