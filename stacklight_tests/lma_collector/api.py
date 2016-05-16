@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from fuelweb_test import logger
 
 from stacklight_tests import base_test
 from stacklight_tests.lma_collector import plugin_settings
@@ -31,4 +32,17 @@ class LMACollectorPluginApi(base_test.PluginApi):
         pass
 
     def check_plugin_online(self):
-        pass
+        # Run OSTF test to check pacemaker status
+        self.helpers.run_single_ostf(
+            test_sets=['ha'],
+            test_name='fuel_health.tests.ha.test_pacemaker_status.'
+                      'TestPacemakerStatus.test_check_pacemaker_resources')
+
+        # Check that heka and collectd processes are started on all nodes
+        nodes = self.helpers.get_all_ready_nodes()
+        msg = "Check services on the {} node"
+        for node in nodes:
+            logger.info(msg.format(node['name']))
+            _ip = node['ip']
+            self.helpers.verify_service(_ip, 'hekad', 2)
+            self.helpers.verify_service(_ip, 'collectd -C', 1)
