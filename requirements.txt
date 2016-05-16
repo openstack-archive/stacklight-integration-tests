@@ -1,4 +1,5 @@
 git+git://github.com/openstack/fuel-devops.git@2.9.20
 requests
+selenium
 six
 tox
