@@ -16,36 +16,30 @@ from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import test
 
 from stacklight_tests.influxdb_grafana import api
-from stacklight_tests.influxdb_grafana import test_smoke_bvt
 
 
 @test(groups=["plugins"])
 class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
     """Class for testing plugin failover after network disaster."""
 
-    @test(depends_on=[
-        test_smoke_bvt.TestInfluxdbPlugin.deploy_ha_influxdb_grafana_plugin],
-        groups=["check_disaster_influxdb_grafana", "influxdb_grafana",
-                "destructive", "check_failover_network_all_influxdb_grafana"])
+    @test(depends_on_groups=["deploy_ha_influxdb_grafana_plugin"],
+          groups=["check_disaster_influxdb_grafana", "influxdb_grafana",
+                  "destructive", "check_cluster_outage_influxdb_grafana"])
     @log_snapshot_after_test
-    def emulate_network_disaster_whole_cluster_influxdb_grafana_plugin(self):
+    def check_cluster_outage_influxdb_grafana(self):
         """Verify that the backends and dashboards recover
-        after a network interruption in the whole cluster.
+        after a network outage of the whole InfluxDB/Grafana cluster.
 
         Scenario:
-            1. Revert snapshot with 9 deployed nodes in HA configuration
-            2. Simulate network interruption in the whole cluster
-            3. Wait for at least 7 minutes before recover network availability
-            4. Recover network availability
-            5. Wait while all services are started
-            6. Run OSTF
-            7. Check that plugin is working
-            8. Check that data continues to be pushed by the various nodes
-               once the network interruption has ended
+            1. Revert the snapshot with 9 deployed nodes in HA configuration
+            2. Simulate a network outage of the whole InfluxDB/Grafana cluster
+            3. Wait for at least 7 minutes before network recovery
+            4. Wait for all services to be back online
+            5. Run OSTF
+            6. Check that the cluster's state is okay
 
         Duration 40m
         """
-
         self.env.revert_snapshot("deploy_ha_influxdb_grafana_plugin")
 
         self.helpers.emulate_whole_network_disaster(
@@ -55,25 +49,22 @@ class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.check_plugin_online()
 
-        self.helpers.run_ostf(should_fail=1)
+        self.helpers.run_ostf()
 
-        self.env.make_snapshot(
-            "emulate_network_disaster_whole_cluster_influxdb_grafana_plugin")
+        self.env.make_snapshot("check_cluster_outage_influxdb_grafana")
 
-    @test(depends_on=[
-        test_smoke_bvt.TestInfluxdbPlugin.deploy_influxdb_grafana_plugin],
-        groups=["check_disaster_influxdb_grafana", "influxdb_grafana",
-                "destructive", "check_failover_network_node_influxdb_grafana"])
+    @test(depends_on_groups=["deploy_influxdb_grafana_plugin"],
+          groups=["check_disaster_influxdb_grafana", "influxdb_grafana",
+                  "destructive", "check_node_outage_influxdb_grafana"])
     @log_snapshot_after_test
-    def emulate_network_disaster_on_influxdb_grafana_plugin_node(self):
+    def check_node_outage_influxdb_grafana(self):
         """Verify that the backends and dashboards recover after
-        a network failure on plugin node.
+        a network outage on a standalone InfluxDB/Grafana node.
 
         Scenario:
-            1. Revert snapshot with 3 deployed nodes
-            2. Simulate network interruption on plugin node
+            1. Revert the snapshot with 3 deployed nodes
+            2. Simulate network interruption on the InfluxDB/Grafana node
             3. Wait for at least 30 seconds before recover network availability
-            4. Recover network availability
             5. Run OSTF
             6. Check that plugin is working
         Duration 20m
@@ -90,5 +81,4 @@ class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot(
-            "emulate_network_disaster_on_influxdb_grafana_plugin_node")
+        self.env.make_snapshot("check_node_outage_influxdb_grafana")
