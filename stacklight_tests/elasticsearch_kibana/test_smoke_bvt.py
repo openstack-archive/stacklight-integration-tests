@@ -13,7 +13,6 @@
 #    under the License.
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
-from fuelweb_test.tests import base_test_case
 from proboscis import test
 
 from stacklight_tests.elasticsearch_kibana import api
@@ -23,18 +22,18 @@ from stacklight_tests.elasticsearch_kibana import api
 class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
     """Class for smoke testing the Elasticsearch-Kibana plugin."""
 
-    @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_3],
+    @test(depends_on_groups=['prepare_slaves_3'],
           groups=["install_elasticsearch_kibana", "install",
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
-    def install_elasticsearch_kibana_plugin(self):
+    def install_elasticsearch_kibana(self):
         """Install Elasticsearch-Kibana plugin and check it exists
 
         Scenario:
-            1. Upload plugin to the master node
-            2. Install plugin
-            3. Create cluster
-            4. Check that plugin exists
+            1. Upload the Elasticsearch/Kibana plugin to the master node
+            2. Install the plugin
+            3. Create a cluster
+            4. Check that the plugin can be enabled
 
         Duration 20m
         """
@@ -46,28 +45,28 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.activate_plugin()
 
-    @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_3],
+    @test(depends_on_groups=['prepare_slaves_3'],
           groups=["deploy_elasticsearch_kibana", "deploy",
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
-    def deploy_elasticsearch_kibana_plugin(self):
+    def deploy_elasticsearch_kibana(self):
         """Deploy a cluster with the Elasticsearch-Kibana plugin
 
         Scenario:
-            1. Upload plugin to the master node
-            2. Install plugin
-            3. Create cluster
+            1. Upload the Elasticsearch/Kibana plugin to the master node
+            2. Install the plugin
+            3. Create the cluster
             4. Add 1 node with controller role
             5. Add 1 node with compute and cinder roles
             6. Add 1 node with elasticsearch_kibana role
             7. Deploy the cluster
-            8. Check that plugin is working
+            8. Check that Elasticsearch/Kibana are running
             9. Run OSTF
 
         Duration 60m
-        Snapshot deploy_elasticsearch_kibana_plugin
+        Snapshot deploy_elasticsearch_kibana
         """
-        self.check_run("deploy_elasticsearch_kibana_plugin")
+        self.check_run("deploy_elasticsearch_kibana")
         self.env.revert_snapshot("ready_with_3_slaves")
 
         self.prepare_plugin()
@@ -82,31 +81,30 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("deploy_elasticsearch_kibana_plugin",
-                               is_make=True)
+        self.env.make_snapshot("deploy_elasticsearch_kibana", is_make=True)
 
-    @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_9],
+    @test(depends_on_groups=['prepare_slaves_9'],
           groups=["deploy_ha_elasticsearch_kibana", "deploy", "deploy_ha"
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
-    def deploy_ha_elasticsearch_kibana_plugin(self):
+    def deploy_ha_elasticsearch_kibana(self):
         """Deploy a cluster with the Elasticsearch-Kibana plugin in HA mode
 
         Scenario:
-            1. Upload plugin to the master node
-            2. Install plugin
-            3. Create cluster
+            1. Upload the Elasticsearch/Kibana plugin to the master node
+            2. Install the plugin
+            3. Create the cluster
             4. Add 3 nodes with controller role
             5. Add 3 nodes with compute and cinder roles
             6. Add 3 nodes with elasticsearch_kibana role
             7. Deploy the cluster
-            8. Check that plugin is working
+            8. Check that Elasticsearch/Kibana are running
             9. Run OSTF
 
         Duration 120m
-        Snapshot deploy_ha_elasticsearch_kibana_plugin
+        Snapshot deploy_ha_elasticsearch_kibana
         """
-        self.check_run("deploy_ha_elasticsearch_kibana_plugin")
+        self.check_run("deploy_ha_elasticsearch_kibana")
         self.env.revert_snapshot("ready_with_9_slaves")
 
         self.prepare_plugin()
@@ -121,5 +119,4 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("deploy_ha_elasticsearch_kibana_plugin",
-                               is_make=True)
+        self.env.make_snapshot("deploy_ha_elasticsearch_kibana", is_make=True)
