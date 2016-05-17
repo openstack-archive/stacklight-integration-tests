@@ -33,12 +33,12 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         Scenario:
             1. Revert snapshot with 9 deployed nodes in HA configuration
-            2. Remove one controller node and update the cluster
-            3. Check that plugin is working
+            2. Remove one controller node and redeploy the cluster
+            3. Check that Elasticsearch/Kibana are running
             4. Run OSTF
             5. Add one controller node (return previous state) and
-               update the cluster
-            6. Check that plugin is working
+               redeploy the cluster
+            6. Check that Elasticsearch/Kibana are running
             7. Run OSTF
 
         Duration 120m
@@ -47,19 +47,15 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         target_node = {'slave-03': ['controller']}
 
-        # NOTE(vgusev): We set "check_services=False" and
-        # "should_fail=1" parameters in deploy_cluster_wait and run_ostf
-        # methods because after removing one node
-        # nova has been keeping it in service list
-
-        # Remove controller
+        # Remove a controller
         self.helpers.remove_node_from_cluster(target_node)
 
         self.check_plugin_online()
 
+        # After removing a controller, one OSTF test should fail
         self.helpers.run_ostf(should_fail=1)
 
-        # Add controller
+        # Add a controller
         self.helpers.add_node_to_cluster(target_node)
 
         self.check_plugin_online()
@@ -79,12 +75,12 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         Scenario:
             1. Revert snapshot with 9 deployed nodes in HA configuration
-            2. Remove one compute node and update the cluster
-            3. Check that plugin is working
+            2. Remove one compute node and redeploy the cluster
+            3. Check that Elasticsearch/Kibana are running
             4. Run OSTF
             5. Add one compute node (return previous state) and
-               update the cluster
-            6. Check that plugin is working
+               redeploy the cluster
+            6. Check that Elasticsearch/Kibana are running
             7. Run OSTF
 
         Duration 120m
@@ -93,19 +89,15 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         target_node = {'slave-04': ['compute', 'cinder']}
 
-        # NOTE(vgusev): We set "check_services=False" and
-        # "should_fail=1" parameters in deploy_cluster_wait and run_ostf
-        # methods because after removing one node
-        # nova has been keeping it in service list
-
-        # Remove compute
+        # Remove a compute node
         self.helpers.remove_node_from_cluster(target_node)
 
         self.check_plugin_online()
 
+        # After removing a controller, one OSTF test should fail
         self.helpers.run_ostf(should_fail=1)
 
-        # Add compute
+        # Add a compute node
         self.helpers.add_node_to_cluster(target_node)
 
         self.check_plugin_online()
@@ -125,13 +117,13 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
         can scale up and down
 
         Scenario:
-            1. Revert snapshot with 9 deployed nodes in HA configuration
-            2. Remove one Elasticsearch-Kibana node and update the cluster
-            3. Check that plugin is working
+            1. Revert the snapshot with 9 deployed nodes in HA configuration
+            2. Remove one Elasticsearch-Kibana node and redeploy the cluster
+            3. Check that Elasticsearch/Kibana are running
             4. Run OSTF
             5. Add one Elasticsearch-Kibana node (return previous state) and
-               update the cluster
-            6. Check that plugin is working
+               redeploy the cluster
+            6. Check that Elasticsearch/Kibana are running
             7. Run OSTF
 
         Duration 120m
@@ -142,7 +134,7 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         target_node = {'slave-07': self.settings.role_name}
 
-        # Remove Elasticsearch-Kibana node
+        # Remove an Elasticsearch-Kibana node
         self.helpers.remove_node_from_cluster(target_node)
 
         self.check_plugin_online()
@@ -151,7 +143,7 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         self.fuel_web.run_ostf()
 
-        # Add Elasticsearch-Kibana node
+        # Add an Elasticsearch-Kibana node
         self.helpers.add_node_to_cluster(target_node)
 
         self.check_plugin_online()
