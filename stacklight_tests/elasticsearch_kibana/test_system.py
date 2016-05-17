@@ -23,12 +23,12 @@ from stacklight_tests.elasticsearch_kibana import api
 class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
     """Class for system tests for Elasticsearch-Kibana plugin."""
 
-    @test(depends_on_groups=['deploy_ha_elasticsearch_kibana_plugin'],
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
           groups=["check_scaling_elasticsearch_kibana", "scaling",
                   "elasticsearch_kibana", "system",
-                  "add_remove_controller_elasticsearch_kibana_plugin"])
+                  "add_remove_controller_elasticsearch_kibana"])
     @log_snapshot_after_test
-    def add_remove_controller_elasticsearch_kibana_plugin(self):
+    def add_remove_controller_elasticsearch_kibana(self):
         """Verify that the number of controllers can scale up and down
 
         Scenario:
@@ -43,7 +43,7 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         Duration 120m
         """
-        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana_plugin")
+        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
 
         target_node = {'slave-03': ['controller']}
 
@@ -67,14 +67,14 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
         self.helpers.run_ostf(should_fail=1)
 
         self.env.make_snapshot(
-            "add_remove_controller_elasticsearch_kibana_plugin")
+            "add_remove_controller_elasticsearch_kibana")
 
-    @test(depends_on_groups=['deploy_ha_elasticsearch_kibana_plugin'],
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
           groups=["check_scaling_elasticsearch_kibana", "scaling",
                   "elasticsearch_kibana", "system",
-                  "add_remove_compute_elasticsearch_kibana_plugin"])
+                  "add_remove_compute_elasticsearch_kibana"])
     @log_snapshot_after_test
-    def add_remove_compute_elasticsearch_kibana_plugin(self):
+    def add_remove_compute_elasticsearch_kibana(self):
         """Verify that the number of computes can scale up and down
 
         Scenario:
@@ -89,7 +89,7 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         Duration 120m
         """
-        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana_plugin")
+        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
 
         target_node = {'slave-04': ['compute', 'cinder']}
 
@@ -113,14 +113,14 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
         self.helpers.run_ostf(should_fail=1)
 
         self.env.make_snapshot(
-            "add_remove_compute_elasticsearch_kibana_plugin")
+            "add_remove_compute_elasticsearch_kibana")
 
-    @test(depends_on_groups=['deploy_ha_elasticsearch_kibana_plugin'],
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
           groups=["check_scaling_elasticsearch_kibana", "scaling",
                   "elasticsearch_kibana", "system",
-                  "add_remove_node_with_elasticsearch_kibana_plugin"])
+                  "add_remove_elasticsearch_kibana_node"])
     @log_snapshot_after_test
-    def add_remove_node_with_elasticsearch_kibana_plugin(self):
+    def add_remove_elasticsearch_kibana_node(self):
         """Verify that the number of Elasticsearch-Kibana nodes
         can scale up and down
 
@@ -136,7 +136,7 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         Duration 120m
         """
-        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana_plugin")
+        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
 
         self.check_elasticsearch_nodes_count(3)
 
@@ -160,5 +160,4 @@ class TestNodesElasticsearshPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot(
-            "add_remove_node_with_elasticsearch_kibana_plugin")
+        self.env.make_snapshot("add_remove_elasticsearch_kibana_node")

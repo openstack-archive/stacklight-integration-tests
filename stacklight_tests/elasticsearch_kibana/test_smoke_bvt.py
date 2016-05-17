@@ -27,7 +27,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
           groups=["install_elasticsearch_kibana", "install",
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
-    def install_elasticsearch_kibana_plugin(self):
+    def install_elasticsearch_kibana(self):
         """Install Elasticsearch-Kibana plugin and check it exists
 
         Scenario:
@@ -50,7 +50,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
           groups=["deploy_elasticsearch_kibana", "deploy",
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
-    def deploy_elasticsearch_kibana_plugin(self):
+    def deploy_elasticsearch_kibana(self):
         """Deploy a cluster with the Elasticsearch-Kibana plugin
 
         Scenario:
@@ -67,7 +67,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
         Duration 60m
         Snapshot deploy_elasticsearch_kibana_plugin
         """
-        self.check_run("deploy_elasticsearch_kibana_plugin")
+        self.check_run("deploy_elasticsearch_kibana")
         self.env.revert_snapshot("ready_with_3_slaves")
 
         self.prepare_plugin()
@@ -82,14 +82,13 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("deploy_elasticsearch_kibana_plugin",
-                               is_make=True)
+        self.env.make_snapshot("deploy_elasticsearch_kibana", is_make=True)
 
     @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_9],
           groups=["deploy_ha_elasticsearch_kibana", "deploy", "deploy_ha"
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
-    def deploy_ha_elasticsearch_kibana_plugin(self):
+    def deploy_ha_elasticsearch_kibana(self):
         """Deploy a cluster with the Elasticsearch-Kibana plugin in HA mode
 
         Scenario:
@@ -106,7 +105,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
         Duration 120m
         Snapshot deploy_ha_elasticsearch_kibana_plugin
         """
-        self.check_run("deploy_ha_elasticsearch_kibana_plugin")
+        self.check_run("deploy_ha_elasticsearch_kibana")
         self.env.revert_snapshot("ready_with_9_slaves")
 
         self.prepare_plugin()
@@ -121,5 +120,4 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("deploy_ha_elasticsearch_kibana_plugin",
-                               is_make=True)
+        self.env.make_snapshot("deploy_ha_elasticsearch_kibana", is_make=True)

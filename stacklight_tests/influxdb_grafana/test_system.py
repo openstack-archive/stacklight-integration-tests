@@ -17,20 +17,18 @@ from proboscis import test
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 
 from stacklight_tests.influxdb_grafana import api
-from stacklight_tests.influxdb_grafana import test_smoke_bvt
 
 
 @test(groups=["plugins"])
 class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
     """Class for system tests for InfluxDB-Grafana plugin."""
 
-    @test(depends_on=[
-        test_smoke_bvt.TestInfluxdbPlugin.deploy_ha_influxdb_grafana_plugin],
-        groups=["check_scaling_influxdb_grafana", "scaling",
-                "influxdb_grafana", "system",
-                "check_add_delete_controller_influxdb_grafana"])
+    @test(depends_on_group=["deploy_ha_influxdb_grafana"],
+          groups=["check_scaling_influxdb_grafana", "scaling",
+                  "influxdb_grafana", "system",
+                  "add_remove_controller_influxdb_grafana"])
     @log_snapshot_after_test
-    def add_remove_controller_influxdb_grafana_plugin(self):
+    def check_add_remove_controller_influxdb_grafana(self):
         """Verify that the number of controllers can scale up and down
 
         Scenario:
@@ -45,7 +43,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         Duration 120m
         """
-        self.env.revert_snapshot("deploy_ha_influxdb_grafana_plugin")
+        self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
         manipulated_node = {'slave-03': ['controller']}
 
@@ -68,15 +66,14 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf(should_fail=1)
 
-        self.env.make_snapshot("add_remove_controller_influxdb_grafana_plugin")
+        self.env.make_snapshot("add_remove_controller_influxdb_grafana")
 
-    @test(depends_on=[
-        test_smoke_bvt.TestInfluxdbPlugin.deploy_ha_influxdb_grafana_plugin],
-        groups=["check_scaling_influxdb_grafana", "scaling",
-                "influxdb_grafana", "system",
-                "check_add_delete_compute_influxdb_grafana"])
+    @test(depends_on_group=["deploy_ha_influxdb_grafana"],
+          groups=["check_scaling_influxdb_grafana", "scaling",
+                  "influxdb_grafana", "system",
+                  "add_remove_compute_influxdb_grafana"])
     @log_snapshot_after_test
-    def add_remove_compute_influxdb_grafana_plugin(self):
+    def add_remove_compute_influxdb_grafana(self):
         """Verify that the number of computes can scale up and down
 
         Scenario:
@@ -91,7 +88,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         Duration 120m
         """
-        self.env.revert_snapshot("deploy_ha_influxdb_grafana_plugin")
+        self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
         manipulated_node = {'slave-04': ['compute', 'cinder']}
 
@@ -114,15 +111,14 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf(should_fail=1)
 
-        self.env.make_snapshot("add_remove_compute_influxdb_grafana_plugin")
+        self.env.make_snapshot("add_remove_compute_influxdb_grafana")
 
-    @test(depends_on=[
-        test_smoke_bvt.TestInfluxdbPlugin.deploy_ha_influxdb_grafana_plugin],
-        groups=["check_scaling_influxdb_grafana", "scaling",
-                "influxdb_grafana", "system",
-                "check_add_delete_influxdb_grafana_node"])
+    @test(depends_on_group=["deploy_ha_influxdb_grafana"],
+          groups=["check_scaling_influxdb_grafana", "scaling",
+                  "influxdb_grafana", "system",
+                  "add_remove_influxdb_grafana_node"])
     @log_snapshot_after_test
-    def add_remove_node_with_influxdb_grafana_plugin(self):
+    def add_remove_influxdb_grafana_node(self):
         """Verify that the number of InfluxDB-Grafana nodes
         can scale up and down
 
@@ -138,7 +134,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         Duration 120m
         """
-        self.env.revert_snapshot("deploy_ha_influxdb_grafana_plugin")
+        self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
         self.check_influxdb_nodes_count(3)
 
@@ -164,15 +160,14 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("add_remove_node_with_influxdb_grafana_plugin")
+        self.env.make_snapshot("add_remove_influxdb_grafana_node")
 
-    @test(depends_on=[
-        test_smoke_bvt.TestInfluxdbPlugin.deploy_ha_influxdb_grafana_plugin],
-        groups=["check_failover_influxdb_grafana" "failover",
-                "influxdb_grafana", "system", "destructive",
-                "check_shutdown_influxdb_grafana_node"])
+    @test(depends_on_group=["deploy_ha_influxdb_grafana"],
+          groups=["check_failover_influxdb_grafana" "failover",
+                  "influxdb_grafana", "system", "destructive",
+                  "shutdown_influxdb_grafana_node"])
     @log_snapshot_after_test
-    def shutdown_node_with_influxdb_grafana_plugin(self):
+    def shutdown_influxdb_grafana_node(self):
         """Verify that failover for InfluxDB cluster works.
 
         Scenario:
@@ -186,7 +181,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         Duration 30m
         """
-        self.env.revert_snapshot("deploy_ha_influxdb_grafana_plugin")
+        self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
         master_node_hostname = self.get_influxdb_master_node()['fqdn']
 
@@ -200,4 +195,4 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("shutdown_node_with_influxdb_grafana_plugin")
+        self.env.make_snapshot("shutdown_influxdb_grafana_node")

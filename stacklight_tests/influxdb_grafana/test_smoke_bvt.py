@@ -27,7 +27,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
           groups=["install_influxdb_grafana", "install",
                   "influxdb_grafana", "smoke"])
     @log_snapshot_after_test
-    def install_influxdb_grafana_plugin(self):
+    def install_influxdb_grafana(self):
         """Install InfluxDB-Grafana plugin and check it exists
 
         Scenario:
@@ -50,7 +50,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
           groups=["deploy_influxdb_grafana", "deploy",
                   "influxdb_grafana", "smoke"])
     @log_snapshot_after_test
-    def deploy_influxdb_grafana_plugin(self):
+    def deploy_influxdb_grafana(self):
         """Deploy a cluster with the InfluxDB-Grafana plugin
 
         Scenario:
@@ -67,7 +67,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
         Duration 60m
         Snapshot deploy_influxdb_grafana_plugin
         """
-        self.check_run("deploy_influxdb_grafana_plugin")
+        self.check_run("deploy_influxdb_grafana")
         self.env.revert_snapshot("ready_with_3_slaves")
 
         self.prepare_plugin()
@@ -82,13 +82,13 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("deploy_influxdb_grafana_plugin", is_make=True)
+        self.env.make_snapshot("deploy_influxdb_grafana", is_make=True)
 
     @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_9],
           groups=["deploy_ha_influxdb_grafana", "deploy", "deploy_ha"
                   "influxdb_grafana", "smoke"])
     @log_snapshot_after_test
-    def deploy_ha_influxdb_grafana_plugin(self):
+    def deploy_ha_influxdb_grafana(self):
         """Deploy a cluster with the InfluxDB-Grafana plugin in HA mode
 
         Scenario:
@@ -105,7 +105,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
         Duration 120m
         Snapshot deploy_ha_influxdb_grafana_plugin
         """
-        self.check_run("deploy_ha_influxdb_grafana_plugin")
+        self.check_run("deploy_ha_influxdb_grafana")
         self.env.revert_snapshot("ready_with_9_slaves")
 
         self.prepare_plugin()
@@ -120,5 +120,4 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("deploy_ha_influxdb_grafana_plugin",
-                               is_make=True)
+        self.env.make_snapshot("deploy_ha_influxdb_grafana", is_make=True)

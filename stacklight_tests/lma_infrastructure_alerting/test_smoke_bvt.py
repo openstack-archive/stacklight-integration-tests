@@ -28,7 +28,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
           groups=["install_lma_infrastructure_alerting", "install",
                   "lma_infrastructure_alerting ", "smoke"])
     @log_snapshot_after_test
-    def install_lma_infrastructure_alerting_plugin(self):
+    def install_lma_infrastructure_alerting(self):
         """Install LMA Infrastructure Alerting plugin and check it exists
 
         Scenario:
@@ -69,7 +69,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
         Snapshot deploy_lma_alerting_plugin
         """
 
-        self.check_run('deploy_lma_alerting_plugin')
+        self.check_run('deploy_lma_alerting')
 
         self.env.revert_snapshot("ready_with_3_slaves")
 
