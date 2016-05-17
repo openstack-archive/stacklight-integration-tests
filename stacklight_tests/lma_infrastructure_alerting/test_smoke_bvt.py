@@ -15,7 +15,6 @@ from proboscis import test
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from fuelweb_test import logger
-from fuelweb_test.tests import base_test_case
 
 from stacklight_tests.lma_infrastructure_alerting import api
 
@@ -24,18 +23,18 @@ from stacklight_tests.lma_infrastructure_alerting import api
 class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
     """Class for testing the LMA Infrastructure Alerting plugin."""
 
-    @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_3],
+    @test(depends_on_groups=["prepare_slaves_3"],
           groups=["install_lma_infrastructure_alerting", "install",
                   "lma_infrastructure_alerting ", "smoke"])
     @log_snapshot_after_test
     def install_lma_infrastructure_alerting_plugin(self):
-        """Install LMA Infrastructure Alerting plugin and check it exists
+        """Install the LMA Infrastructure Alerting plugin
 
         Scenario:
-            1. Upload plugin to the master node
-            2. Install plugin
-            3. Create cluster
-            4. Check that plugin exists
+            1. Upload the LMA Infrastructure Alerting plugin to the master node
+            2. Install the plugin
+            3. Create a cluster
+            4. Check that the plugin can be enabled
 
         Duration 20m
         """
@@ -47,26 +46,26 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         self.activate_plugin()
 
-    @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_3],
-          groups=["deploy_lma_infrastructure_alerting", "deploy",
+    @test(depends_on=["prepare_slaves_3"],
+          groups=["deploy_lma_infrastructure_alerting_plugin", "deploy",
                   "lma_infrastructure_alerting", "smoke"])
     @log_snapshot_after_test
-    def deploy_lma_infrastructure_alerting(self):
+    def deploy_lma_infrastructure_alerting_plugin(self):
         """Deploy a cluster with the LMA Infrastructure Alerting plugin
 
         Scenario:
-            1. Upload plugin to the master node
-            2. Install plugin
-            3. Create cluster
+            1. Upload the LMA Infrastructure Alering plugin to the master node
+            2. Install the plugin
+            3. Create the cluster
             4. Add 1 node with controller role
             5. Add 1 node with compute role
-            6. Add 1 node with lma infrastructure alerting role
+            6. Add 1 node with the infrastructure_alerting role
             7. Deploy the cluster
-            8. Check that plugin is working
+            8. Check that Nagios and Apache are running
             9. Run OSTF
 
         Duration 60m
-        Snapshot deploy_lma_alerting_plugin
+        Snapshot deploy_lma_infrastructure_alerting_plugin
         """
 
         self.check_run('deploy_lma_alerting_plugin')
@@ -91,34 +90,33 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         self.helpers.run_ostf()
 
-        logger.info('Making environment snapshot'
-                    ' deploy_lma_infrastructure_alerting')
-        self.env.make_snapshot("deploy_lma_infrastructure_alerting",
+        self.env.make_snapshot("deploy_lma_infrastructure_alerting_plugin",
                                is_make=True)
 
-    @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_9],
+    @test(depends_on_groups=["prepare_slaves_9"],
           groups=["deploy_ha_lma_infrastructure_alerting", "deploy",
                   "deploy_ha", "lma_infrastructure_alerting", "smoke"])
     @log_snapshot_after_test
-    def deploy_ha_lma_infrastructure_alerting(self):
-        """Deploy a cluster with the LMA Infrastructure Alerting plugin
+    def deploy_ha_lma_infrastructure_alerting_plugin(self):
+        """Deploy a cluster with the LMA Infrastructure Alerting plugin in HA
+        configuration
 
         Scenario:
-            1. Upload plugin to the master node
-            2. Install plugin
-            3. Create cluster
+            1. Upload the LMA Infrastructure Alering plugin to the master node
+            2. Install the plugin
+            3. Create the cluster
             4. Add 3 nodes with controller role
             5. Add 1 node with compute and cinder roles
-            6. Add 3 nodes with lma infrastructure alerting roles
+            6. Add 3 nodes with infrastructure_alerting role
             7. Deploy the cluster
-            8. Check that plugin is working
+            8. Check that Nagios and Apache are running
             9. Run OSTF
 
         Duration 60m
         Snapshot deploy_lma_alerting_plugin_ha
         """
 
-        self.check_run('deploy_ha_lma_infrastructure_alerting')
+        self.check_run('deploy_ha_lma_infrastructure_alerting_plugin')
 
         self.env.revert_snapshot("ready_with_9_slaves")
 
@@ -144,46 +142,46 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         self.helpers.run_ostf()
 
-        logger.info('Making environment snapshot '
-                    'deploy_ha_lma_infrastructure_alerting')
-        self.env.make_snapshot("deploy_ha_lma_infrastructure_alerting",
+        self.env.make_snapshot("deploy_ha_lma_infrastructure_alerting_plugin",
                                is_make=True)
 
-    @test(depends_on=[deploy_ha_lma_infrastructure_alerting],
-          groups=["uninstall_deployed_lma_infrastructure_alerting",
+    @test(depends_on=[deploy_ha_lma_infrastructure_alerting_plugin],
+          groups=["uninstall_deployed_lma_infrastructure_alerting_plugin",
                   "uninstall", "lma_infrastructure_alerting", "smoke"])
     @log_snapshot_after_test
-    def uninstall_deployed_lma_infrastructure_alerting(self):
-        """Uninstall the plugin with deployed environment
+    def uninstall_deployed_lma_infrastructure_alerting_plugin(self):
+        """Uninstall the LMA Infrastructure Alering plugin with a deployed
+        environment
 
         Scenario:
             1.  Try to remove the plugins using the Fuel CLI
             2.  Remove the environment.
-            3.  Remove the plugins.
+            3.  Remove the plugin.
 
         Duration 20m
         """
-        self.env.revert_snapshot("deploy_lma_infrastructure_alerting")
+        self.env.revert_snapshot("deploy_lma_infrastructure_alerting_plugin")
 
         self.helpers.uninstall_plugin(self.settings.name,
-                                      self.settings.version, 1,
-                                      'Plugin deletion must not be permitted'
-                                      ' while it\'s active in deployed in env')
+                                      self.settings.version,
+                                      exit_code=1,
+                                      msg='Plugin deletion must not be allowed'
+                                      ' when it is deployed')
 
         self.fuel_web.delete_env_wait(self.helpers.cluster_id)
         self.helpers.uninstall_plugin(self.settings.name,
                                       self.settings.version)
 
-    @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_3],
-          groups=["uninstall_lma_infrastructure_alerting", "uninstall",
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["uninstall_lma_infrastructure_alerting_plugin", "uninstall",
                   "lma_infrastructure_alerting", "smoke"])
     @log_snapshot_after_test
-    def uninstall_lma_infrastructure_alerting(self):
-        """Uninstall the plugins
+    def uninstall_lma_infrastructure_alerting_plugin(self):
+        """Uninstall the LMA Infrastructure Alerting plugin
 
         Scenario:
-            1.  Install plugin.
-            2.  Remove the plugins.
+            1.  Install the plugin.
+            2.  Remove the plugin.
 
         Duration 5m
         """
