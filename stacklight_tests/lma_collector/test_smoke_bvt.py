@@ -13,7 +13,6 @@
 #    under the License.
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
-from fuelweb_test.tests import base_test_case
 from proboscis import test
 
 from stacklight_tests.lma_collector import api
@@ -23,18 +22,18 @@ from stacklight_tests.lma_collector import api
 class TestLMACollectorPlugin(api.LMACollectorPluginApi):
     """Class for smoke testing the LMA Collector plugin."""
 
-    @test(depends_on=[base_test_case.SetupEnvironment.prepare_slaves_3],
+    @test(depends_on_groups=["prepare_slaves_3"],
           groups=["install_lma_collector", "install",
                   "lma_collector", "smoke"])
     @log_snapshot_after_test
     def install_lma_collector_plugin(self):
-        """Install LMA Collector plugin and check it exists
+        """Install the LMA Collector plugin
 
         Scenario:
-            1. Upload plugin to the master node
-            2. Install plugin
-            3. Create cluster
-            4. Check that plugin exists
+            1. Upload the LMA Collector plugin to the master node
+            2. Install the plugin
+            3. Create a cluster
+            4. Check that the plugin can be enabled
 
         Duration 20m
         """
