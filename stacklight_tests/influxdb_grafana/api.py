@@ -28,9 +28,11 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def prepare_plugin(self):
         self.helpers.prepare_plugin(self.settings.plugin_path)
 
-    def activate_plugin(self):
+    def activate_plugin(self, options=None):
+        if not options:
+            options = self.settings.default_options
         self.helpers.activate_plugin(
-            self.settings.name, self.settings.version, self.settings.options)
+            self.settings.name, self.settings.version, options)
 
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
@@ -53,37 +55,37 @@ class InfluxdbPluginApi(base_test.PluginApi):
             params={"db": db, "u": user, "p": password, "q": query})
 
     def check_plugin_online(self):
-        logger.debug("Check that the InfluxDB server replies to ping requests")
+        logger.info("Check that the InfluxDB server replies to ping requests")
         self.checkers.check_http_get_response(
             url=self.get_influxdb_url('ping'),
             expected_code=204)
 
-        logger.debug("Check that the InfluxDB API requires authentication")
+        logger.info("Check that the InfluxDB API requires authentication")
         self.do_influxdb_query("show measurements",
                                user=plugin_settings.influxdb_user,
                                password='rogue', expected_code=401)
 
-        logger.debug("Check that the InfluxDB user is authorized")
+        logger.info("Check that the InfluxDB user is authorized")
         self.do_influxdb_query("show measurements")
 
-        logger.debug("Check that the InfluxDB user doesn't have admin rights")
+        logger.info("Check that the InfluxDB user doesn't have admin rights")
         self.do_influxdb_query("show servers", expected_code=401)
 
-        logger.debug("Check that the InfluxDB root user has admin rights")
+        logger.info("Check that the InfluxDB root user has admin rights")
         self.do_influxdb_query("show servers",
                                user=plugin_settings.influxdb_rootuser,
                                password=plugin_settings.influxdb_rootpass)
 
-        logger.debug("Check that the Grafana UI server is running")
+        logger.info("Check that the Grafana UI server is running")
         self.checkers.check_http_get_response(
             self.get_grafana_url('login'))
 
-        logger.debug("Check that the Grafana user is authorized")
+        logger.info("Check that the Grafana user is authorized")
         self.checkers.check_http_get_response(
             self.get_grafana_url('api/org'),
             auth=(plugin_settings.grafana_user, plugin_settings.grafana_pass))
 
-        logger.debug("Check that the Grafana API requires authentication")
+        logger.info("Check that the Grafana API requires authentication")
         self.checkers.check_http_get_response(
             self.get_grafana_url('api/org'),
             auth=(plugin_settings.grafana_user, 'rogue'), expected_code=401)

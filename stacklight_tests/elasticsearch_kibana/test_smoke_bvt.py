@@ -41,7 +41,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.prepare_plugin()
 
-        self.create_cluster()
+        self.helpers.create_cluster()
 
         self.activate_plugin()
 
@@ -71,7 +71,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.prepare_plugin()
 
-        self.create_cluster()
+        self.helpers.create_cluster()
 
         self.activate_plugin()
 
@@ -109,7 +109,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.prepare_plugin()
 
-        self.create_cluster()
+        self.helpers.create_cluster()
 
         self.activate_plugin()
 

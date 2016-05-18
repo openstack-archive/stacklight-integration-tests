@@ -63,21 +63,6 @@ class PluginApi(object):
             'slave-09': self.settings.role_name,
         }
 
-    def create_cluster(self, name=None, settings=None):
-        """Create a cluster.
-
-        :param name: name of the cluster (default: class's name).
-        :type name: str
-        :param settings: optional dict containing the cluster's configuration.
-        :type settings: dict
-        :returns: the cluster's id
-        :rtype: str
-        """
-        return self.env.fuel_web.create_cluster(
-            name=self.__class__.__name__,
-            settings=settings,
-            mode='ha_compact')
-
     @abc.abstractmethod
     def get_plugin_settings(self):
         """Return a dict with the default plugin's settings.
