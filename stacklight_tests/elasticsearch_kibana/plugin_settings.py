@@ -22,4 +22,5 @@ vip_name = 'es_vip_mgmt'
 plugin_path = settings.ELASTICSEARCH_KIBANA_PLUGIN_PATH
 version = helpers.get_plugin_version(plugin_path)
 
-options = {}
+bvt_options = {}
+toolchain_options = {}

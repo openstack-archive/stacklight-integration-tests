@@ -13,15 +13,21 @@
 #    under the License.
 
 from stacklight_tests import base_test
-from stacklight_tests.influxdb_grafana import api as influx_grafana_api
-from stacklight_tests.lma_collector import api as lma_collector_api
+from stacklight_tests.elasticsearch_kibana import api as elasticsearch_api
+from stacklight_tests.influxdb_grafana import api as influx_api
+from stacklight_tests.lma_collector import api as collector_api
+from stacklight_tests.lma_infrastructure_alerting import (
+    api as infrastructure_alerting_api)
 
 
 class ToolchainApi(base_test.PluginApi):
     def __init__(self):
         super(ToolchainApi, self).__init__()
-        self.plugins = [influx_grafana_api.InfluxdbPluginApi(),
-                        lma_collector_api.LMACollectorPluginApi()]
+        self.plugins = [
+            elasticsearch_api.ElasticsearchPluginApi(),
+            influx_api.InfluxdbPluginApi(),
+            collector_api.LMACollectorPluginApi(),
+            infrastructure_alerting_api.InfraAlertingPluginApi()]
 
     def get_plugin_settings(self):
         pass
@@ -32,7 +38,7 @@ class ToolchainApi(base_test.PluginApi):
 
     def activate_plugin(self):
         for plugin in self.plugins:
-            plugin.activate_plugin()
+            plugin.activate_plugin(toolchain=True)
 
     def get_plugin_vip(self):
         pass
