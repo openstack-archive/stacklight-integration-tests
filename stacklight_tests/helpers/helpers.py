@@ -41,7 +41,7 @@ def get_plugin_version(filename):
     :returns: the plugin's version or None if not found
     :rtype: str
     """
-    m = PACKAGE_VERSION_RE.search(filename)
+    m = PACKAGE_VERSION_RE.search(filename or '')
     if m:
         return m.group(1)
     else:
