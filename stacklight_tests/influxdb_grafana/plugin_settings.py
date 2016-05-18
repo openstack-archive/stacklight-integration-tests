@@ -36,7 +36,7 @@ mysql_dbname = 'grafanalma'
 mysql_user = 'grafanalma'
 mysql_pass = 'mysqlpass'
 
-options = {
+bvt_options = {
     'influxdb_rootpass/value': influxdb_rootpass,
     'influxdb_username/value': influxdb_user,
     'influxdb_userpass/value': influxdb_pass,
@@ -47,3 +47,5 @@ options = {
     'mysql_username/value': mysql_user,
     'mysql_password/value': mysql_pass,
 }
+
+toolchain_options = bvt_options

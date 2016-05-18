@@ -24,9 +24,11 @@ class LMACollectorPluginApi(base_test.PluginApi):
     def prepare_plugin(self):
         self.helpers.prepare_plugin(self.settings.plugin_path)
 
-    def activate_plugin(self):
+    def activate_plugin(self, toolchain=False):
+        options = (self.settings.toolchain_options if toolchain
+                   else self.settings.bvt_options)
         self.helpers.activate_plugin(
-            self.settings.name, self.settings.version, self.settings.options)
+            self.settings.name, self.settings.version, options)
 
     def get_plugin_vip(self):
         pass
