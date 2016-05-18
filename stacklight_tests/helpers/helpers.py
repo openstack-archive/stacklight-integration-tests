@@ -49,6 +49,14 @@ def get_plugin_version(filename):
         return None
 
 
+def get_toolchain_version(*args):
+    s = set(list(args))
+    if len(s) == 1:
+        return s.pop()
+    else:
+        raise EnvironmentError("Version is not the same for all plugins")
+
+
 class PluginHelper(object):
     """Class for common help functions."""
 

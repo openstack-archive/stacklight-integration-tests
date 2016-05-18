@@ -11,16 +11,21 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+from stacklight_tests.elasticsearch_kibana import (
+    plugin_settings as elasticsearch_settings)
+from stacklight_tests.helpers import helpers
 from stacklight_tests.influxdb_grafana import (
-    plugin_settings as influxdb_grafana_settings)
+    plugin_settings as influxdb_settings)
 from stacklight_tests.lma_collector import (
-    plugin_settings as lma_collector_settings)
+    plugin_settings as collector_settings)
+from stacklight_tests.lma_infrastructure_alerting import (
+    plugin_settings as infrastructure_alerting_settings)
 
 name = 'toolchain'
-version = '0.9.0'
+version = helpers.get_toolchain_version(
+    elasticsearch_settings.version, influxdb_settings.version,
+    collector_settings.version, infrastructure_alerting_settings.version)
 
-role_name = list(set(
-    influxdb_grafana_settings.role_name +
-    lma_collector_settings.role_name
-))
+role_name = (elasticsearch_settings.role_name + influxdb_settings.role_name +
+             collector_settings.role_name +
+             infrastructure_alerting_settings.role_name)
