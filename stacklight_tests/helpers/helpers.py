@@ -18,6 +18,7 @@ import time
 import urllib2
 
 from devops.helpers import helpers
+from fuelweb_test.helpers import checkers
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -106,6 +107,14 @@ class PluginHelper(object):
 
     def run_ostf(self, *args, **kwargs):
         self.fuel_web.run_ostf(self.cluster_id, *args, **kwargs)
+
+    def run_single_ostf(self, test_sets, test_name, *args, **kwargs):
+        self.fuel_web.run_single_ostf_test(self.cluster_id, test_sets,
+                                           test_name, *args, **kwargs)
+
+    def verify_service(self, ip, service_name, count):
+        with self.env.d_env.get_ssh_to_remote(ip) as remote:
+            checkers.verify_service(remote, service_name, count)
 
     def add_node_to_cluster(self, node, redeploy=True, check_services=False):
         """Method to add node to cluster
