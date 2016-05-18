@@ -26,9 +26,11 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def prepare_plugin(self):
         self.helpers.prepare_plugin(self.settings.plugin_path)
 
-    def activate_plugin(self):
+    def activate_plugin(self, options=None):
+        if not options:
+            options = self.settings.default_options
         self.helpers.activate_plugin(
-            self.settings.name, self.settings.version, self.settings.options)
+            self.settings.name, self.settings.version, options)
 
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
