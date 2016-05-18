@@ -41,7 +41,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         self.prepare_plugin()
 
-        self.create_cluster()
+        self.helpers.create_cluster(name=self.__class__.__name__)
 
         self.activate_plugin()
 
@@ -73,7 +73,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         self.prepare_plugin()
 
-        self.create_cluster()
+        self.helpers.create_cluster(name=self.__class__.__name__)
 
         self.activate_plugin()
 
@@ -121,7 +121,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         self.prepare_plugin()
 
-        self.create_cluster()
+        self.helpers.create_cluster(name=self.__class__.__name__)
 
         self.activate_plugin()
 

@@ -26,9 +26,11 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def prepare_plugin(self):
         self.helpers.prepare_plugin(self.settings.plugin_path)
 
-    def activate_plugin(self):
+    def activate_plugin(self, options=None):
+        if options is None:
+            options = self.settings.default_options
         self.helpers.activate_plugin(
-            self.settings.name, self.settings.version, self.settings.options)
+            self.settings.name, self.settings.version, options)
 
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
@@ -40,12 +42,12 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         return "http://{}:9200/".format(self.get_plugin_vip())
 
     def check_plugin_online(self):
-        logger.debug("Check that Elasticsearch is ready")
+        logger.info("Check that Elasticsearch is ready")
         msg = "Elasticsearch responded with {0}, expected {1}"
         self.checkers.check_http_get_response(
             self.get_elasticsearch_url(), msg=msg)
 
-        logger.debug("Check that Kibana is running")
+        logger.info("Check that Kibana is running")
         msg = "Kibana responded with {0}, expected {1}"
         self.checkers.check_http_get_response(self.get_kibana_url(), msg=msg)
 

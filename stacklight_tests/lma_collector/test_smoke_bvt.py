@@ -40,7 +40,7 @@ class TestLMACollectorPlugin(api.LMACollectorPluginApi):
 
         self.prepare_plugin()
 
-        self.create_cluster()
+        self.helpers.create_cluster(name=self.__class__.__name__)
 
         self.activate_plugin()
 
@@ -70,7 +70,7 @@ class TestLMACollectorPlugin(api.LMACollectorPluginApi):
 
         self.prepare_plugin()
 
-        self.create_cluster()
+        self.helpers.create_cluster(name=self.__class__.__name__)
 
         self.activate_plugin()
 
