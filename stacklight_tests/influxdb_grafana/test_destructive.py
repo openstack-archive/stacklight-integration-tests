@@ -68,6 +68,7 @@ class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
             3. Wait for at least 30 seconds before recover network availability
             5. Run OSTF
             6. Check that plugin is working
+
         Duration 20m
         Snapshot check_node_outage_influxdb_grafana
         """
