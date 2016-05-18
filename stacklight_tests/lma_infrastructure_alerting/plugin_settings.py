@@ -27,9 +27,11 @@ send_to = 'root@localhost'
 send_from = 'nagios@localhost'
 smtp_host = '127.0.0.1'
 
-options = {
+default_options = {
     'nagios_password/value': nagios_password,
     'send_to/value': send_to,
     'send_from/value': send_from,
     'smtp_host/value': smtp_host,
 }
+
+toolchain_options = default_options
