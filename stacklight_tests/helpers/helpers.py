@@ -22,16 +22,8 @@ from fuelweb_test.helpers import checkers
 from fuelweb_test import logger
 from proboscis import asserts
 
-from stacklight_tests import settings
-
 
 PACKAGE_VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)')
-
-
-def create_cluster(
-        env, name, cluster_settings=None, mode=settings.DEPLOYMENT_MODE):
-    return env.fuel_web.create_cluster(
-        name=name, settings=cluster_settings, mode=mode)
 
 
 def get_plugin_version(filename):
@@ -106,21 +98,36 @@ class PluginHelper(object):
         self.fuel_web.deploy_cluster_wait(self.cluster_id)
 
     def run_ostf(self, *args, **kwargs):
+        """Run the OpenStack health checks."""
         self.fuel_web.run_ostf(self.cluster_id, *args, **kwargs)
 
     def run_single_ostf(self, test_sets, test_name, *args, **kwargs):
+        """Run a subset of the OpenStack health checks."""
         self.fuel_web.run_single_ostf_test(self.cluster_id, test_sets,
                                            test_name, *args, **kwargs)
 
     def verify_service(self, ip, service_name, count):
+        """Check that a process is running on a host.
+
+        :param ip: IP address of the host.
+        :type ip: str
+        :param service_name: the process name to match.
+        :type service_name: str
+        :param count: the number of processes to match.
+        :type count: int
+        """
         with self.env.d_env.get_ssh_to_remote(ip) as remote:
             checkers.verify_service(remote, service_name, count)
 
     def add_node_to_cluster(self, node, redeploy=True, check_services=False):
-        """Method to add node to cluster
-        :param node: node to add to cluster
-        :param redeploy: redeploy or just update settings
-        :param check_services: run OSTF after redeploy or not
+        """Add nodes to the cluster.
+
+        :param node: list of nodes with their roles.
+        :type: node: dict
+        :param redeploy: whether to redeploy the cluster (default: True).
+        :type redeploy: boolean
+        :param check_services: run OSTF after redeploy (default: False).
+        :type check_services: boolean
         """
         self.fuel_web.update_nodes(
             self.cluster_id,
@@ -132,11 +139,15 @@ class PluginHelper(object):
 
     def remove_node_from_cluster(self, node, redeploy=True,
                                  check_services=False):
-        """Method to remove node to cluster
-            :param node: node to add to cluster
-            :param redeploy: redeploy or just update settings
-            :param check_services: run OSTF after redeploy or not
-            """
+        """Remove nodes from the cluster.
+
+        :param node: list of nodes to remove from the cluster.
+        :type node: dict
+        :param redeploy: whether to redeploy the cluster (default: True).
+        :type redeploy: boolean
+        :param check_services: run OSTF after redeploy (default: False).
+        :type check_services: boolean
+        """
         self.fuel_web.update_nodes(
             self.cluster_id,
             node,
@@ -147,6 +158,8 @@ class PluginHelper(object):
                                               check_services=check_services)
 
     def get_master_node_by_role(self, role_name, excluded_nodes_fqdns=()):
+        """Return the node running as the Designated Controller (DC).
+        """
         nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
             self.cluster_id, role_name)
         nodes = [node for node in nodes
@@ -159,6 +172,8 @@ class PluginHelper(object):
                 return node
 
     def hard_shutdown_node(self, fqdn):
+        """Power off a node.
+        """
         devops_node = self.fuel_web.get_devops_node_by_nailgun_fqdn(
             fqdn)
         msg = 'Node {0} has not become offline after hard shutdown'.format(
@@ -169,42 +184,44 @@ class PluginHelper(object):
         helpers.wait(lambda: not self.fuel_web.get_nailgun_node_by_devops_node(
             devops_node)['online'], timeout=60 * 5, timeout_msg=msg)
 
-    @staticmethod
-    def block_network_by_interface(interface):
-        if interface.network.is_blocked:
-            raise Exception('Network {0} is blocked'.format(interface))
-        else:
-            interface.network.block()
-
-    @staticmethod
-    def unblock_network_by_interface(interface):
-        if interface.network.is_blocked:
-            interface.network.unblock()
-        else:
-            raise Exception(
-                'Network {0} was not blocked'.format(interface))
-
     def emulate_whole_network_disaster(self, delay_before_recover=5 * 60,
                                        wait_become_online=True):
+        """Simulate a full network outage for all nodes.
 
+        :param delay_before_recover: outage interval in seconds (default: 300).
+        :type delay_before_recover: int
+        :param wait_become_online: whether to wait for nodes to be back online.
+        :type wait_become_online: bool
+        """
         nodes = [node for node in self.env.d_env.get_nodes()
                  if node.driver.node_active(node)]
 
         networks_interfaces = nodes[1].interfaces
 
         for interface in networks_interfaces:
-            self.block_network_by_interface(interface)
+            interface.network.block()
 
         time.sleep(delay_before_recover)
 
         for interface in networks_interfaces:
-            self.unblock_network_by_interface(interface)
+            interface.network.unblock()
 
         if wait_become_online:
             self.fuel_web.wait_nodes_get_online_state(nodes[1:])
 
     def uninstall_plugin(self, plugin_name, plugin_version, exit_code=0,
                          msg=None):
+        """Remove a plugin.
+
+        :param plugin_name: plugin's name.
+        :type plugin_name: str
+        :param plugin_version: plugin's version.
+        :type plugin_version: str
+        :param exit_code: expected exit code.
+        :type exit_code: int
+        :param msg: message in case of error.
+        :type msg: str
+        """
         msg = msg or "Plugin {0} deletion failed: exit code is {1}"
         with self.env.d_env.get_admin_remote() as remote:
             exec_res = remote.execute("fuel plugins --remove"

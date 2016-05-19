@@ -14,6 +14,15 @@
 
 
 def get_all_bridged_interfaces_for_node(remote, excluded_criteria=None):
+    """Return all network bridges for a node.
+
+    :param remote: SSH connection to the node.
+    :type remote: SSHClient
+    :param excluded_criteria: regular expression to filter out items
+    :type excluded_criteria: str
+    :returns: list of interfaces
+    :rtype: list
+    """
     # TODO(rpromyshlennikov): do filtration on python side
     excluded_criteria_cmd = (
         " | grep -v '%s'" % excluded_criteria
@@ -24,15 +33,33 @@ def get_all_bridged_interfaces_for_node(remote, excluded_criteria=None):
     return [iface.strip() for iface in interfaces]
 
 
-def switch_interface(remote, interface, method="up"):
+def switch_interface(remote, interface, up=True):
+    """Turn a network interface up or down.
+
+    :param remote: SSH connection to the node.
+    :type remote: SSHClient
+    :param interface: interface name.
+    :type interface: str
+    :param up: whether the interface should be turned up (default: True).
+    :type up: boolean
+    """
+    method = 'up' if up else 'down'
     cmd = "if{method} {interface}".format(method=method,
                                           interface=interface)
     remote.check_call(cmd)
 
 
-def simulate_network_interrupt_on_node(remote):
+def simulate_network_interrupt_on_node(remote, interval=30):
+    """Simulate a network outage on a node.
+
+    :param remote: SSH connection to the node.
+    :type remote: SSHClient
+    :param interval: outage duration in seconds (default: 30).
+    :type interval: int
+    """
     cmd = (
-        "(/sbin/iptables -I INPUT -j DROP "
-        "&& sleep 30 "
-        "&& /sbin/iptables -D INPUT -j DROP) 2>&1>/dev/null &")
+        "(/sbin/iptables -I INPUT -j DROP && "
+        "sleep {interval} && "
+        "/sbin/iptables -D INPUT -j DROP) 2>&1>/dev/null &".format(
+            interval=interval))
     remote.execute(cmd)
