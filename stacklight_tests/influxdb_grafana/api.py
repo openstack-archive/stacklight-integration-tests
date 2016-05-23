@@ -127,3 +127,11 @@ class InfluxdbPluginApi(base_test.PluginApi):
         msg = "Plugin has not become online after waiting period"
         devops_helpers.wait(
             check_availability, timeout=timeout, timeout_msg=msg)
+
+    def uninstall_plugin(self):
+        return self.helpers.uninstall_plugin(self.settings.name,
+                                             self.settings.version)
+
+    def check_uninstall_impossible(self):
+        return self.helpers.check_uninstall_plugin_impossible(
+            self.settings.name, self.settings.version)

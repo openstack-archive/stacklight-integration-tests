@@ -13,10 +13,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import asserts
 from proboscis import test
-
-from fuelweb_test.helpers.decorators import log_snapshot_after_test
 
 from stacklight_tests.lma_infrastructure_alerting import api
 
