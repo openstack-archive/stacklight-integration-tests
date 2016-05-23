@@ -28,6 +28,10 @@ for the detailed procedure).
 
         ./utils/jenkins/system_tests.sh -k -K -j fuelweb_test -t test -w $(pwd) -o --group=<your_test_group_to_run>
 
+5. If you want to run UI test in headless mode, install next dependencies:
+
+        sudo apt-get install xvfb firefox -y || yum install xorg-x11-Xvfb firefox
+
 ## Contributing
 
 If you would like to contribute to the development of this plugin,

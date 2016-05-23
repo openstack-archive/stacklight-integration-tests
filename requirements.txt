@@ -3,3 +3,4 @@ requests
 selenium
 six
 tox
+xvfbwrapper
