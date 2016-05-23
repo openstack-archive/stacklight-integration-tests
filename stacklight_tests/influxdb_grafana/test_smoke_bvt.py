@@ -22,7 +22,7 @@ from stacklight_tests.influxdb_grafana import api
 class TestInfluxdbPlugin(api.InfluxdbPluginApi):
     """Class for smoke testing the InfluxDB-Grafana plugin."""
 
-    @test(depends_on_groups=['prepare_slaves_3'],
+    @test(depends_on_groups=["prepare_slaves_3"],
           groups=["install_influxdb_grafana", "install",
                   "influxdb_grafana", "smoke"])
     @log_snapshot_after_test
@@ -45,7 +45,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.activate_plugin()
 
-    @test(depends_on_groups=['prepare_slaves_3'],
+    @test(depends_on_groups=["prepare_slaves_3"],
           groups=["deploy_influxdb_grafana", "deploy",
                   "influxdb_grafana", "smoke"])
     @log_snapshot_after_test
@@ -83,7 +83,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.env.make_snapshot("deploy_influxdb_grafana", is_make=True)
 
-    @test(depends_on_groups=['prepare_slaves_9'],
+    @test(depends_on_groups=["prepare_slaves_9"],
           groups=["deploy_ha_influxdb_grafana", "deploy", "deploy_ha"
                   "influxdb_grafana", "smoke"])
     @log_snapshot_after_test

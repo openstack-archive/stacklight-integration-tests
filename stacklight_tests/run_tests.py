@@ -49,9 +49,9 @@ def import_tests():
     from stacklight_tests.lma_collector import test_smoke_bvt  # noqa
 
     from stacklight_tests.lma_infrastructure_alerting import (  # noqa
-        test_smoke_bvt)  # noqa
+        test_smoke_bvt)
     from stacklight_tests.lma_infrastructure_alerting import (  # noqa
-        test_system)  # noqa
+        test_system)
 
 
 def run_tests():
