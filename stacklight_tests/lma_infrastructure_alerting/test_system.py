@@ -37,7 +37,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
             2.  Re-deploy the cluster.
             3.  Check the plugin services using the CLI
             4.  Check in the Nagios UI that the removed node is no
-            longer monitored.
+                longer monitored.
             5.  Run the health checks (OSTF).
             6.  Add 1 new node with the controller role.
             7.  Re-deploy the cluster.
@@ -73,7 +73,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
             2.  Re-deploy the cluster.
             3.  Check the plugin services using the CLI
             4.  Check in the Nagios UI that the removed node is no
-             longer monitored.
+                longer monitored.
             5.  Run the health checks (OSTF).
             6.  Add 1 new node with the compute role.
             7.  Re-deploy the cluster.
@@ -147,15 +147,15 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         """Shutdown infrastructure alerting node
 
         Scenario:
-            1.  Connect to any infrastructure_alerting node and run
-             command ‘crm status’.
-            2.  Shutdown node were vip_infrastructure_alerting_mgmt_vip
-             was started.
-            3.  Check that vip_infrastructure_alerting was started
-             on another infrastructure_alerting node.
-            4.  Check that Nagios UI works correctly.
-            5.  Check that no data lost after shutdown.
-            6.  Run OSTF.
+            1. Connect to any infrastructure_alerting node and run
+               command 'crm status'.
+            2. Shutdown node were vip_infrastructure_alerting_mgmt_vip
+               was started.
+            3. Check that vip_infrastructure_alerting was started
+               on another infrastructure_alerting node.
+            4. Check that Nagios UI works correctly.
+            5. Check that no data lost after shutdown.
+            6. Run OSTF.
 
         Duration 60m
         """
@@ -177,13 +177,13 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         """Run fuel-createmirror and deploy environment
 
         Scenario:
-            1.  Copy the plugins to the Fuel Master node and
-             install the plugins.
-            2.  Run the following command on the master node:
-                    fuel-createmirror
-            3.  Create an environment with enabled plugins in the
-            Fuel Web UI and deploy it.
-            4.  Run OSTF.
+            1. Copy the plugins to the Fuel Master node and
+               install the plugins.
+            2. Run the following command on the master node:
+               fuel-createmirror
+            3. Create an environment with enabled plugins in the
+               Fuel Web UI and deploy it.
+            4. Run OSTF.
 
         Duration 60m
         """

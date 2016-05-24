@@ -28,6 +28,14 @@ for the detailed procedure).
 
         ./utils/jenkins/system_tests.sh -k -K -j fuelweb_test -t test -w $(pwd) -o --group=<your_test_group_to_run>
 
+## Documentation
+
+The test cases include comments that can be turned into human-readable documentation:
+
+        tox -edocs
+
+The generated documentation is available at `doc/_build/html/index.html`.
+
 ## Contributing
 
 If you would like to contribute to the development of this plugin,
