@@ -46,3 +46,11 @@ class LMACollectorPluginApi(base_test.PluginApi):
             _ip = node['ip']
             self.helpers.verify_service(_ip, 'hekad', 2)
             self.helpers.verify_service(_ip, 'collectd -C', 1)
+
+    def uninstall_plugin(self):
+        return self.helpers.uninstall_plugin(self.settings.name,
+                                             self.settings.version)
+
+    def check_uninstall_impossible(self):
+        return self.helpers.check_uninstall_plugin_impossible(
+            self.settings.name, self.settings.version)

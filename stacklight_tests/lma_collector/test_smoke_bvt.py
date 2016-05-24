@@ -96,21 +96,19 @@ class TestLMACollectorPlugin(api.LMACollectorPluginApi):
 
         Scenario:
             1.  Try to remove the plugins using the Fuel CLI
-            2.  Remove the environment.
-            3.  Remove the plugins.
+            2.  Check plugin can't be uninstalled on deployed cluster.
+            3.  Remove the environment.
+            4.  Remove the plugin.
 
         Duration 20m
         """
         self.env.revert_snapshot("deploy_lma_collector")
 
-        self.helpers.uninstall_plugin(
-            self.settings.name, self.settings.version, 1,
-            'Plugin deletion must not be permitted when the plugin is active '
-            'for one environment')
+        self.check_uninstall_impossible()
 
         self.fuel_web.delete_env_wait(self.helpers.cluster_id)
-        self.helpers.uninstall_plugin(self.settings.name,
-                                      self.settings.version)
+
+        self.uninstall_plugin()
 
     @test(depends_on_groups=["prepare_slaves_3"],
           groups=["uninstall_lma_collector", "uninstall", "lma_collector",
@@ -129,5 +127,4 @@ class TestLMACollectorPlugin(api.LMACollectorPluginApi):
 
         self.prepare_plugin()
 
-        self.helpers.uninstall_plugin(self.settings.name,
-                                      self.settings.version)
+        self.uninstall_plugin()

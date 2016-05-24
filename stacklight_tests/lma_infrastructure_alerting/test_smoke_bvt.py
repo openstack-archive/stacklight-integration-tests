@@ -154,22 +154,19 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         Scenario:
             1.  Try to remove the plugins using the Fuel CLI
-            2.  Remove the environment.
-            3.  Remove the plugin.
+            2.  Check plugin can't be uninstalled on deployed cluster.
+            3.  Remove the environment.
+            4.  Remove the plugin.
 
         Duration 20m
         """
         self.env.revert_snapshot("deploy_lma_infrastructure_alerting")
 
-        self.helpers.uninstall_plugin(self.settings.name,
-                                      self.settings.version,
-                                      exit_code=1,
-                                      msg='Plugin deletion must not be allowed'
-                                      ' when it is deployed')
+        self.check_uninstall_impossible()
 
         self.fuel_web.delete_env_wait(self.helpers.cluster_id)
-        self.helpers.uninstall_plugin(self.settings.name,
-                                      self.settings.version)
+
+        self.uninstall_plugin()
 
     @test(depends_on_groups=["prepare_slaves_3"],
           groups=["uninstall_lma_infrastructure_alerting", "uninstall",
@@ -188,5 +185,4 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         self.prepare_plugin()
 
-        self.helpers.uninstall_plugin(self.settings.name,
-                                      self.settings.version)
+        self.uninstall_plugin()

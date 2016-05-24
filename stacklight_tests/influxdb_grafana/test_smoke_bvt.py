@@ -120,3 +120,46 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
         self.helpers.run_ostf()
 
         self.env.make_snapshot("deploy_ha_influxdb_grafana", is_make=True)
+
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["uninstall_influxdb_grafana", "uninstall",
+                  "influxdb_grafana", "smoke"])
+    @log_snapshot_after_test
+    def uninstall_influxdb_grafana(self):
+        """Uninstall the InfluxDB-Grafana plugin plugin
+
+        Scenario:
+            1.  Install the plugin.
+            2.  Remove the plugin.
+
+        Duration 5m
+        """
+        self.env.revert_snapshot("ready_with_3_slaves")
+
+        self.prepare_plugin()
+
+        self.uninstall_plugin()
+
+    @test(depends_on=[deploy_influxdb_grafana],
+          groups=["uninstall_deployed_influxdb_grafana", "uninstall",
+                  "influxdb_grafana", "smoke"])
+    @log_snapshot_after_test
+    def uninstall_deployed_influxdb_grafana(self):
+        """Uninstall the InfluxDB-Grafana plugin with a deployed
+        environment
+
+        Scenario:
+            1.  Try to remove the plugins using the Fuel CLI
+            2.  Check plugin can't be uninstalled on deployed cluster.
+            3.  Remove the environment.
+            4.  Remove the plugin.
+
+        Duration 20m
+        """
+        self.env.revert_snapshot("deploy_influxdb_grafana")
+
+        self.check_uninstall_impossible()
+
+        self.fuel_web.delete_env_wait(self.helpers.cluster_id)
+
+        self.uninstall_plugin()
