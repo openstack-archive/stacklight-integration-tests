@@ -9,7 +9,8 @@ export ADMIN_NODE_MEMORY=4096
 export ADMIN_NODE_CPU=2
 export SLAVE_NODE_MEMORY=5120
 
-# Locations for MOS and plugins artefacts
+# Locations for fuel-qa, MOS and plugins artefacts
+export FUELQA_GITREF=stable/8.0
 export ISO_PATH=$HOME/iso/MirantisOpenStack-8.0.iso
 export LMA_COLLECTOR_PLUGIN_PATH=$HOME/plugins/lma_collector-0.9-0.9.0-1.noarch.rpm
 export LMA_INFRA_ALERTING_PLUGIN_PATH=$HOME/plugins/lma_infrastructure_alerting-0.9-0.9.0-1.noarch.rpm
