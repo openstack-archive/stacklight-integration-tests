@@ -92,6 +92,23 @@ class PluginHelper(object):
                 self.fuel_web.client.list_cluster_nodes(self.cluster_id)
                 if node["status"] == "ready"]
 
+    def create_cluster(self, name=None, settings=None):
+        """Create a cluster.
+
+        :param name: name of the cluster.
+        :type name: str
+        :param settings: optional dict containing the cluster's configuration.
+        :type settings: dict
+        :returns: the cluster's id
+        :rtype: str
+        """
+        if not name:
+            name = self.__class__.__name__
+        return self.env.fuel_web.create_cluster(
+            name=name,
+            settings=settings,
+            mode='ha_compact')
+
     def deploy_cluster(self, nodes_roles):
         """Method to deploy cluster with provided node roles."""
         self.fuel_web.update_nodes(self.cluster_id, nodes_roles)

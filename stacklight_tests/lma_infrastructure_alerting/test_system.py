@@ -193,7 +193,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
 
         self.helpers.fuel_createmirror()
 
-        self.create_cluster()
+        self.helpers.create_cluster(name=self.__class__.__name__)
 
         self.activate_plugin()
 
