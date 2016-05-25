@@ -66,8 +66,6 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf(should_fail=1)
 
-        self.env.make_snapshot("add_remove_controller_influxdb_grafana")
-
     @test(depends_on_groups=["deploy_ha_influxdb_grafana"],
           groups=["check_scaling_influxdb_grafana", "scaling",
                   "influxdb_grafana", "system",
@@ -111,8 +109,6 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         self.check_plugin_online()
 
         self.helpers.run_ostf(should_fail=1)
-
-        self.env.make_snapshot("add_remove_compute_influxdb_grafana")
 
     @test(depends_on_groups=["deploy_ha_influxdb_grafana"],
           groups=["check_scaling_influxdb_grafana", "scaling",
@@ -162,8 +158,6 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("add_remove_influxdb_grafana_node")
-
     @test(depends_on_groups=["deploy_ha_influxdb_grafana"],
           groups=["check_failover_influxdb_grafana" "failover",
                   "influxdb_grafana", "system", "destructive",
@@ -197,5 +191,3 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         # TODO(rpromyshlennikov): check no data lost
 
         self.helpers.run_ostf()
-
-        self.env.make_snapshot("shutdown_influxdb_grafana_node")

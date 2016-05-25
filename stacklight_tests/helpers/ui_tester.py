@@ -11,22 +11,72 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-from proboscis import asserts
+
+import contextlib
+import socket
 
 from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.common import by
+from selenium.webdriver.common import proxy
+import xvfbwrapper
+
+from stacklight_tests.helpers.ui import ui_settings
 
 
-def get_driver(ip, anchor, title):
-    driver = webdriver.Firefox()
-    driver.get(ip)
-    WebDriverWait(driver, 120).until(
-        EC.presence_of_element_located((By.XPATH, anchor)))
-    asserts.assert_equal(True, title in driver.title,
-                         "Title {0} was not found in {1}!".format(
-                             title, driver.title))
+@contextlib.contextmanager
+def ui_driver(url, wait_element, title):
+    vdisplay = None
+    # Start a virtual display server for running the tests headless.
+    if ui_settings.headless_mode:
+        vdisplay = xvfbwrapper.Xvfb(width=1920, height=1080)
+        args = []
+
+        # workaround for memory leak in Xvfb taken from:
+        # http://blog.jeffterrace.com/2012/07/xvfb-memory-leak-workaround.html
+        args.append("-noreset")
+
+        # disables X access control
+        args.append("-ac")
+
+        if hasattr(vdisplay, 'extra_xvfb_args'):
+            # xvfbwrapper 0.2.8 or newer
+            vdisplay.extra_xvfb_args.extend(args)
+        else:
+            vdisplay.xvfb_cmd.extend(args)
+        vdisplay.start()
+    driver = get_driver(url, wait_element, title)
+    try:
+        yield driver
+    finally:
+        driver.quit()
+        if vdisplay is not None:
+            vdisplay.stop()
+
+
+def get_driver(url, anchor, title, by_selector_type=by.By.XPATH):
+    proxy_address = ui_settings.proxy_address
+    # Increase the default Python socket timeout from nothing
+    # to something that will cope with slow webdriver startup times.
+    # This *just* affects the communication between this test process
+    # and the webdriver.
+    socket.setdefaulttimeout(60)
+    # Start the Selenium webdriver and setup configuration.
+    proxy_ex = None
+    if proxy_address is not None:
+        proxy_ex = proxy.Proxy(
+            {
+                'proxyType': proxy.ProxyType.MANUAL,
+                'socksProxy': proxy_address,
+            }
+        )
+    driver = webdriver.Firefox(proxy=proxy_ex)
+    if ui_settings.maximize_window:
+        driver.maximize_window()
+    driver.implicitly_wait(ui_settings.implicit_wait)
+    driver.set_page_load_timeout(ui_settings.page_timeout)
+    driver.get(url)
+    driver.find_element(by_selector_type, anchor)
+    assert title in driver.title
     return driver
 
 
