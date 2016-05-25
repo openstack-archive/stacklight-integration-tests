@@ -176,11 +176,11 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         """Run fuel-createmirror and deploy environment
 
         Scenario:
-            1. Copy the plugins to the Fuel Master node and
-               install the plugins.
+            1. Copy the LMA Infrastructure Alerting plugin to the Fuel Master
+               node and install the plugin.
             2. Run the following command on the master node:
                fuel-createmirror
-            3. Create an environment with enabled plugins in the
+            3. Create an environment with enabled plugin in the
                Fuel Web UI and deploy it.
             4. Run OSTF.
 

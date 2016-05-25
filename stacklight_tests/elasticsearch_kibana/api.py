@@ -61,3 +61,11 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         msg = ("Expected count of elasticsearch nodes {}, "
                "actual count {}".format(expected_count, nodes_count))
         asserts.assert_equal(expected_count, nodes_count, msg)
+
+    def uninstall_plugin(self):
+        return self.helpers.uninstall_plugin(
+            self.settings.name, self.settings.version)
+
+    def check_uninstall_failure(self):
+        return self.helpers.check_plugin_cannot_be_uninstalled(
+            self.settings.name, self.settings.version)
