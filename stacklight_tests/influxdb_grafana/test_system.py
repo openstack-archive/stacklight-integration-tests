@@ -41,7 +41,6 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
             7. Run OSTF
 
         Duration 120m
-        Snapshot add_remove_controller_influxdb_grafana
         """
         self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
@@ -85,7 +84,6 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
             7. Run OSTF
 
         Duration 120m
-        Snapshot add_remove_compute_influxdb_grafana
         """
         self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
@@ -130,7 +128,6 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
             7. Run OSTF
 
         Duration 120m
-        Snapshot add_remove_node_with_influxdb_grafana
         """
         self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
@@ -176,7 +173,6 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
             7. Run OSTF
 
         Duration 30m
-        Snaphost shutdown_influxdb_grafana_node
         """
         self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
@@ -189,5 +185,44 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         self.check_plugin_online()
 
         # TODO(rpromyshlennikov): check no data lost
+
+        self.helpers.run_ostf()
+
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["influxdb_grafana_createmirror_deploy_plugin",
+                  "system", "influxdb_grafana", "createmirror"])
+    @log_snapshot_after_test
+    def influxdb_grafana_createmirror_deploy_plugin(self):
+        """Run fuel-createmirror and deploy environment
+
+        Scenario:
+            1. Upload and install the InfluxDB/Grafana plugin
+               to the master node.
+            2. Run the following command on the master node:
+               fuel-createmirror
+            3. Create an environment with enabled plugin and deploy it.
+            4. Run OSTF.
+
+        Duration 60m
+        """
+        self.env.revert_snapshot("ready_with_3_slaves")
+
+        self.prepare_plugin()
+
+        self.helpers.fuel_createmirror()
+
+        self.helpers.create_cluster(name=self.__class__.__name__)
+
+        self.activate_plugin()
+
+        self.helpers.deploy_cluster(
+            {
+                'slave-01': ['controller'],
+                'slave-02': ['compute'],
+                'slave-03': self.settings.role_name
+            }
+        )
+
+        self.check_plugin_online()
 
         self.helpers.run_ostf()
