@@ -97,3 +97,11 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                 return True
 
         return False
+
+    def uninstall_plugin(self):
+        return self.helpers.uninstall_plugin(self.settings.name,
+                                             self.settings.version)
+
+    def check_uninstall_failure(self):
+        return self.helpers.check_plugin_cannot_be_uninstalled(
+            self.settings.name, self.settings.version)

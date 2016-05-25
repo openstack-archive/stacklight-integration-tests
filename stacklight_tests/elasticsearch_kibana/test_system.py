@@ -12,9 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from proboscis import test
-
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from proboscis import test
 
 from stacklight_tests.elasticsearch_kibana import api
 
