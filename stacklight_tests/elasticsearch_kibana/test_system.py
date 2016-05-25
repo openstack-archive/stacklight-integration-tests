@@ -117,7 +117,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         Scenario:
             1. Revert the snapshot with 9 deployed nodes in HA configuration
-            2. Remove one Elasticsearch-Kibana node and redeploy the cluster
+            2. Remove one Elasticsearch/Kibana node and redeploy the cluster
             3. Check that Elasticsearch/Kibana are running
             4. Run OSTF
             5. Add one Elasticsearch-Kibana node (return previous state) and
@@ -153,3 +153,73 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         self.helpers.run_ostf()
 
         self.env.make_snapshot("add_remove_elasticsearch_kibana_node")
+
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
+          groups=["check_failover_elasticsearch_kibana" "failover",
+                  "elasticsearch_kibana", "system", "destructive",
+                  "shutdown_elasticsearch_kibana_node"])
+    @log_snapshot_after_test
+    def shutdown_elasticsearch_kibana_node(self):
+        """Verify that failover for Elasticsearch cluster works.
+
+        Scenario:
+            1. Revert snapshot with 9 deployed nodes in HA configuration
+            2. Determine influx_db master node were es_vip_mgmt was started
+            3. Shutdown Elasticsearch master node
+            4. Check that es_vip_mgmt was started on another node
+            5. Check that plugin is working
+            6. Check that no data lost after shutdown
+            7. Run OSTF
+
+        Duration 30m
+        Snaphost shutdown_elasticsearch_kibana_node
+        """
+        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
+
+        master_node_hostname = self.get_elasticsearch_master_node()['fqdn']
+
+        self.helpers.hard_shutdown_node(master_node_hostname)
+
+        self.wait_for_rotation_elasticsearch_master(master_node_hostname)
+
+        self.check_plugin_online()
+
+        # TODO(vgusev): check no data lost
+
+        self.helpers.run_ostf()
+
+        self.env.make_snapshot("shutdown_elasticsearch_kibana_node")
+
+    @test(depends_on_groups=['prepare_slaves_3'],
+          groups=["elasticsearch_kibana_createmirror_deploy_plugin",
+                  "system", "elasticsearch_kibana", "createmirror"])
+    @log_snapshot_after_test
+    def elasticsearch_kibana_createmirror_deploy_plugin(self):
+        """Run fuel-createmirror and deploy environment
+
+        Scenario:
+            1. Copy the Elasticsearch/Kibana plugin to the Fuel Master node and
+               install the plugin.
+            2. Run the following command on the master node:
+               fuel-createmirror
+            3. Create an environment with enabled plugins in the
+               Fuel Web UI and deploy it.
+            4. Run OSTF.
+
+        Duration 60m
+        """
+        self.env.revert_snapshot("ready_with_3_slaves")
+
+        self.prepare_plugin()
+
+        self.helpers.fuel_createmirror()
+
+        self.helpers.create_cluster(name=self.__class__.__name__)
+
+        self.activate_plugin()
+
+        self.helpers.deploy_cluster(self.base_nodes)
+
+        self.check_plugin_online()
+
+        self.helpers.run_ostf()

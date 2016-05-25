@@ -20,14 +20,14 @@ from stacklight_tests.elasticsearch_kibana import api
 
 @test(groups=["plugins"])
 class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
-    """Class for smoke testing the Elasticsearch-Kibana plugin."""
+    """Class for smoke testing the Elasticsearch/Kibana plugin."""
 
     @test(depends_on_groups=['prepare_slaves_3'],
           groups=["install_elasticsearch_kibana", "install",
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
     def install_elasticsearch_kibana(self):
-        """Install Elasticsearch-Kibana plugin and check it exists
+        """Install Elasticsearch/Kibana plugin and check it exists
 
         Scenario:
             1. Upload the Elasticsearch/Kibana plugin to the master node
@@ -50,7 +50,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
     def deploy_elasticsearch_kibana(self):
-        """Deploy a cluster with the Elasticsearch-Kibana plugin
+        """Deploy a cluster with the Elasticsearch/Kibana plugin
 
         Scenario:
             1. Upload the Elasticsearch/Kibana plugin to the master node
@@ -88,7 +88,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test
     def deploy_ha_elasticsearch_kibana(self):
-        """Deploy a cluster with the Elasticsearch-Kibana plugin in HA mode
+        """Deploy a cluster with the Elasticsearch/Kibana plugin in HA mode
 
         Scenario:
             1. Upload the Elasticsearch/Kibana plugin to the master node
@@ -120,3 +120,46 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
         self.helpers.run_ostf()
 
         self.env.make_snapshot("deploy_ha_elasticsearch_kibana", is_make=True)
+
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["uninstall_elasticsearch_kibana", "uninstall",
+                  "elasticsearch_kibana", "smoke"])
+    @log_snapshot_after_test
+    def uninstall_elasticsearch_kibana(self):
+        """Uninstall the Elasticsearch/Kibana plugin
+
+        Scenario:
+            1.  Install the plugin.
+            2.  Remove the plugin.
+
+        Duration 5m
+        """
+        self.env.revert_snapshot("ready_with_3_slaves")
+
+        self.prepare_plugin()
+
+        self.uninstall_plugin()
+
+    @test(depends_on=[deploy_elasticsearch_kibana],
+          groups=["uninstall_deployed_elasticsearch_kibana", "uninstall",
+                  "elasticsearch_kibana", "smoke"])
+    @log_snapshot_after_test
+    def uninstall_deployed_elasticsearch_kibana(self):
+        """Uninstall the Elasticsearch/Kibana plugin with a deployed
+        environment
+
+        Scenario:
+            1.  Try to remove the plugin using the Fuel CLI
+            2.  Check plugin can't be uninstalled on deployed cluster.
+            3.  Remove the environment.
+            4.  Remove the plugin.
+
+        Duration 20m
+        """
+        self.env.revert_snapshot("deploy_elasticsearch_kibana")
+
+        self.check_uninstall_failure()
+
+        self.fuel_web.delete_env_wait(self.helpers.cluster_id)
+
+        self.uninstall_plugin()

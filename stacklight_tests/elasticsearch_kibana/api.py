@@ -12,8 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from devops.helpers import helpers as devops_helpers
 from fuelweb_test import logger
 from proboscis import asserts
+import requests
 
 from stacklight_tests import base_test
 from stacklight_tests.elasticsearch_kibana import plugin_settings
@@ -61,3 +63,38 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         msg = ("Expected count of elasticsearch nodes {}, "
                "actual count {}".format(expected_count, nodes_count))
         asserts.assert_equal(expected_count, nodes_count, msg)
+
+    def get_elasticsearch_master_node(self, excluded_nodes_fqdns=()):
+        elasticsearch_master_node = self.helpers.get_master_node_by_role(
+            self.settings.role_name, excluded_nodes_fqdns=excluded_nodes_fqdns)
+        return elasticsearch_master_node
+
+    def wait_for_rotation_elasticsearch_master(self, old_master,
+                                               timeout=5 * 60):
+        logger.info('Wait a influxDB master node rotation')
+        msg = "Failed influxDB master rotation from {0}".format(old_master)
+        devops_helpers.wait(
+            lambda: old_master != self.get_elasticsearch_master_node(
+                excluded_nodes_fqdns=(old_master,))['fqdn'],
+            timeout=timeout, timeout_msg=msg)
+
+    def wait_plugin_online(self, timeout=5 * 60):
+        def check_availability():
+            try:
+                self.check_plugin_online()
+                return True
+            except (AssertionError, requests.ConnectionError):
+                return False
+
+        logger.info('Wait a plugin become online')
+        msg = "Plugin has not become online after waiting period"
+        devops_helpers.wait(
+            check_availability, timeout=timeout, timeout_msg=msg)
+
+    def uninstall_plugin(self):
+        return self.helpers.uninstall_plugin(
+            self.settings.name, self.settings.version)
+
+    def check_uninstall_failure(self):
+        return self.helpers.check_plugin_cannot_be_uninstalled(
+            self.settings.name, self.settings.version)

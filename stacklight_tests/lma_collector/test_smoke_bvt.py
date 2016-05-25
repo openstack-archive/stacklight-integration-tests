@@ -96,7 +96,7 @@ class TestLMACollectorPlugin(api.LMACollectorPluginApi):
         """Uninstall the plugin with deployed environment
 
         Scenario:
-            1.  Try to remove the plugins using the Fuel CLI
+            1.  Try to remove the plugin using the Fuel CLI
             2.  Check plugin can't be uninstalled on deployed cluster.
             3.  Remove the environment.
             4.  Remove the plugin.
