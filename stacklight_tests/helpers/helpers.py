@@ -222,13 +222,32 @@ class PluginHelper(object):
         :param msg: message in case of error.
         :type msg: str
         """
+        logger.info("Trying to uninstall {name}({version}) plugin".format(
+            name=plugin_name,
+            version=plugin_version))
         msg = msg or "Plugin {0} deletion failed: exit code is {1}"
         with self.env.d_env.get_admin_remote() as remote:
             exec_res = remote.execute("fuel plugins --remove"
                                       " {0}=={1}".format(plugin_name,
                                                          plugin_version))
-            asserts.assert_equal(exit_code, exec_res['exit_code'],
-                                 msg.format(plugin_name, exit_code))
+            asserts.assert_equal(
+                exit_code, exec_res['exit_code'],
+                msg.format(plugin_name, exec_res['exit_code']))
+
+    def check_plugin_cannot_be_uninstalled(self, plugin_name, plugin_version):
+        """Check that the plugin cannot be uninstalled.
+
+        :param plugin_name: plugin's name.
+        :type plugin_name: str
+        :param plugin_version: plugin's version.
+        :type plugin_version: str
+        """
+        self.uninstall_plugin(
+            plugin_name=plugin_name, plugin_version=plugin_version,
+            exit_code=1,
+            msg='{name}({version}) plugin deletion must not be allowed '
+                'when it is deployed'.format(name=plugin_name,
+                                             version=plugin_version))
 
     def get_fuel_node_name(self, changed_node):
         for node in self.fuel_web.client.list_cluster_nodes(self.cluster_id):
