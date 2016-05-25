@@ -53,7 +53,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
         """Deploy a cluster with the LMA Infrastructure Alerting plugin
 
         Scenario:
-            1. Upload the LMA Infrastructure Alering plugin to the master node
+            1. Upload the LMA Infrastructure Alerting plugin to the master node
             2. Install the plugin
             3. Create the cluster
             4. Add 1 node with controller role
@@ -101,7 +101,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
         configuration
 
         Scenario:
-            1. Upload the LMA Infrastructure Alering plugin to the master node
+            1. Upload the LMA Infrastructure Alerting plugin to the master node
             2. Install the plugin
             3. Create the cluster
             4. Add 3 nodes with controller role
@@ -153,7 +153,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
         environment
 
         Scenario:
-            1.  Try to remove the plugins using the Fuel CLI
+            1.  Try to remove the plugin using the Fuel CLI
             2.  Check plugin can't be uninstalled on deployed cluster.
             3.  Remove the environment.
             4.  Remove the plugin.

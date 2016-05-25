@@ -126,7 +126,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
                   "influxdb_grafana", "smoke"])
     @log_snapshot_after_test
     def uninstall_influxdb_grafana(self):
-        """Uninstall the InfluxDB-Grafana plugin plugin
+        """Uninstall the InfluxDB-Grafana plugin
 
         Scenario:
             1.  Install the plugin.
@@ -149,7 +149,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
         environment
 
         Scenario:
-            1.  Try to remove the plugins using the Fuel CLI
+            1.  Try to remove the plugin using the Fuel CLI
             2.  Check plugin can't be uninstalled on deployed cluster.
             3.  Remove the environment.
             4.  Remove the plugin.
