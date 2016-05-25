@@ -18,3 +18,9 @@ Destructive
 
 .. automodule:: stacklight_tests.influxdb_grafana.test_destructive
    :members:
+
+Functional
+==========
+
+.. automodule:: stacklight_tests.influxdb_grafana.test_functional
+   :members:

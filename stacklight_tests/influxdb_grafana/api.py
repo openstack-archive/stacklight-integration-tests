@@ -18,6 +18,7 @@ from proboscis import asserts
 import requests
 
 from stacklight_tests import base_test
+from stacklight_tests.influxdb_grafana.grafana_ui import api as ui_api
 from stacklight_tests.influxdb_grafana import plugin_settings
 
 
@@ -137,3 +138,7 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def check_uninstall_failure(self):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
+
+    def check_grafana_dashboards(self):
+        grafana_url = self.get_grafana_url()
+        ui_api.check_grafana_dashboards(grafana_url)

@@ -52,8 +52,6 @@ class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("check_cluster_outage_influxdb_grafana")
-
     @test(depends_on_groups=["deploy_influxdb_grafana"],
           groups=["check_disaster_influxdb_grafana", "influxdb_grafana",
                   "destructive", "check_node_outage_influxdb_grafana"])
@@ -66,8 +64,8 @@ class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
             1. Revert the snapshot with 3 deployed nodes
             2. Simulate network interruption on the InfluxDB/Grafana node
             3. Wait for at least 30 seconds before recover network availability
-            5. Run OSTF
-            6. Check that plugin is working
+            4. Run OSTF
+            5. Check that plugin is working
 
         Duration 20m
         Snapshot check_node_outage_influxdb_grafana
@@ -83,5 +81,3 @@ class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
         self.check_plugin_online()
 
         self.helpers.run_ostf()
-
-        self.env.make_snapshot("check_node_outage_influxdb_grafana")
