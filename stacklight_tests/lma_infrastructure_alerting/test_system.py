@@ -143,7 +143,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
                   "lma_infrastructure_alerting", "shutdown"])
     @log_snapshot_after_test
     def shutdown_infrastructure_alerting_node(self):
-        """Shutdown infrastructure alerting node
+        """Verify that failover for LMA Infrastructure Alerting cluster works.
 
         Scenario:
             1. Connect to any infrastructure_alerting node and run
@@ -152,21 +152,23 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
                was started.
             3. Check that vip_infrastructure_alerting was started
                on another infrastructure_alerting node.
-            4. Check that Nagios UI works correctly.
+            4. Check that plugin is working.
             5. Check that no data lost after shutdown.
             6. Run OSTF.
 
-        Duration 60m
+        Duration 30m
+        Snaphost shutdown_infrastructure_alerting_node
         """
         self.env.revert_snapshot("deploy_ha_lma_infrastructure_alerting")
-
-        target_node = self.get_primary_lma_node()
-        self.fuel_web.warm_shutdown_nodes([target_node])
-        new_node = self.get_primary_lma_node(target_node.name)
-        asserts.assert_not_equal(target_node, new_node)
-
+        vip_name = "".join(["vip__", self.settings.vip_name])
+        target_node = self.helpers.get_plugin_node_with_running_vip(
+            self.settings.role_name, vip_name)
+        self.helpers.hard_shutdown_node(target_node)
+        self.helpers.wait_for_rotation_plugin_vip(
+            target_node, self.settings.role_name, vip_name)
         self.check_plugin_online()
         self.helpers.run_ostf()
+        self.env.make_snapshot("shutdown_infrastructure_alerting_node")
 
     @test(depends_on_groups=['prepare_slaves_3'],
           groups=["lma_infrastructure_alerting_createmirror_deploy_plugin",

@@ -154,6 +154,45 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.env.make_snapshot("add_remove_elasticsearch_kibana_node")
 
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
+          groups=["check_failover_elasticsearch_kibana" "failover",
+                  "elasticsearch_kibana", "system", "destructive",
+                  "shutdown_elasticsearch_kibana_node"])
+    @log_snapshot_after_test
+    def shutdown_elasticsearch_kibana_node(self):
+        """Verify that failover for Elasticsearch cluster works.
+
+        Scenario:
+            1. Connect to any elasticsearch_kibana node and run command
+               'crm status'.
+            2. Shutdown node were es_vip_mgmt was started.
+            3. Check that es_vip_mgmt was started on another
+               elasticsearch_kibana node.
+            4. Check that plugin is working.
+            5. Check that no data lost after shutdown.
+            6. Run OSTF.
+
+        Duration 30m
+        Snaphost shutdown_influxdb_grafana_node
+        """
+        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
+
+        vip_name = "".join(["vip__", self.settings.vip_name])
+
+        target_node = self.helpers.get_plugin_node_with_running_vip(
+            self.settings.role_name, vip_name)
+
+        self.helpers.hard_shutdown_node(target_node)
+
+        self.helpers.wait_for_rotation_plugin_vip(
+            target_node, self.settings.role_name, vip_name)
+
+        self.check_plugin_online()
+
+        self.helpers.run_ostf()
+
+        self.env.make_snapshot("deploy_ha_elasticsearch_kibana")
+
     @test(depends_on_groups=['prepare_slaves_3'],
           groups=["elasticsearch_kibana_createmirror_deploy_plugin",
                   "system", "elasticsearch_kibana", "createmirror"])
