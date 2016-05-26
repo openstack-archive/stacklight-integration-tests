@@ -173,24 +173,29 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         """Verify that failover for InfluxDB cluster works.
 
         Scenario:
-            1. Revert snapshot with 9 deployed nodes in HA configuration
-            2. Determine influx_db master node were vip_influxdb was started
-            3. Shutdown influx_db master node
-            4. Check that vip_influxdb was started on another node
-            5. Check that plugin is working
-            6. Check that no data lost after shutdown
-            7. Run OSTF
+            1. Connect to any influxdb_grafana node and run command
+               'crm status'.
+            2. Shutdown node were vip_influxdb was started.
+            3. Check that vip_influxdb was started on another influxdb_grafana
+               node.
+            4. Check that plugin is working.
+            5. Check that no data lost after shutdown.
+            6. Run OSTF.
 
         Duration 30m
         Snaphost shutdown_influxdb_grafana_node
         """
         self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
-        master_node_hostname = self.get_influxdb_master_node()['fqdn']
+        vip_name = "".join(["vip__", self.settings.vip_name])
 
-        self.helpers.hard_shutdown_node(master_node_hostname)
+        target_node = self.helpers.get_plugin_node_with_running_vip(
+            self.settings.role_name, vip_name)
 
-        self.wait_for_rotation_influx_master(master_node_hostname)
+        self.helpers.hard_shutdown_node(target_node)
+
+        self.helpers.wait_for_rotation_plugin_vip(
+            target_node, self.settings.role_name, vip_name)
 
         self.check_plugin_online()
 
