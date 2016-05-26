@@ -188,18 +188,46 @@ class PluginHelper(object):
             if node['fqdn'] in stdout:
                 return node
 
-    def hard_shutdown_node(self, fqdn):
+    @staticmethod
+    def full_vip_name(vip_name):
+        return "".join(["vip__", vip_name])
+
+    def get_node_with_vip(self, role_name, vip, exclude_node=None):
+        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.cluster_id, role_name)
+        lma_nodes = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
+            nailgun_nodes)
+        lma_node = None
+        if exclude_node:
+            for node in lma_nodes:
+                if node.name != exclude_node.name:
+                    lma_node = node
+                    break
+        else:
+            lma_node = lma_nodes[0]
+        return self.fuel_web.get_pacemaker_resource_location(
+            lma_node.name, vip)[0]
+
+    def wait_for_vip_migration(self, old_master, role_name, vip,
+                               timeout=5 * 60):
+        logger.info('Waiting for the migration of VIP {}'.format(vip))
+        msg = "VIP {0} has not been migrated away from {1}".format(
+            vip, old_master)
+        helpers.wait(
+            lambda: old_master != self.get_node_with_vip(
+                role_name, vip, exclude_node=old_master),
+            timeout=timeout, timeout_msg=msg)
+
+    def power_off_node(self, node):
         """Power off a node.
         """
-        devops_node = self.fuel_web.get_devops_node_by_nailgun_fqdn(
-            fqdn)
         msg = 'Node {0} has not become offline after hard shutdown'.format(
-            devops_node.name)
-        logger.info('Destroy node %s', devops_node.name)
-        devops_node.destroy()
-        logger.info('Wait a %s node offline status', devops_node.name)
+            node.name)
+        logger.info('Power off node %s', node.name)
+        node.destroy()
+        logger.info('Wait a %s node offline status', node.name)
         helpers.wait(lambda: not self.fuel_web.get_nailgun_node_by_devops_node(
-            devops_node)['online'], timeout=60 * 5, timeout_msg=msg)
+            node)['online'], timeout=60 * 5, timeout_msg=msg)
 
     def emulate_whole_network_disaster(self, delay_before_recover=5 * 60,
                                        wait_become_online=True):
