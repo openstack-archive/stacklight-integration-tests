@@ -68,8 +68,19 @@ class PluginHelper(object):
         self.env.admin_actions.install_plugin(
             plugin_file_name=os.path.basename(plugin_path))
 
-    def activate_plugin(self, name, version, options):
-        """Activate and check exist plugin."""
+    def activate_plugin(self, name, version, options=None):
+        """Enable and configure a plugin for the cluster.
+
+        :param name: name of the plugin.
+        :type name: str
+        :param version: version of the plugin.
+        :type name: str
+        :param options: configuration of the plugin (optional).
+        :type options: dict
+        :returns: None
+        """
+        if options is None:
+            options = {}
         msg = "Plugin couldn't be enabled. Check plugin version. Test aborted"
         asserts.assert_true(
             self.fuel_web.check_plugin_exists(self.cluster_id, name),

@@ -51,6 +51,7 @@ def import_tests():
         test_smoke_bvt)
     from stacklight_tests.lma_infrastructure_alerting import (  # noqa
         test_system)
+    from stacklight_tests.toolchain import test_detached_plugins  # noqa
     from stacklight_tests.toolchain import test_smoke_bvt  # noqa
 
 
