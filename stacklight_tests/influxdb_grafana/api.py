@@ -12,10 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-from devops.helpers import helpers as devops_helpers
 from fuelweb_test import logger
 from proboscis import asserts
-import requests
 
 from stacklight_tests import base_test
 from stacklight_tests.influxdb_grafana.grafana_ui import api as ui_api
@@ -104,19 +102,6 @@ class InfluxdbPluginApi(base_test.PluginApi):
         msg = "Expected {0} InfluxDB nodes, got {}".format(
             count, nodes_count_responsed)
         asserts.assert_equal(count, nodes_count_responsed, msg)
-
-    def wait_plugin_online(self, timeout=5 * 60):
-        def check_availability():
-            try:
-                self.check_plugin_online()
-                return True
-            except (AssertionError, requests.ConnectionError):
-                return False
-
-        logger.info('Wait a plugin become online')
-        msg = "Plugin has not become online after waiting period"
-        devops_helpers.wait(
-            check_availability, timeout=timeout, timeout_msg=msg)
 
     def uninstall_plugin(self):
         return self.helpers.uninstall_plugin(self.settings.name,
