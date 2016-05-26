@@ -23,7 +23,22 @@ from fuelweb_test import logger
 from proboscis import asserts
 
 
-PACKAGE_VERSION_RE = re.compile(r'(\d+\.\d+\.\d+)')
+PLUGIN_PACKAGE_RE = re.compile(r'^(.+)-(\d+\.\d+)-(\d+\.\d+\.\d+)')
+
+
+def get_plugin_name(filename):
+    """Extract the plugin name from the package filename.
+
+    :param filename: the plugin's filename.
+    :type filename: str
+    :returns: the plugin's name or None if not found
+    :rtype: str
+    """
+    m = PLUGIN_PACKAGE_RE.search(filename or '')
+    if m:
+        return m.group(1)
+    else:
+        return None
 
 
 def get_plugin_version(filename):
@@ -34,9 +49,9 @@ def get_plugin_version(filename):
     :returns: the plugin's version or None if not found
     :rtype: str
     """
-    m = PACKAGE_VERSION_RE.search(filename or '')
+    m = PLUGIN_PACKAGE_RE.search(filename or '')
     if m:
-        return m.group(1)
+        return m.group(3)
     else:
         return None
 
