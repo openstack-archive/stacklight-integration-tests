@@ -15,20 +15,21 @@
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import test
 
-from stacklight_tests.influxdb_grafana import api
+from stacklight_tests.elasticsearch_kibana import api
 
 
 @test(groups=["plugins"])
-class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
+class TestDestructiveElasticsearchPlugin(api.ElasticsearchPluginApi):
     """Class for testing plugin failover after network disaster."""
 
-    @test(depends_on_groups=["deploy_ha_influxdb_grafana"],
-          groups=["check_disaster_influxdb_grafana", "influxdb_grafana",
-                  "destructive", "check_cluster_outage_influxdb_grafana"])
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
+          groups=["check_disaster_elasticsearch_kibana",
+                  "elasticsearch_kibana", "destructive",
+                  "check_cluster_outage_elasticsearch_kibana"])
     @log_snapshot_after_test
-    def check_cluster_outage_influxdb_grafana(self):
+    def check_cluster_outage_elasticsearch_kibana(self):
         """Verify that the backends and dashboards recover
-        after a network outage of the whole InfluxDB/Grafana cluster.
+        after a network outage of the whole Elasticsearch/Kibana cluster.
 
         Scenario:
             1. Revert the snapshot with 9 deployed nodes in HA configuration
@@ -40,7 +41,7 @@ class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
 
         Duration 40m
         """
-        self.env.revert_snapshot("deploy_ha_influxdb_grafana")
+        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
 
         self.helpers.emulate_whole_network_disaster(
             delay_before_recover=7 * 60)
@@ -49,24 +50,25 @@ class TestDestructiveInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf()
 
-    @test(depends_on_groups=["deploy_influxdb_grafana"],
-          groups=["check_disaster_influxdb_grafana", "influxdb_grafana",
-                  "destructive", "check_node_outage_influxdb_grafana"])
+    @test(depends_on_groups=["deploy_elasticsearch_kibana"],
+          groups=["check_disaster_elasticsearch_kibana",
+                  "elasticsearch_kibana", "destructive",
+                  "check_node_outage_elasticsearch_kibana"])
     @log_snapshot_after_test
-    def check_node_outage_influxdb_grafana(self):
+    def check_node_outage_elasticsearch_kibana(self):
         """Verify that the backends and dashboards recover after
-        a network outage on a standalone InfluxDB/Grafana node.
+        a network outage on a standalone Elasticsearch/Kibana node.
 
         Scenario:
             1. Revert the snapshot with 3 deployed nodes
-            2. Simulate network interruption on the InfluxDB/Grafana node
+            2. Simulate network interruption on the Elasticsearch/Kibana node
             3. Wait for at least 30 seconds before recover network availability
-            4. Run OSTF
-            5. Check that plugin is working
+            4. Check that plugin is working
+            5. Run OSTF
 
         Duration 20m
         """
-        self.env.revert_snapshot("deploy_influxdb_grafana")
+        self.env.revert_snapshot("deploy_elasticsearch_kibana")
 
         with self.fuel_web.get_ssh_for_nailgun_node(
                 self.helpers.get_master_node_by_role(self.settings.role_name)
