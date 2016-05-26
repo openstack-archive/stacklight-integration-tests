@@ -41,7 +41,6 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
             7. Run OSTF
 
         Duration 120m
-        Snapshot add_remove_controller_elasticsearch_kibana
         """
         self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
 
@@ -62,8 +61,6 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf(should_fail=1)
 
-        self.env.make_snapshot("add_remove_controller_elasticsearch_kibana")
-
     @test(depends_on_groups=['deploy_ha_elasticsearch_kibana'],
           groups=["check_scaling_elasticsearch_kibana", "scaling",
                   "elasticsearch_kibana", "system",
@@ -83,7 +80,6 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
             7. Run OSTF
 
         Duration 120m
-        Snapshot add_remove_compute_elasticsearch_kibana
         """
         self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
 
@@ -103,8 +99,6 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         self.check_plugin_online()
 
         self.helpers.run_ostf(should_fail=1)
-
-        self.env.make_snapshot("add_remove_compute_elasticsearch_kibana")
 
     @test(depends_on_groups=['deploy_ha_elasticsearch_kibana'],
           groups=["check_scaling_elasticsearch_kibana", "scaling",
@@ -126,7 +120,6 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
             7. Run OSTF
 
         Duration 120m
-        Snapshot add_remove_elasticsearch_kibana_node
         """
         self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
 
@@ -152,7 +145,39 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf()
 
-        self.env.make_snapshot("add_remove_elasticsearch_kibana_node")
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
+          groups=["check_failover_elasticsearch_kibana" "failover",
+                  "elasticsearch_kibana", "system", "destructive",
+                  "shutdown_elasticsearch_kibana_node"])
+    @log_snapshot_after_test
+    def shutdown_elasticsearch_kibana_node(self):
+        """Verify that failover for Elasticsearch cluster works.
+
+        Scenario:
+            1. Shutdown node were es_vip_mgmt was started.
+            2. Check that es_vip_mgmt was started on another
+               elasticsearch_kibana node.
+            3. Check that plugin is working.
+            4. Check that no data lost after shutdown.
+            5. Run OSTF.
+
+        Duration 30m
+        """
+        self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
+
+        vip_name = self.helpers.full_vip_name(self.settings.vip_name)
+
+        target_node = self.helpers.get_node_with_vip(
+            self.settings.role_name, vip_name)
+
+        self.helpers.power_off_node(target_node)
+
+        self.helpers.wait_for_vip_migration(
+            target_node, self.settings.role_name, vip_name)
+
+        self.check_plugin_online()
+
+        self.helpers.run_ostf()
 
     @test(depends_on_groups=['prepare_slaves_3'],
           groups=["elasticsearch_kibana_createmirror_deploy_plugin",
