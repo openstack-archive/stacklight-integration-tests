@@ -49,21 +49,6 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                                                 self.settings.nagios_password,
                                                 self.get_plugin_vip())
 
-    def get_primary_lma_node(self, exclude=None):
-        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-            self.helpers.cluster_id, self.settings.role_name)
-        lma_nodes = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
-            nailgun_nodes)
-        if exclude:
-            for node in lma_nodes:
-                if node.name != exclude:
-                    lma_node = node
-                    break
-        else:
-            lma_node = lma_nodes[0]
-        return self.fuel_web.get_pacemaker_resource_location(
-            lma_node.name, "vip__infrastructure_alerting_mgmt_vip")[0]
-
     def open_nagios_page(self, link_text, anchor):
         driver = self.ui_tester.get_driver(self.get_nagios_url(),
                                            "//frame[2]", "Nagios Core")
