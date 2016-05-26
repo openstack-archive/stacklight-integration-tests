@@ -14,7 +14,10 @@
 
 import abc
 
+from devops.helpers import helpers as devops_helpers
+from fuelweb_test import logger
 from fuelweb_test.tests import base_test_case
+import requests
 import six
 
 from stacklight_tests.helpers import checkers
@@ -92,3 +95,18 @@ class PluginApi(object):
         """Check that the plugin works properly.
         """
         pass
+
+    def wait_plugin_online(self, timeout=5 * 60):
+        """Wait until the plugin will start working properly.
+        """
+        def check_availability():
+            try:
+                self.check_plugin_online()
+                return True
+            except (AssertionError, requests.ConnectionError):
+                return False
+
+        logger.info('Wait a plugin become online')
+        msg = "Plugin has not become online after a waiting period"
+        devops_helpers.wait(
+            check_availability, timeout=timeout, timeout_msg=msg)
