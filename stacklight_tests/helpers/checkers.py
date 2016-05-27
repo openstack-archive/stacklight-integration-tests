@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from fuelweb_test.helpers import checkers
 from proboscis import asserts
 import requests
 
@@ -34,3 +35,16 @@ def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
     asserts.assert_equal(
         r.status_code, expected_code, msg.format(r.status_code, expected_code))
     return r
+
+
+def verify_services(remote, service_name, count):
+    """Check that a process is running on a host.
+
+    :param remote: SSHClient
+    :type remote: SSHClient object
+    :param service_name: the process name to match.
+    :type service_name: str
+    :param count: the number of processes to match.
+    :type count: int
+    """
+    checkers.verify_service(remote, service_name, count)
