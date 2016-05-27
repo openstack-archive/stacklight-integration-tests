@@ -62,6 +62,15 @@ class PluginHelper(object):
     def cluster_id(self, value):
         self._cluster_id = value
 
+    @property
+    def fuel_client(self):
+        """Return the associated FuelWebClient instance."""
+        return self.fuel_web.client
+
+    def verify_networks(self):
+        """Verify the network configuration."""
+        return self.fuel_web.verify_networks(self.cluster_id)
+
     def prepare_plugin(self, plugin_path):
         """Upload and install plugin by path."""
         self.env.admin_actions.upload_plugin(plugin=plugin_path)
