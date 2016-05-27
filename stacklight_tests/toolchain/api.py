@@ -60,3 +60,8 @@ class ToolchainApi(object):
         for plugin in self.plugins:
             logger.info(msg.format(plugin.get_plugin_settings().name))
             plugin.check_plugin_online()
+
+    def check_nodes_count(self, count, hostname, state):
+        self.plugins[0].check_elasticsearch_nodes_count(expected_count=count)
+        self.plugins[1].check_influxdb_nodes_count(count=count)
+        self.plugins[3].check_node_in_nagios(hostname, state)

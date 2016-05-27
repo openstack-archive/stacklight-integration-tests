@@ -101,7 +101,7 @@ class InfluxdbPluginApi(base_test.PluginApi):
         nodes_count_responsed = len(
             response.json()["results"][0]["series"][0]["values"])
 
-        msg = "Expected {0} InfluxDB nodes, got {}".format(
+        msg = "Expected {0} InfluxDB nodes, got {1}".format(
             count, nodes_count_responsed)
         asserts.assert_equal(count, nodes_count_responsed, msg)
 
