@@ -9,3 +9,4 @@ StackLight Integration Tests Documentation
     influxdb_grafana.rst
     lma_collector.rst
     lma_infrastructure_alerting.rst
+    toolchain.rst
