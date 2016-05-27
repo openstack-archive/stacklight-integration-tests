@@ -15,6 +15,8 @@
 from proboscis import asserts
 import requests
 
+from stacklight_tests.helpers import remote_ops
+
 
 def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
     """Perform a HTTP GET request and assert that the HTTP server replies with
@@ -34,3 +36,22 @@ def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
     asserts.assert_equal(
         r.status_code, expected_code, msg.format(r.status_code, expected_code))
     return r
+
+
+def verify_services(remote, service_name, count):
+    """Check that a process is running on a host.
+
+    :param remote: SSH connection to the node.
+    :type remote: SSHClient
+    :param service_name: the process name to match.
+    :type service_name: str
+    :param count: the number of processes to match.
+    :type count: int
+    :returns: list of PIDs.
+    :rtype: list
+    """
+    msg = "{0} count not equal to {1}, received instead {2}."
+    pids = remote_ops.get_pids_of_process(remote, service_name)
+    asserts.assert_equal(
+        len(pids), count, msg.format(service_name, count, len(pids)))
+    return pids

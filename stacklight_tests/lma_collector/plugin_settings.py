@@ -37,3 +37,11 @@ toolchain_options = {
     'influxdb_mode/value': 'local',
     'alerting_mode/value': 'local'
 }
+
+services_to_check = {
+    "0.9": {
+        "hekad": 1,
+        "collectd": 1,
+        "collectdmon": 1
+    },
+}
