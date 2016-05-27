@@ -42,12 +42,12 @@ class TestToolchainDetachPlugins(api.ToolchainApi):
             2. Install the plugins
             3. Create the cluster
             4. Add 1 node with the controller role
-            4. Add 1 node with the rabbitmq role
-            5. Add 1 node with the compute and cinder roles
-            6. Add 1 node with the plugin roles
-            7. Deploy the cluster
-            8. Check that LMA Toolchain plugins are running
-            9. Run OSTF
+            5. Add 1 node with the rabbitmq role
+            6. Add 1 node with the compute and cinder roles
+            7. Add 1 node with the plugin roles
+            8. Deploy the cluster
+            9. Check that LMA Toolchain plugins are running
+            10. Run OSTF
 
         Duration 60m
         Snapshot deploy_toolchain_with_detached_rabbitmq
@@ -78,12 +78,12 @@ class TestToolchainDetachPlugins(api.ToolchainApi):
             2. Install the plugins
             3. Create the cluster
             4. Add 1 node with the controller role
-            4. Add 1 node with the database role
-            5. Add 1 node with the compute and cinder roles
-            6. Add 1 node with the plugin roles
-            7. Deploy the cluster
-            8. Check that LMA Toolchain plugins are running
-            9. Run OSTF
+            5. Add 1 node with the database role
+            6. Add 1 node with the compute and cinder roles
+            7. Add 1 node with the plugin roles
+            8. Deploy the cluster
+            9. Check that LMA Toolchain plugins are running
+            10. Run OSTF
 
         Duration 60m
         Snapshot deploy_toolchain_with_detached_database
