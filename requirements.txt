@@ -4,3 +4,4 @@ selenium
 six
 tox
 xvfbwrapper
+PyYAML

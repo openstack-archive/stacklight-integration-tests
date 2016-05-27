@@ -18,3 +18,9 @@ Detached plugins
 
 .. automodule:: stacklight_tests.toolchain.test_detached_plugins
    :members:
+
+Network templates
+=================
+
+.. automodule:: stacklight_tests.toolchain.test_network_templates
+   :members:
