@@ -24,7 +24,7 @@ from stacklight_tests.lma_infrastructure_alerting import api
 class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
     """Class for system testing the LMA Infrastructure Alerting plugin."""
 
-    @test(depends_on_groups=['deploy_ha_lma_infrastructure_alerting'],
+    @test(depends_on_groups=["deploy_ha_lma_infrastructure_alerting"],
           groups=["add_remove_controller_lma_infrastructure_alerting",
                   "system", "lma_infrastructure_alerting", "scaling"])
     @log_snapshot_after_test
@@ -48,19 +48,22 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         """
         self.env.revert_snapshot("deploy_ha_lma_infrastructure_alerting")
 
-        target_node = self.helpers.get_fuel_node_name('slave-02_controller')
-        self.helpers.remove_node_from_cluster({'slave-02': ['controller']})
+        target_node = {'slave-02': ['controller']}
+        target_node_hostname = self.helpers.get_hostname_by_node_name(
+            target_node.keys()[0])
+        self.helpers.remove_node_from_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
-        self.check_node_in_nagios(target_node, False)
+        self.check_node_in_nagios(target_node_hostname, False)
 
-        self.helpers.add_node_to_cluster({'slave-02': ['controller']})
+        self.helpers.add_node_to_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
-        target_node = self.helpers.get_fuel_node_name('slave-02_controller')
-        self.check_node_in_nagios(target_node, True)
+        target_node_hostname = self.helpers.get_hostname_by_node_name(
+            target_node.keys()[0])
+        self.check_node_in_nagios(target_node_hostname, True)
 
-    @test(depends_on_groups=['deploy_ha_lma_infrastructure_alerting'],
+    @test(depends_on_groups=["deploy_ha_lma_infrastructure_alerting"],
           groups=["add_remove_compute_lma_infrastructure_alerting", "system",
                   "lma_infrastructure_alerting", "scaling"])
     @log_snapshot_after_test
@@ -84,22 +87,22 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         """
         self.env.revert_snapshot("deploy_ha_lma_infrastructure_alerting")
 
-        target_node = self.helpers.get_fuel_node_name(
-            'slave-04_compute_cinder')
-        self.helpers.remove_node_from_cluster(
-            {'slave-04': ['compute', 'cinder']}, False, True)
+        target_node = {'slave-04': ['compute', 'cinder']}
+        target_node_hostname = self.helpers.get_hostname_by_node_name(
+            target_node.keys()[0])
+        self.helpers.remove_node_from_cluster(target_node, False, True)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
-        self.check_node_in_nagios(target_node, False)
+        self.check_node_in_nagios(target_node_hostname, False)
 
-        self.helpers.add_node_to_cluster({'slave-04': ['compute', 'cinder']})
+        self.helpers.add_node_to_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
-        target_node = self.helpers.get_fuel_node_name(
-            'slave-04_compute_cinder')
-        self.check_node_in_nagios(target_node, True)
+        target_node_hostname = self.helpers.get_hostname_by_node_name(
+            target_node.keys()[0])
+        self.check_node_in_nagios(target_node_hostname, True)
 
-    @test(depends_on_groups=['deploy_ha_lma_infrastructure_alerting'],
+    @test(depends_on_groups=["deploy_ha_lma_infrastructure_alerting"],
           groups=["add_remove_infrastructure_alerting_node", "system",
                   "lma_infrastructure_alerting", "scaling"])
     @log_snapshot_after_test
@@ -122,23 +125,22 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         """
         self.env.revert_snapshot("deploy_ha_lma_infrastructure_alerting")
 
-        target_node = self.helpers.get_fuel_node_name(
-            'slave-05_{0}'.format(self.settings.role_name[0]))
-        self.helpers.remove_node_from_cluster(
-            {'slave-05': self.settings.role_name})
+        target_node = {'slave-05': self.settings.role_name}
+        target_node_hostname = self.helpers.get_hostname_by_node_name(
+            target_node.keys()[0])
+        self.helpers.remove_node_from_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
-        self.check_node_in_nagios(target_node, False)
+        self.check_node_in_nagios(target_node_hostname, False)
 
-        self.helpers.add_node_to_cluster(
-            {'slave-05': self.settings.role_name})
+        self.helpers.add_node_to_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
-        target_node = self.helpers.get_fuel_node_name(
-            'slave-05_{0}'.format(self.settings.role_name[0]))
-        self.check_node_in_nagios(target_node, True)
+        target_node_hostname = self.helpers.get_hostname_by_node_name(
+            target_node.keys()[0])
+        self.check_node_in_nagios(target_node_hostname, True)
 
-    @test(depends_on_groups=['deploy_ha_lma_infrastructure_alerting'],
+    @test(depends_on_groups=["deploy_ha_lma_infrastructure_alerting"],
           groups=["shutdown_infrastructure_alerting_node", "system",
                   "lma_infrastructure_alerting", "shutdown"])
     @log_snapshot_after_test
@@ -168,7 +170,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         self.check_plugin_online()
         self.helpers.run_ostf()
 
-    @test(depends_on_groups=['prepare_slaves_3'],
+    @test(depends_on_groups=["prepare_slaves_3"],
           groups=["lma_infrastructure_alerting_createmirror_deploy_plugin",
                   "system", "lma_infrastructure_alerting", "createmirror"])
     @log_snapshot_after_test

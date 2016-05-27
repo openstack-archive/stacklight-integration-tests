@@ -41,6 +41,10 @@ def get_plugin_version(filename):
         return None
 
 
+class NotFound(Exception):
+    pass
+
+
 class PluginHelper(object):
     """Class for common help functions."""
 
@@ -277,11 +281,12 @@ class PluginHelper(object):
                 'when it is deployed'.format(name=plugin_name,
                                              version=plugin_version))
 
-    def get_fuel_node_name(self, changed_node):
-        for node in self.fuel_web.client.list_cluster_nodes(self.cluster_id):
-            if node["name"] == changed_node:
-                return node["hostname"]
-        return None
+    def get_hostname_by_node_name(self, changed_node):
+        node = self.fuel_web.get_nailgun_node_by_base_name(changed_node)
+        if node is None:
+            raise NotFound("Nailgun node with '{}' in name not found".format(
+                changed_node))
+        return node['hostname']
 
     def fuel_createmirror(self, option="", exit_code=0):
         logger.info("Executing 'fuel-createmirror' command.")

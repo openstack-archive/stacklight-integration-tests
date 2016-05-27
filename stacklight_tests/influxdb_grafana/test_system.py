@@ -25,7 +25,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
     @test(depends_on_groups=["deploy_ha_influxdb_grafana"],
           groups=["check_scaling_influxdb_grafana", "scaling",
                   "influxdb_grafana", "system",
-                  "check_add_delete_controller_influxdb_grafana"])
+                  "add_remove_controller_influxdb_grafana"])
     @log_snapshot_after_test
     def add_remove_controller_influxdb_grafana(self):
         """Verify that the number of controllers can scale up and down
@@ -103,7 +103,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.helpers.run_ostf(should_fail=1)
 
-        # Add controller
+        # Add compute
         self.helpers.add_node_to_cluster(manipulated_node)
 
         self.check_plugin_online()
