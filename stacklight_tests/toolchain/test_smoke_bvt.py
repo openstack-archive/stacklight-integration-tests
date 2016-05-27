@@ -118,3 +118,44 @@ class TestToolchain(api.ToolchainApi):
         self.helpers.run_ostf()
 
         self.env.make_snapshot("deploy_ha_toolchain", is_make=True)
+
+    @test(depends_on=[deploy_toolchain],
+          groups=["uninstall_deployed_toolchain", "uninstall", "toolchain",
+                  "smoke"])
+    @log_snapshot_after_test
+    def uninstall_deployed_toolchain(self):
+        """Uninstall the LMA Toolchain plugins with a deployed environment
+
+        Scenario:
+            1.  Try to remove the plugins using the Fuel CLI
+            2.  Check plugins can't be uninstalled on deployed cluster.
+            3.  Remove the environment.
+            4.  Remove the plugins.
+
+        Duration 20m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+
+        self.check_uninstall_failure()
+
+        self.fuel_web.delete_env_wait(self.helpers.cluster_id)
+
+        self.uninstall_plugins()
+
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["uninstall_toolchain", "uninstall", "toolchain", "smoke"])
+    @log_snapshot_after_test
+    def uninstall_toolchain(self):
+        """Uninstall the LMA Toolchain plugins
+
+        Scenario:
+            1.  Install the plugins.
+            2.  Remove the plugins.
+
+        Duration 5m
+        """
+        self.env.revert_snapshot("ready_with_3_slaves")
+
+        self.prepare_plugins()
+
+        self.uninstall_plugins()
