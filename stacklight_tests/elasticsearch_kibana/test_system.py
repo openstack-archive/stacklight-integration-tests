@@ -22,7 +22,7 @@ from stacklight_tests.elasticsearch_kibana import api
 class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
     """Class for system tests for Elasticsearch-Kibana plugin."""
 
-    @test(depends_on_groups=['deploy_ha_elasticsearch_kibana'],
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
           groups=["check_scaling_elasticsearch_kibana", "scaling",
                   "elasticsearch_kibana", "system",
                   "add_remove_controller_elasticsearch_kibana"])
@@ -61,7 +61,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf(should_fail=1)
 
-    @test(depends_on_groups=['deploy_ha_elasticsearch_kibana'],
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
           groups=["check_scaling_elasticsearch_kibana", "scaling",
                   "elasticsearch_kibana", "system",
                   "add_remove_compute_elasticsearch_kibana"])
@@ -100,7 +100,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf(should_fail=1)
 
-    @test(depends_on_groups=['deploy_ha_elasticsearch_kibana'],
+    @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
           groups=["check_scaling_elasticsearch_kibana", "scaling",
                   "elasticsearch_kibana", "system",
                   "add_remove_elasticsearch_kibana_node"])
@@ -179,7 +179,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.helpers.run_ostf()
 
-    @test(depends_on_groups=['prepare_slaves_3'],
+    @test(depends_on_groups=["prepare_slaves_3"],
           groups=["elasticsearch_kibana_createmirror_deploy_plugin",
                   "system", "elasticsearch_kibana", "createmirror"])
     @log_snapshot_after_test
@@ -191,7 +191,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
                install the plugin.
             2. Run the following command on the master node:
                fuel-createmirror
-            3. Create an environment with enabled plugins in the
+            3. Create an environment with enabled plugin in the
                Fuel Web UI and deploy it.
             4. Run OSTF.
 

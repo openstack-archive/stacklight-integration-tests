@@ -35,11 +35,14 @@ class ToolchainApi(object):
         self.checkers = checkers
         self.remote_ops = remote_ops
         self.ui_tester = ui_tester
-        self.plugins = [
-            elasticsearch_api.ElasticsearchPluginApi(),
-            influx_api.InfluxdbPluginApi(),
-            collector_api.LMACollectorPluginApi(),
-            infrastructure_alerting_api.InfraAlertingPluginApi()]
+        self.plugins_mapping = {
+            "elasticsearch_kibana": elasticsearch_api.ElasticsearchPluginApi(),
+            "influxdb_grafana": influx_api.InfluxdbPluginApi(),
+            "lma_collector": collector_api.LMACollectorPluginApi(),
+            "lma_infrastructure_alerting":
+                infrastructure_alerting_api.InfraAlertingPluginApi()
+        }
+        self.plugins = set(self.plugins_mapping.values())
 
     def __getattr__(self, item):
         return getattr(self.test, item)
@@ -60,6 +63,15 @@ class ToolchainApi(object):
         for plugin in self.plugins:
             logger.info(msg.format(plugin.get_plugin_settings().name))
             plugin.check_plugin_online()
+
+    def check_nodes_count(self, count, hostname, state):
+        self.plugins_mapping[
+            'elasticsearch_kibana'].check_elasticsearch_nodes_count(count)
+        self.plugins_mapping[
+            'influxdb_grafana'].check_influxdb_nodes_count(count)
+        self.plugins_mapping[
+            'lma_infrastructure_alerting'].check_node_in_nagios(
+            hostname, state)
 
     def uninstall_plugins(self):
         for plugin in self.plugins:
