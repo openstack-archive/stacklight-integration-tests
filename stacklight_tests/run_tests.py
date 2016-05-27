@@ -53,7 +53,7 @@ def import_tests():
         test_system)
     from stacklight_tests.toolchain import test_detached_plugins  # noqa
     from stacklight_tests.toolchain import test_smoke_bvt  # noqa
-
+    from stacklight_tests.toolchain import test_destructive  # noqa
 
 def run_tests():
     from proboscis import TestProgram  # noqa
