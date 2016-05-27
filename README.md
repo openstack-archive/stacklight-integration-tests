@@ -24,7 +24,11 @@ for the detailed procedure).
 
         . $VENV_PATH/bin/activate
 
-4. Run the tests:
+4. If you want to run UI test in headless mode, install these packages:
+
+        sudo apt-get install xvfb firefox -y
+
+5. Run the tests:
 
         ./utils/jenkins/system_tests.sh -k -K -j fuelweb_test -t test -w $(pwd) -o --group=<your_test_group_to_run>
 
