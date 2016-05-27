@@ -62,6 +62,11 @@ class PluginHelper(object):
     def cluster_id(self, value):
         self._cluster_id = value
 
+    @property
+    def fuel_client(self):
+        """Return the associated FuelWebClient instance."""
+        return self.fuel_web.client
+
     def prepare_plugin(self, plugin_path):
         """Upload and install plugin by path."""
         self.env.admin_actions.upload_plugin(plugin=plugin_path)
@@ -120,9 +125,24 @@ class PluginHelper(object):
             settings=settings,
             mode='ha_compact')
 
-    def deploy_cluster(self, nodes_roles):
-        """Method to deploy cluster with provided node roles."""
-        self.fuel_web.update_nodes(self.cluster_id, nodes_roles)
+    def deploy_cluster(self, nodes_roles, verify_network=False,
+                       update_interfaces=True):
+        """Assign roles to nodes and deploy the cluster.
+
+        :param nodes_roles: nodes to roles mapping.
+        :type name: dict
+        :param verify_network: whether or not network verification should be
+        run before the deployment (default: False).
+        :type settings: boolean
+        :param update_interfaces: whether or not interfaces should updated
+        before the deployment (default: True).
+        :type settings: boolean
+        :returns: None
+        """
+        self.fuel_web.update_nodes(self.cluster_id, nodes_roles,
+                                   update_interfaces=update_interfaces)
+        if verify_network:
+            self.fuel_web.verify_network(self.cluster_id)
         self.fuel_web.deploy_cluster_wait(self.cluster_id)
 
     def run_ostf(self, *args, **kwargs):
