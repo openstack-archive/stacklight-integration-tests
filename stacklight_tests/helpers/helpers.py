@@ -18,7 +18,6 @@ import time
 import urllib2
 
 from devops.helpers import helpers
-from fuelweb_test.helpers import checkers
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -133,19 +132,6 @@ class PluginHelper(object):
         """Run a subset of the OpenStack health checks."""
         self.fuel_web.run_single_ostf_test(self.cluster_id, test_sets,
                                            test_name, *args, **kwargs)
-
-    def verify_service(self, ip, service_name, count):
-        """Check that a process is running on a host.
-
-        :param ip: IP address of the host.
-        :type ip: str
-        :param service_name: the process name to match.
-        :type service_name: str
-        :param count: the number of processes to match.
-        :type count: int
-        """
-        with self.env.d_env.get_ssh_to_remote(ip) as remote:
-            checkers.verify_service(remote, service_name, count)
 
     def add_node_to_cluster(self, node, redeploy=True, check_services=False):
         """Add nodes to the cluster.
@@ -288,6 +274,20 @@ class PluginHelper(object):
         with self.env.d_env.get_admin_remote() as remote:
             exec_res = remote.execute(
                 "fuel-createmirror {0}".format(option))
-            asserts.assert_equal(exit_code, exec_res['exit_code'],
-                                 'fuel-createmirror failed:'
-                                 ' {0}'.format(exec_res['stderr']))
+            asserts.assert_equal(
+                exit_code, exec_res['exit_code'],
+                'fuel-createmirror failed: {0}'.format(exec_res['stderr']))
+
+    @staticmethod
+    def get_services_for_version(services_mapping, version):
+        """Returns processes for needed version only.
+
+        :param services_mapping: full services mapping.
+        :type services_mapping: dict
+        :param version: plugin's version.
+        :type version: str
+        """
+        def get_major_version():
+            return ".".join(version.split(".")[:2])
+        major_version = get_major_version()
+        return services_mapping[major_version]
