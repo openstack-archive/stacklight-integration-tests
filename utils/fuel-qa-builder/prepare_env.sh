@@ -32,7 +32,6 @@ echo "Using virtual environment at '$VIRTUAL_ENV'"
 
 if [[ "$(pip show fuelweb-test)" == "" ]]; then
     # Install fuel-qa in the virtual environment
-    FUELQA_GITREF=${FUELQA_GITREF:-stable/8.0}
     echo "Checking out fuel-qa, reference: $FUELQA_GITREF"
     FUELQA_DIR=$(mktemp -d)
     git clone https://github.com/openstack/fuel-qa.git -- "$FUELQA_DIR"
