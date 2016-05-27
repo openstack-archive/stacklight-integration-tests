@@ -66,6 +66,7 @@ class PluginHelper(object):
         self.env = env
         self.fuel_web = self.env.fuel_web
         self._cluster_id = None
+        self.nailgun_client = self.fuel_web.client
 
     @property
     def cluster_id(self):
@@ -140,9 +141,24 @@ class PluginHelper(object):
             settings=settings,
             mode='ha_compact')
 
-    def deploy_cluster(self, nodes_roles):
-        """Method to deploy cluster with provided node roles."""
-        self.fuel_web.update_nodes(self.cluster_id, nodes_roles)
+    def deploy_cluster(self, nodes_roles, verify_network=False,
+                       update_interfaces=True):
+        """Assign roles to nodes and deploy the cluster.
+
+        :param nodes_roles: nodes to roles mapping.
+        :type name: dict
+        :param verify_network: whether or not network verification should be
+        run before the deployment (default: False).
+        :type settings: boolean
+        :param update_interfaces: whether or not interfaces should updated
+        before the deployment (default: True).
+        :type settings: boolean
+        :returns: None
+        """
+        self.fuel_web.update_nodes(self.cluster_id, nodes_roles,
+                                   update_interfaces=update_interfaces)
+        if verify_network:
+            self.fuel_web.verify_network(self.cluster_id)
         self.fuel_web.deploy_cluster_wait(self.cluster_id)
 
     def run_ostf(self, *args, **kwargs):
