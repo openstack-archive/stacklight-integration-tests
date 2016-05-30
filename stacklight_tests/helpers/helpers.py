@@ -308,3 +308,22 @@ class PluginHelper(object):
             return ".".join(version.split(".")[:2])
         major_version = get_major_version()
         return services_mapping[major_version]
+
+    def fuel_create_repositories(self, nodes):
+        """Start task to setup repositories on provided nodes
+
+        :param nodes: list of nodes to run task on them
+        :type nodes: list
+        """
+        nodes_ids = [str(node['id']) for node in nodes]
+        cmd = (
+            "fuel --env {env_id} "
+            "node --node-id {nodes_ids} "
+            "--tasks setup_repositories".format(
+                env_id=self.cluster_id,
+                nodes_ids=' '.join(nodes_ids))
+        )
+        logger.info(
+            "Executing {cmd} command.".format(cmd=cmd))
+        with self.env.d_env.get_admin_remote() as remote:
+            remote.check_call(cmd)

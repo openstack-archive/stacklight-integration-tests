@@ -34,20 +34,28 @@ class LMACollectorPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         pass
 
-    def verify_services(self):
-        """Check that LMA services started in the right quantity."""
-        nodes = self.helpers.get_all_ready_nodes()
-
+    def get_services_to_check(self):
         services_to_check = self.helpers.get_services_for_version(
             self.settings.services_to_check,
             self.settings.version)
+        return services_to_check
+
+    def verify_services(self):
+        """Check that LMA services started in the right quantity."""
+        nodes = self.helpers.get_all_ready_nodes()
+        pids = {}
+        services_to_check = self.get_services_to_check()
         for node in nodes:
             logger.info("Check {services} services on the {name} node".format(
                 name=node['name'],
                 services=', '.join(services_to_check.keys()),))
+            services_pids = {}
             with self.env.d_env.get_ssh_to_remote(node['ip']) as remote:
                 for service, count in services_to_check.items():
-                    self.checkers.verify_services(remote, service, count)
+                    services_pids[service] = (
+                        self.checkers.verify_services(remote, service, count))
+            pids[node['name']] = services_pids
+        return pids
 
     def check_plugin_online(self):
         # Run OSTF test to check pacemaker status
