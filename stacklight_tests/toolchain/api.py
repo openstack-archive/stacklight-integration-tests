@@ -35,11 +35,14 @@ class ToolchainApi(object):
         self.checkers = checkers
         self.remote_ops = remote_ops
         self.ui_tester = ui_tester
-        self.plugins = [
-            elasticsearch_api.ElasticsearchPluginApi(),
-            influx_api.InfluxdbPluginApi(),
-            collector_api.LMACollectorPluginApi(),
-            infrastructure_alerting_api.InfraAlertingPluginApi()]
+        self.plugins_mapping = {
+            "elasticsearch_kibana": elasticsearch_api.ElasticsearchPluginApi(),
+            "influxdb_grafana": influx_api.InfluxdbPluginApi(),
+            "lma_collector": collector_api.LMACollectorPluginApi(),
+            "lma_infrastructure_alerting":
+                infrastructure_alerting_api.InfraAlertingPluginApi()
+        }
+        self.plugins = set(self.plugins_mapping.values())
 
     def __getattr__(self, item):
         return getattr(self.test, item)
@@ -68,3 +71,6 @@ class ToolchainApi(object):
     def check_uninstall_failure(self):
         for plugin in self.plugins:
             plugin.check_uninstall_failure()
+
+    def get_pids_of_services(self):
+        return self.plugins_mapping["lma_collector"].verify_services()
