@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 from fuelweb_test import logger
 
 from stacklight_tests import base_test
@@ -33,6 +34,21 @@ class LMACollectorPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         pass
 
+    def verify_services(self):
+        """Check that LMA services started in the right quantity."""
+        nodes = self.helpers.get_all_ready_nodes()
+
+        services_to_check = self.helpers.get_services_for_version(
+            self.settings.services_to_check,
+            self.settings.version)
+        for node in nodes:
+            logger.info("Check {services} services on the {name} node".format(
+                name=node['name'],
+                services=', '.join(services_to_check.keys()),))
+            with self.env.d_env.get_ssh_to_remote(node['ip']) as remote:
+                for service, count in services_to_check.items():
+                    self.checkers.verify_services(remote, service, count)
+
     def check_plugin_online(self):
         # Run OSTF test to check pacemaker status
         self.helpers.run_single_ostf(
@@ -40,14 +56,7 @@ class LMACollectorPluginApi(base_test.PluginApi):
             test_name='fuel_health.tests.ha.test_pacemaker_status.'
                       'TestPacemakerStatus.test_check_pacemaker_resources')
 
-        # Check that heka and collectd processes are started on all nodes
-        nodes = self.helpers.get_all_ready_nodes()
-        msg = "Check services on the {} node"
-        for node in nodes:
-            logger.info(msg.format(node['name']))
-            _ip = node['ip']
-            self.helpers.verify_service(_ip, 'hekad', 2)
-            self.helpers.verify_service(_ip, 'collectd -C', 1)
+        self.verify_services()
 
     def uninstall_plugin(self):
         return self.helpers.uninstall_plugin(self.settings.name,

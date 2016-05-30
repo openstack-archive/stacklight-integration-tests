@@ -63,3 +63,20 @@ def simulate_network_interrupt_on_node(remote, interval=30):
         "/sbin/iptables -D INPUT -j DROP) 2>&1>/dev/null &".format(
             interval=interval))
     remote.execute(cmd)
+
+
+def get_pids_of_process(remote, name):
+    """Get PIDs of process by its name.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param name: process name.
+        :type name: str
+        :returns: list of PIDs.
+        :rtype: list
+        """
+    cmd = "pidof {}".format(name)
+    result = remote.execute(cmd)
+    if result['exit_code'] != 0:
+        return []
+    return result['stdout'][0].strip().split()
