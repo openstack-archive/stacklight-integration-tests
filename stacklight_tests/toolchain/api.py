@@ -60,3 +60,11 @@ class ToolchainApi(object):
         for plugin in self.plugins:
             logger.info(msg.format(plugin.get_plugin_settings().name))
             plugin.check_plugin_online()
+
+    def uninstall_plugins(self):
+        for plugin in self.plugins:
+            plugin.uninstall_plugin()
+
+    def check_uninstall_failure(self):
+        for plugin in self.plugins:
+            plugin.check_uninstall_failure()
