@@ -336,20 +336,6 @@ class PluginHelper(object):
             for cmd in cmds:
                 remote.check_call(cmd)
 
-    @staticmethod
-    def get_services_for_version(services_mapping, version):
-        """Returns processes for needed version only.
-
-        :param services_mapping: full services mapping.
-        :type services_mapping: dict
-        :param version: plugin's version.
-        :type version: str
-        """
-        def get_major_version():
-            return ".".join(version.split(".")[:2])
-        major_version = get_major_version()
-        return services_mapping[major_version]
-
     def fuel_create_repositories(self, nodes):
         """Start task to setup repositories on provided nodes
 

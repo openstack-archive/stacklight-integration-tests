@@ -38,8 +38,8 @@ def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
     return r
 
 
-def verify_services(remote, service_name, count):
-    """Check that a process is running on a host.
+def check_process_count(remote, process, count):
+    """Check that the expected number of processes is running on a host.
 
     :param remote: SSH connection to the node.
     :type remote: SSHClient
@@ -50,8 +50,9 @@ def verify_services(remote, service_name, count):
     :returns: list of PIDs.
     :rtype: list
     """
-    msg = "{0} count not equal to {1}, received instead {2}."
-    pids = remote_ops.get_pids_of_process(remote, service_name)
+    msg = "Got {got} instances instead of {count} for process {process}."
+    pids = remote_ops.get_pids_of_process(remote, process)
     asserts.assert_equal(
-        len(pids), count, msg.format(service_name, count, len(pids)))
+        len(pids), count,
+        msg.format(process=process, count=count, got=len(pids)))
     return pids

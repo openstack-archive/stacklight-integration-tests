@@ -213,7 +213,7 @@ class TestNodesToolchain(api.ToolchainApi):
 
         pids_before = self.get_pids_of_services()
 
-        # NOTE(rpromyshlennikov): fuel-createmirror cmd is depricated
+        # NOTE(rpromyshlennikov): fuel-createmirror cmd is deprecated
         # since fuel-8.0 release
         self.helpers.replace_ubuntu_mirror_with_mos()
         self.helpers.fuel_create_repositories(ready_nodes_before)
