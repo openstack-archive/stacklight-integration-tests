@@ -99,14 +99,34 @@ class PluginHelper(object):
         """
         if options is None:
             options = {}
-        msg = "Plugin {name} ({version}) couldn't be enabled.".format(
-            name=name,
-            version=version)
+        msg = "Plugin {0} isn't found.".format(name)
         asserts.assert_true(
             self.fuel_web.check_plugin_exists(self.cluster_id, name),
             msg)
-        self.fuel_web.update_plugin_settings(
-            self.cluster_id, name, version, options)
+
+        logger.info("Updating settings for plugin {0} ({1}): {2}".format(
+            name, version, options))
+        nailgun_client = self.fuel_web.client
+        attributes = nailgun_client.get_cluster_attributes(self.cluster_id)
+        attributes = attributes['editable'][name]
+
+        plugin_data = None
+        for item in attributes['metadata']['versions']:
+            if item['metadata']['plugin_version'] == version:
+                plugin_data = item
+                break
+        asserts.assert_is_not_none(
+            plugin_data, "Plugin {0} ({1}) is not found".format(name, version))
+
+        attributes['metadata']['enabled'] = True
+        for option, value in options.items():
+            path = option.split("/")
+            for p in path[:-1]:
+                plugin_settings = plugin_data[p]
+            plugin_settings[path[-1]] = value
+        nailgun_client.update_cluster_attributes(self.cluster_id, {
+            "editable": {name: attributes["editable"][name]}
+        })
 
     def get_plugin_vip(self, vip_name):
         """Get plugin IP."""
