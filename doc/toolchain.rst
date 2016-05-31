@@ -13,6 +13,12 @@ System
 .. automodule:: stacklight_tests.toolchain.test_system
    :members:
 
+Post-installation
+=================
+
+.. automodule:: stacklight_tests.toolchain.test_post_install
+   :members:
+
 Detached plugins
 ================
 
