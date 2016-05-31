@@ -99,14 +99,34 @@ class PluginHelper(object):
         """
         if options is None:
             options = {}
-        msg = "Plugin {name} ({version}) couldn't be enabled.".format(
-            name=name,
-            version=version)
+        msg = "Plugin {0} isn't found.".format(name)
         asserts.assert_true(
             self.fuel_web.check_plugin_exists(self.cluster_id, name),
             msg)
-        self.fuel_web.update_plugin_settings(
-            self.cluster_id, name, version, options)
+
+        logger.info("Updating settings for plugin {0} ({1}): {2}".format(
+            name, version, options))
+        nailgun_client = self.fuel_web.client
+        attributes = nailgun_client.get_cluster_attributes(self.cluster_id)
+        attributes = attributes['editable'][name]
+
+        plugin_data = None
+        for item in attributes['metadata']['versions']:
+            if item['metadata']['plugin_version'] == version:
+                plugin_data = item
+                break
+        asserts.assert_is_not_none(
+            plugin_data, "Plugin {0} ({1}) is not found".format(name, version))
+
+        attributes['metadata']['enabled'] = True
+        for option, value in options.items():
+            path = option.split("/")
+            for p in path[:-1]:
+                plugin_settings = plugin_data[p]
+            plugin_settings[path[-1]] = value
+        nailgun_client.update_cluster_attributes(self.cluster_id, {
+            "editable": {name: attributes}
+        })
 
     def get_plugin_vip(self, vip_name):
         """Get plugin IP."""
@@ -354,3 +374,34 @@ class PluginHelper(object):
             "Executing {cmd} command.".format(cmd=cmd))
         with self.env.d_env.get_admin_remote() as remote:
             remote.check_call(cmd)
+
+    def run_tasks(self, nodes, tasks=None, start=None, end=None,
+                  timeout=10 * 60):
+        """Run a set of tasks on nodes and wait for completion.
+
+        The list of tasks is provided using the 'tasks' parameter or it can be
+        specified using the 'start' and/or 'end' parameters. In the latter
+        case, the method will compute the exact set of tasks to be executed.
+
+        :param nodes: list of nodes that should run the tasks
+        :type nodes: list
+        :param tasks: list of tasks to run.
+        :param tasks: list
+        :param start: the task from where to start the deployment.
+        :param start: str
+        :param start: the task where to end the deployment.
+        :param start: str
+        """
+        nailgun_client = self.fuel_web.client
+
+        task_ids = tasks
+        if start is not None or end is not None:
+            task_ids = [
+                t["id"] for t in nailgun_client.get_end_deployment_tasks(
+                    self.cluster_id, end=end or '', start=start or '')]
+        node_ids = ",".join([str(node["id"]) for node in nodes])
+        logger.info("Running tasks {0} for nodes {1}".format(
+            ",".join(task_ids), node_ids))
+        result = nailgun_client.put_deployment_tasks_for_cluster(
+            self.cluster_id, data=task_ids, node_id=node_ids)
+        self.fuel_web.assert_task_success(result, timeout=timeout)
