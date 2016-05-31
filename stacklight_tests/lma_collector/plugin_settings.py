@@ -44,4 +44,9 @@ services_to_check = {
         "collectd": 1,
         "collectdmon": 1
     },
+    "0.10": {
+        "hekad": 2,
+        "collectd": 1,
+        "collectdmon": 1
+    },
 }
