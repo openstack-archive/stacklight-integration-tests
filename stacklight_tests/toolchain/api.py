@@ -80,3 +80,6 @@ class ToolchainApi(object):
     def check_uninstall_failure(self):
         for plugin in self.plugins:
             plugin.check_uninstall_failure()
+
+    def get_pids_of_services(self):
+        return self.plugins_mapping["lma_collector"].verify_services()

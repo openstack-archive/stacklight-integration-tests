@@ -320,13 +320,21 @@ class PluginHelper(object):
         return node['hostname']
 
     def fuel_createmirror(self, option="", exit_code=0):
-        logger.info("Executing 'fuel-createmirror' command.")
+        cmd = "fuel-createmirror {0}".format(option)
+        logger.info("Executing '{}' command.".format(cmd))
         with self.env.d_env.get_admin_remote() as remote:
-            exec_res = remote.execute(
-                "fuel-createmirror {0}".format(option))
+            exec_res = remote.execute(cmd)
             asserts.assert_equal(
                 exit_code, exec_res['exit_code'],
                 'fuel-createmirror failed: {0}'.format(exec_res['stderr']))
+
+    def replace_ubuntu_mirror_with_mos(self):
+        cmds = ["fuel-mirror create -P ubuntu -G mos",
+                "fuel-mirror apply --replace -P ubuntu -G mos"]
+        logger.info("Executing '{}' commands.".format('\n'.join(cmds)))
+        with self.env.d_env.get_admin_remote() as remote:
+            for cmd in cmds:
+                remote.check_call(cmd)
 
     @staticmethod
     def get_services_for_version(services_mapping, version):
@@ -341,3 +349,22 @@ class PluginHelper(object):
             return ".".join(version.split(".")[:2])
         major_version = get_major_version()
         return services_mapping[major_version]
+
+    def fuel_create_repositories(self, nodes):
+        """Start task to setup repositories on provided nodes
+
+        :param nodes: list of nodes to run task on them
+        :type nodes: list
+        """
+        nodes_ids = [str(node['id']) for node in nodes]
+        cmd = (
+            "fuel --env {env_id} "
+            "node --node-id {nodes_ids} "
+            "--tasks setup_repositories".format(
+                env_id=self.cluster_id,
+                nodes_ids=' '.join(nodes_ids))
+        )
+        logger.info(
+            "Executing {cmd} command.".format(cmd=cmd))
+        with self.env.d_env.get_admin_remote() as remote:
+            remote.check_call(cmd)
