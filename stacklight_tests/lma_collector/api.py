@@ -34,27 +34,33 @@ class LMACollectorPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         pass
 
-    def get_services_to_check(self):
-        services_to_check = self.helpers.get_services_for_version(
-            self.settings.services_to_check,
-            self.settings.version)
-        return services_to_check
-
     def verify_services(self):
-        """Check that LMA services started in the right quantity."""
-        nodes = self.helpers.get_all_ready_nodes()
+        """Check that the correct amount of collector processes are running.
+
+        :returns: list of process IDs indexed by node and process
+        :rtype: dict
+        """
         pids = {}
-        services_to_check = self.get_services_to_check()
-        for node in nodes:
-            logger.info("Check {services} services on the {name} node".format(
-                name=node['name'],
-                services=', '.join(services_to_check.keys()),))
-            services_pids = {}
-            with self.env.d_env.get_ssh_to_remote(node['ip']) as remote:
-                for service, count in services_to_check.items():
-                    services_pids[service] = (
-                        self.checkers.verify_services(remote, service, count))
-            pids[node['name']] = services_pids
+        processes_count = {
+            "collectd": 1,
+            "collectdmon": 1
+        }
+        if self.settings.version == "0.9":
+            processes_count["hekad"] = 1
+        else:
+            # Starting with 0.10, there are one collector for logs and one for
+            # metrics
+            processes_count["hekad"] = 2
+        for node in self.helpers.get_all_ready_nodes():
+            pids[node["name"]] = {}
+            with self.env.d_env.get_ssh_to_remote(node["ip"]) as remote:
+                for process, count in processes_count.items():
+                    logger.info("Checking process {0} on node {1}".format(
+                        process, node["name"]
+                    ))
+                    pids[node["name"]][process] = (
+                        self.checkers.check_process_count(
+                            remote, process, count))
         return pids
 
     def check_plugin_online(self):
