@@ -18,3 +18,9 @@ Detached plugins
 
 .. automodule:: stacklight_tests.toolchain.test_detached_plugins
    :members:
+
+Functional
+==========
+
+.. automodule:: stacklight_tests.toolchain.test_functional
+   :members:
