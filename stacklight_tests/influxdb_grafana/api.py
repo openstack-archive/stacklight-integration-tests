@@ -12,9 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
-import json
-
+from devops.helpers import helpers as devops_helpers
 from fuelweb_test import logger
+import json
 from proboscis import asserts
 
 from stacklight_tests import base_test
@@ -138,3 +138,12 @@ class InfluxdbPluginApi(base_test.PluginApi):
         if result:
             return result["series"][0]["values"]
         return []
+
+    def influxdb_monitoring_check(self, interval='3m'):
+        output = self.do_influxdb_query(
+            "SELECT last(value), hostname FROM cpu_user WHERE "
+            "time > now() - {0} GROUP BY hostname".format(interval))
+        lines = json.loads(output.text)
+        nodes = [line["tags"]["hostname"] for line in
+                 lines["results"][0]["series"]]
+        self.helpers.check_node_in_output(nodes)
