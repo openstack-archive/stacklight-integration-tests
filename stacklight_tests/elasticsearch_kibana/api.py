@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import elasticsearch
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -20,6 +21,11 @@ from stacklight_tests.elasticsearch_kibana import plugin_settings
 
 
 class ElasticsearchPluginApi(base_test.PluginApi):
+    def __init__(self):
+        super(ElasticsearchPluginApi, self).__init__()
+        self.es = elasticsearch.Elasticsearch([{'host': self.get_plugin_vip(),
+                                                'port': 9200}])
+
     def get_plugin_settings(self):
         return plugin_settings
 
@@ -69,3 +75,16 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def check_uninstall_failure(self):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
+
+    def get_current_indices(self, index_type):
+        indices = self.es.indices.get_aliases().keys()
+        return filter(lambda x: index_type in x, sorted(indices))[-2:]
+
+    def query_nova_logs(self, indices):
+        query = {"query": {"filtered": {
+            "query": {"bool": {"should": [{"query_string": {
+                "query": "programname:nova*"}}]}},
+            "filter": {"bool": {"must": [{"range": {"Timestamp": {
+                "from": "now-1h"}}}]}}}}, "size": 100}
+        output = self.es.search(index=indices, body=query)
+        return output

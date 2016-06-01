@@ -83,3 +83,24 @@ class TestFunctionalToolchain(api.ToolchainApi):
         self.check_plugins_online()
 
         self.check_nova_metrics()
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["check_nova_logs_in_elasticsearch", "toolchain",
+                  "functional"])
+    @log_snapshot_after_test
+    def check_nova_logs_in_elasticsearch(self):
+        """Check that Nova logs are present in Elasticsearch
+
+        Scenario:
+            1. Revert snapshot with 9 deployed nodes in HA configuration
+            2. Query Nova logs are present in current Elasticsearch index
+            3. Check that Nova logs are collected from all controller and
+               compute nodes
+
+        Duration 10m
+        """
+        self.env.revert_snapshot("deploy_ha_toolchain")
+
+        self.check_plugins_online()
+
+        self.check_nova_logs()
