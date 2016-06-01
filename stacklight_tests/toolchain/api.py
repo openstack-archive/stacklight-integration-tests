@@ -13,6 +13,7 @@
 #    under the License.
 from fuelweb_test import logger
 from fuelweb_test.tests import base_test_case
+from proboscis import asserts
 
 from stacklight_tests.elasticsearch_kibana import api as elasticsearch_api
 from stacklight_tests.helpers import checkers
@@ -83,3 +84,22 @@ class ToolchainApi(object):
 
     def get_pids_of_services(self):
         return self.plugins_mapping["lma_collector"].verify_services()
+
+    def check_nova_logs(self):
+        indices = self.plugins_mapping[
+            'elasticsearch_kibana'].get_current_indices('log')
+        logger.info("Found indexes {}".format(indices))
+        output = self.plugins_mapping[
+            'elasticsearch_kibana'].query_nova_logs(indices)
+        msg = "Indexes {} don't contain Nova logs"
+        asserts.assert_not_equal(output['hits']['total'], 0, msg.format(
+            indices))
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+        computes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["compute"])
+        target_nodes = controllers + computes
+        expected_hostnames = set([node["hostname"] for node in target_nodes])
+        actual_hostnames = set([hit['_source']['Hostname']
+                                for hit in output['hits']['hits']])
+        asserts.assert_equal(expected_hostnames, actual_hostnames)

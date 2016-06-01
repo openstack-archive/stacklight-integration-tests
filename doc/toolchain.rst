@@ -30,3 +30,9 @@ Network templates
 
 .. automodule:: stacklight_tests.toolchain.test_network_templates
    :members:
+
+Functional
+==========
+
+.. automodule:: stacklight_tests.toolchain.test_functional
+   :members:
