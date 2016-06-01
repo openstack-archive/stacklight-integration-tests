@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+import json
+import time
+
 import elasticsearch
 from fuelweb_test import logger
 from proboscis import asserts
@@ -153,3 +157,35 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         logger.info("Check that the instance was deleted")
         os_conn.verify_srv_deleted(instance)
         return instance.id
+
+    def query_nova_logs(self, indices):
+        query = {"query": {"filtered": {
+            "query": {"bool": {"should": [{"query_string": {
+                "query": "programname:nova*"}}]}},
+            "filter": {"bool": {"must": [{"range": {"Timestamp": {
+                "from": "now-1h"}}}]}}}}, "size": 100}
+        output = self.es.search(index=indices, body=query)
+        return output
+
+    def elasticsearch_monitoring_check(self, interval=300 * 1000):
+        timestamp = int(round(time.time() * 1000)) - interval
+        dt = datetime.datetime.fromtimestamp(timestamp / 1000)
+        elasticsearch_url = self.get_elasticsearch_url()
+        data = self.get_elasticsearch_json(timestamp - interval)
+
+        url = '{0}/log-{1}/_search?pretty'.format(elasticsearch_url,
+                                                  dt.strftime("%Y.%m.%d"))
+        output = self.checkers.check_http_get_response(url=url,
+                                                       data=json.dumps(data))
+        lines = json.loads(output.text)
+        nodes = [line["term"] for line in lines["facets"]["terms"]["terms"]]
+        self.helpers.check_node_in_output(nodes)
+
+    def get_elasticsearch_json(self, timestamp):
+        return {"facets": {
+            "terms": {"terms": {"field": "Hostname", "size": 10000, "order":
+                                "count", "exclude": []}, "facet_filter": {
+                "fquery": {"query": {"filtered": {"query": {"bool": {
+                    "should": [{"query_string": {"query": "*"}}]}}, "filter": {
+                    "bool": {"must": [{"range": {"Timestamp": {
+                        "from": timestamp}}}]}}}}}}}}, "size": 0}
