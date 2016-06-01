@@ -12,12 +12,17 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import datetime
+import json
+
 import elasticsearch
 from fuelweb_test import logger
 from proboscis import asserts
 
 from stacklight_tests import base_test
 from stacklight_tests.elasticsearch_kibana import plugin_settings
+
+import time
 
 
 class ElasticsearchPluginApi(base_test.PluginApi):
@@ -94,3 +99,28 @@ class ElasticsearchPluginApi(base_test.PluginApi):
                 "from": "now-1h"}}}]}}}}, "size": 100}
         output = self.es.search(index=indices, body=query)
         return output
+
+    def elasticsearch_monitoring_check(self, interval=300 * 1000):
+        elasticsearch_url = self.get_elasticsearch_url()
+        timestamp = int(round(time.time() * 1000)) - interval
+        dt = datetime.fromtimestamp(timestamp / 1000)
+        string = '{"facets": {"terms": {"terms": {"field": "Hostname",' \
+                 '"size": 10000,"order": "count","exclude": []},' \
+                 '"facet_filter": {"fquery": {"query": {"filtered": ' \
+                 '{"query": {"bool": {"should": [{"query_string": {"query":' \
+                 ' "*"}}]}},"filter": {"bool": {"must": [{"range": ' \
+                 '{"Timestamp": {"from": 1464005865677}}}]}}}}}}}},"size": 0}'
+        data = json.loads(string)
+        queryJs = data["facets"]["terms"]["facet_filter"]["fquery"]["query"]
+        rangeJs = queryJs["filtered"]["filter"]["bool"]["must"][0]["range"]
+        rangeJs["Timestamp"]["from"] = timestamp - interval
+        queryJs["filtered"]["filter"]["bool"]["must"][0]["range"] = rangeJs
+        data["facets"]["terms"]["facet_filter"]["fquery"]["query"] = queryJs
+
+        url = '{0}/log-{1}/_search?pretty'.format(elasticsearch_url,
+                                                  dt.strftime("%Y.%m.%d"))
+        output = self.checkers.check_http_get_response(url=url,
+                                                       data=json.dumps(data))
+        lines = json.loads(output.text)
+        nodes = [line["term"] for line in lines["facets"]["terms"]["terms"]]
+        self.helpers.check_node_in_output(nodes)

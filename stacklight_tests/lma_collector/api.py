@@ -13,6 +13,7 @@
 #    under the License.
 
 from fuelweb_test import logger
+from proboscis import asserts
 
 from stacklight_tests import base_test
 from stacklight_tests.lma_collector import plugin_settings
@@ -86,3 +87,11 @@ class LMACollectorPluginApi(base_test.PluginApi):
     def check_uninstall_failure(self):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
+
+    def manage_lma_collector_service(self, nodes, action):
+        for node in nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                exec_res = remote.execute("{0} lma_collector".format(action))
+                asserts.assert_equal(0, exec_res['exit_code'],
+                                     "Failed to {0} lma_collector on"
+                                     " {1}".format(action, node["name"]))
