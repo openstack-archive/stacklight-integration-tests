@@ -11,8 +11,10 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from elasticsearch import Elasticsearch
 from fuelweb_test import logger
 from fuelweb_test.tests import base_test_case
+from proboscis import asserts
 
 from stacklight_tests.elasticsearch_kibana import api as elasticsearch_api
 from stacklight_tests.helpers import checkers
@@ -43,6 +45,8 @@ class ToolchainApi(object):
                 infrastructure_alerting_api.InfraAlertingPluginApi()
         }
         self.plugins = set(self.plugins_mapping.values())
+        self.es = Elasticsearch([{"host": self.plugins_mapping[
+            "elasticsearch_kibana"].get_elasticsearch_url(), 'port': 9200}])
 
     def __getattr__(self, item):
         return getattr(self.test, item)
@@ -83,3 +87,27 @@ class ToolchainApi(object):
 
     def get_pids_of_services(self):
         return self.plugins_mapping["lma_collector"].verify_services()
+
+    def get_current_elasticsearch_index(self, index_type):
+        indices = self.es.indices.get_aliases().keys()
+        return filter(lambda x: index_type in x, sorted(indices))[-1]
+
+    def query_nova_logs(self):
+        query = {"query": {"filtered": {
+            "query": {"bool": {"should": [{"query_string": {
+                "query": "programname:nova*"}}]}},
+            "filter": {"bool": {"must": [{"range": {"Timestamp": {
+                "from": "now-1h"}}}]}}}}, "size": 100}
+        index = self.get_current_elasticsearch_index("log")
+        output = self.es.search(index=index, body=query)
+        msg = "Index {} doesn't contain Nova logs"
+        asserts.assert_not_equal(output['hits']['total'], 0, msg.format(index))
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+        computes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["compute"])
+        target_nodes = controllers + computes
+        expected_hostnames = set([node["hostname"] for node in target_nodes])
+        actual_hostnames = set([hit['_source']['Hostname']
+                                for hit in output['hits']['hits']])
+        asserts.assert_equal(expected_hostnames, actual_hostnames)
