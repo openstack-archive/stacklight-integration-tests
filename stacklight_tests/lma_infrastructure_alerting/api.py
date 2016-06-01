@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import datetime
+import time
+
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -90,3 +93,91 @@ class InfraAlertingPluginApi(base_test.PluginApi):
     def check_uninstall_failure(self):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
+
+    def lma_infrastructure_alerting_check(self):
+        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, [])
+        driver = self.open_nagios_page(
+            'Hosts', "//table[@class='headertable']")
+        time_difference = 600
+        try:
+            for node in nailgun_nodes:
+                time_before = time.time() - time_difference
+                check = False
+                table = self.ui_tester.get_table(
+                    driver, "/html/body/div[2]/table/tbody")
+                for ind in xrange(2, self.ui_tester.get_table_size(table) + 1):
+                    node_name = self.ui_tester.get_table_cell(
+                        table, ind, 1).text.rstrip()
+                    if node["hostname"] == node_name:
+                        check = True
+                        state = self.ui_tester.get_table_cell(
+                            table, ind, 2).text.rstrip()
+                        timestamp = datetime.strptime(
+                            self.ui_tester.get_table_cell(
+                                table, ind, 3).text.rstrip(),
+                            '%Y-%m-%d %H:%M:%S')
+                        asserts.assert_equal(
+                            'UP', state, "Node {0} is in wrong state! {1} is"
+                                         " not 'UP'".format(node["hostname"],
+                                                            state))
+                        asserts.assert_true(
+                            time.mktime(timestamp.timetuple()) > time_before,
+                            "Node {0} check is outdated! Must be {1} secs, now"
+                            " {2}".format(node["hostname"], time_difference,
+                                          time.time() -
+                                          time.mktime(timestamp.timetuple())))
+                        break
+                asserts.assert_true(check, "Node {0} was not found in "
+                                           "nagios!".format(node["hostname"]))
+        finally:
+            driver.close()
+        # NOTE (vushakov): some services will fall to CRITICAL state during
+        #     close to production load. Temporary removing service state check.
+        # driver = lma_infra_alerting_plugin.open_nagios_page(
+        #     'Services', "//table[@class='headertable']")
+        # try:
+        #     self.check_service_state_on_nagios(driver)
+        # finally:
+        #     driver.close()
+
+    def get_services_for_node(self, table, node_name):
+        services = {}
+        node_start, node_end = '', ''
+        for ind in xrange(2, self.ui_tester.get_table_size(table) + 1):
+            if not self.ui_tester.get_table_row(table, ind).text:
+                if node_start:
+                    node_end = ind
+                    break
+                else:
+                    continue
+            if self.ui_tester.get_table_cell(table, ind, 1).text == node_name:
+                node_start = ind
+
+        for ind in xrange(node_start, node_end):
+            services[self.ui_tester.get_table_cell(table, ind, 2).text] = \
+                self.ui_tester.get_table_cell(table, ind, 3).text
+        return services
+
+    def check_service_state_on_nagios(self, driver, service_state=None,
+                                      nodes=None):
+        table = self.ui_tester.get_table(driver, "/html/body/table[3]/tbody")
+        if not nodes:
+            nodes = [self.ui_tester.get_table_cell(table, 2, 1).text]
+        for node in nodes:
+            node_services = self.get_services_for_node(table, node)
+            if service_state:
+                for service in service_state:
+                    asserts.assert_equal(
+                        service_state[service], node_services[service],
+                        "Wrong service state found on node {0}: expected"
+                        " {1} but found {2}".format(nodes,
+                                                    service_state[service],
+                                                    node_services[service]))
+            else:
+                for service in node_services:
+                    asserts.assert_equal(
+                        'OK', node_services[service],
+                        "Wrong service state found on node {0}: expected"
+                        " OK but found {1}".format(nodes,
+                                                   node_services[service]))

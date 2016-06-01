@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from datetime import date
+from datetime import datetime
+import time
+
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -69,3 +73,19 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def check_uninstall_failure(self):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
+
+    def elasticsearch_monitoring_check(self):
+        kibana_url = self.get_kibana_url()
+        timestamp = time.time()
+        dt = date.today()
+        data = '{{"facets":{{"terms":{{"terms":{{"field":"Hostname",' \
+               '"size":10000,"order":"count","exclude":[]}},"facet_filter":' \
+               '{{"fquery":{{"query":{{"filtered":{{"query":{{"bool":{{' \
+               '"should":[{{"query_string":{{"query":"*"}}}}]}}}},"filter"' \
+               ':{{"bool":{{"must":[{{"range":{{"Timestamp":{{"from":{0}' \
+               '}}}}}}]}}}}}}}}}}}}}}}},"size": 0}}'.format(timestamp - 300)
+        url = '{0}/log-{1}/_search?pretty'.format(kibana_url,
+                                                  dt.strftime("%Y.%m.%d"))
+        output = self.checkers.check_http_get_response(url=url, data=data)
+
+        self.helpers.check_node_in_output(output)

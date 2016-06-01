@@ -368,3 +368,71 @@ class PluginHelper(object):
             "Executing {cmd} command.".format(cmd=cmd))
         with self.env.d_env.get_admin_remote() as remote:
             remote.check_call(cmd)
+            exec_res = remote.execute(
+                "fuel-createmirror {0}".format(option))
+            asserts.assert_equal(exit_code, exec_res['exit_code'],
+                                 'fuel-createmirror failed:'
+                                 ' {0}'.format(exec_res['stderr']))
+
+    def check_node_in_output(self, output):
+        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.cluster_id, [])
+        missing_nodes = []
+        for node in nailgun_nodes:
+            if '"{0}"'.format(node["hostname"]) not in output.text:
+                missing_nodes.append(node["hostname"])
+        asserts.assert_false(len(missing_nodes),
+                             "Failed to find {0} nodes in the output! Missing"
+                             " nodes are: {1}".format(len(missing_nodes),
+                                                      missing_nodes))
+
+    def manage_pcs_resource(self, fuel_web, nodes, resource, action, check):
+        def check_state():
+            grep = "grep {0} | grep {1} | grep {2}".format(
+                nodes[0]["hostname"], nodes[1]["hostname"],
+                nodes[2]["hostname"])
+            with fuel_web.get_ssh_for_nailgun_node(nodes[0]) as remote:
+                result = remote.execute(
+                    "pcs status | grep {0} | {1}".format(check, grep))
+                if not result['exit_code']:
+                    return True
+                else:
+                    return False
+        with fuel_web.get_ssh_for_nailgun_node(nodes[0]) as remote:
+            exec_res = remote.execute("pcs resource {0} {1}".format(
+                action, resource))
+            asserts.assert_equal(0, exec_res['exit_code'],
+                                 "Failed to {0} resource {1} on {2}".format(
+                                     action, resource, nodes[0]["name"]))
+
+        msg = "Failed to stop {0} on all nodes!".format(resource)
+        helpers.wait(check_state, timeout=5 * 60, timeout_msg=msg)
+
+    def move_resource(self, fuel_web, node, resource_name, move_to):
+        with fuel_web.get_ssh_for_nailgun_node(node) as remote:
+            exec_res = remote.execute("pcs resource move {0} {1}".format(
+                resource_name, move_to["fqdn"]))
+            asserts.assert_equal(0, exec_res['exit_code'],
+                                 "Failed to move resource {0} to {1}".format(
+                                     resource_name, move_to["fqdn"]))
+
+    def get_tasks_pids(self, fuel_web, processes, nodes=None, exit_code=0):
+        nodes = nodes or \
+            fuel_web.client.list_cluster_nodes(
+                fuel_web.get_last_created_cluster())
+        pids = {}
+        for node in nodes:
+            with fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                pids[node["name"]] = {}
+                for process in processes:
+                    result = remote.execute("pidof {0} ".format(process))
+                    if exit_code:
+                        asserts.assert_equal(exit_code, result['exit_code'],
+                                             "process {0} is running on "
+                                             "{1}".format(process,
+                                                          node["name"]))
+                    else:
+                        pids[node["name"]][process] = \
+                            result['stdout'][0].rstrip()
+
+        return pids

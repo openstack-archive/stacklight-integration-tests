@@ -129,3 +129,12 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def check_grafana_dashboards(self):
         grafana_url = self.get_grafana_url()
         ui_api.check_grafana_dashboards(grafana_url)
+
+    def influxdb_monitoring_check(self):
+        influxdb_settings = self.get_plugin_settings()
+        output = self.do_influxdb_query(
+            "SELECT last(value), hostname FROM cpu_user WHERE "
+            "time > now() - 3m GROUP BY hostname",
+            user=influxdb_settings.influxdb_rootuser,
+            password=influxdb_settings.influxdb_rootpass)
+        self.helpers.check_node_in_output(output)
