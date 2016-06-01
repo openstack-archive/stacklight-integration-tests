@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from elasticsearch import Elasticsearch
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -20,6 +21,11 @@ from stacklight_tests.elasticsearch_kibana import plugin_settings
 
 
 class ElasticsearchPluginApi(base_test.PluginApi):
+    def __init__(self):
+        self.es = Elasticsearch([{'host': self.get_elasticsearch_url(),
+                                  'port': 9200}])
+        super(ElasticsearchPluginApi, self).__init__()
+
     def get_plugin_settings(self):
         return plugin_settings
 
@@ -69,3 +75,27 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def check_uninstall_failure(self):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
+
+    def get_current_index(self, index_type):
+        indices = self.es.indices.get_aliases().keys()
+        return filter(lambda x: index_type in x, sorted(indices))[-1]
+
+    def query_nova_logs(self):
+        query = {"query": {"filtered": {
+            "query": {"bool": {"should": [{"query_string": {
+                "query": "programname:nova*"}}]}},
+            "filter": {"bool": {"must": [{"range": {"Timestamp": {
+                "from": "now-1h"}}}]}}}}, "size": 100}
+        index = self.get_current_index("log")
+        output = self.es.search(index=index, body=query)
+        msg = "Index {} doesn't contain Nova logs"
+        asserts.assert_not_equal(output['hits']['total'], 0, msg.format(index))
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+        computes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["compute"])
+        target_nodes = controllers + computes
+        expected_hostnames = set([node["hostname"] for node in target_nodes])
+        actual_hostnames = set([hit['_source']['Hostname']
+                                for hit in output['hits']['hits']])
+        asserts.assert_equal(expected_hostnames, actual_hostnames)
