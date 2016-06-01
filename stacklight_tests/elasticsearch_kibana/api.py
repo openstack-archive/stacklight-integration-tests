@@ -39,7 +39,7 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         return "http://{}:9200/{}".format(self.get_plugin_vip(), query)
 
     def get_kibana_url(self):
-        return "http://{}:9200/".format(self.get_plugin_vip())
+        return "http://{}:80/".format(self.get_plugin_vip())
 
     def check_plugin_online(self):
         logger.info("Check that Elasticsearch is ready")
