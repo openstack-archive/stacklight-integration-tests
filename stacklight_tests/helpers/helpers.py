@@ -107,8 +107,8 @@ class PluginHelper(object):
 
         logger.info("Updating settings for plugin {0} ({1}): {2}".format(
             name, version, options))
-        nailgun_client = self.fuel_web.client
-        attributes = nailgun_client.get_cluster_attributes(self.cluster_id)
+        attributes = self.nailgun_client.get_cluster_attributes(
+            self.cluster_id)
         attributes = attributes['editable'][name]
 
         plugin_data = None
@@ -125,13 +125,13 @@ class PluginHelper(object):
             for p in path[:-1]:
                 plugin_settings = plugin_data[p]
             plugin_settings[path[-1]] = value
-        nailgun_client.update_cluster_attributes(self.cluster_id, {
+        self.nailgun_client.update_cluster_attributes(self.cluster_id, {
             "editable": {name: attributes}
         })
 
     def get_plugin_vip(self, vip_name):
         """Get plugin IP."""
-        networks = self.fuel_web.client.get_networks(self.cluster_id)
+        networks = self.nailgun_client.get_networks(self.cluster_id)
         vip = networks.get('vips').get(vip_name, {}).get('ipaddr', None)
         asserts.assert_is_not_none(
             vip, "Failed to get the IP of {} server".format(vip_name))
@@ -141,7 +141,7 @@ class PluginHelper(object):
 
     def get_all_ready_nodes(self):
         return [node for node in
-                self.fuel_web.client.list_cluster_nodes(self.cluster_id)
+                self.nailgun_client.list_cluster_nodes(self.cluster_id)
                 if node["status"] == "ready"]
 
     def create_cluster(self, name=None, settings=None):
@@ -412,18 +412,16 @@ class PluginHelper(object):
         (default: 600).
         :param timeout: int
         """
-        nailgun_client = self.fuel_web.client
-
         task_ids = []
         if tasks is not None:
             task_ids += tasks
         if start is not None or end is not None:
             task_ids += [
-                t["id"] for t in nailgun_client.get_end_deployment_tasks(
+                t["id"] for t in self.nailgun_client.get_end_deployment_tasks(
                     self.cluster_id, end=end or '', start=start or '')]
         node_ids = ",".join([str(node["id"]) for node in nodes])
         logger.info("Running tasks {0} for nodes {1}".format(
             ",".join(task_ids), node_ids))
-        result = nailgun_client.put_deployment_tasks_for_cluster(
+        result = self.nailgun_client.put_deployment_tasks_for_cluster(
             self.cluster_id, data=task_ids, node_id=node_ids)
         self.fuel_web.assert_task_success(result, timeout=timeout)
