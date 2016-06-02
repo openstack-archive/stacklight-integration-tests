@@ -13,6 +13,12 @@ System
 .. automodule:: stacklight_tests.toolchain.test_system
    :members:
 
+Functional
+==========
+
+.. automodule:: stacklight_tests.toolchain.test_functional
+   :members:
+
 Detached plugins
 ================
 

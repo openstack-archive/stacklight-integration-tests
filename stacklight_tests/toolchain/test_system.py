@@ -218,6 +218,9 @@ class TestNodesToolchain(api.ToolchainApi):
         self.helpers.replace_ubuntu_mirror_with_mos()
         self.helpers.fuel_create_repositories(ready_nodes_before)
 
+        # NOTE(rpromyshlennikov): next check will fail
+        # before this bug will be fixed
+        # https://bugs.launchpad.net/lma-toolchain/+bug/1570850
         ready_nodes_hostnames_after = {node["hostname"] for node
                                        in self.helpers.get_all_ready_nodes()}
         asserts.assert_equal(

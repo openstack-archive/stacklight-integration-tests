@@ -19,7 +19,9 @@ import requests
 
 from stacklight_tests import base_test
 from stacklight_tests.influxdb_grafana.grafana_ui import api as ui_api
+from stacklight_tests.influxdb_grafana.influxdb import api as influxdb
 from stacklight_tests.influxdb_grafana import plugin_settings
+from stacklight_tests import settings
 
 
 class InfluxdbPluginApi(base_test.PluginApi):
@@ -129,3 +131,42 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def check_grafana_dashboards(self):
         grafana_url = self.get_grafana_url()
         ui_api.check_grafana_dashboards(grafana_url)
+
+    def check_nova_metrics(self):
+
+        def _get_metrics():
+            return influxdb.get_nova_instance_creation_time_metrics(
+                influxdb_url, self.settings.influxdb_db_name,
+                settings.ENVIRONMENT_LABEL,
+                self.settings.influxdb_user, self.settings.influxdb_pass)
+
+        influxdb_url = self.get_influxdb_url()
+        metrics = _get_metrics()
+
+        test_name_pref = (
+            'fuel_health.tests.smoke.'
+            'test_nova_create_instance_with_connectivity.TestNovaNetwork.')
+        instance_tests = (
+            '{}test_004_create_servers'.format(test_name_pref),
+            '{}test_009_create_server_with_file'.format(test_name_pref))
+        for test_name in instance_tests:
+            self.helpers.run_single_ostf(test_sets=['smoke'],
+                                         test_name=test_name)
+        positive = False
+        updated_metrics = _get_metrics()
+
+        new_keys = set(updated_metrics.keys()) - set(metrics.keys())
+        for key in new_keys:
+            if updated_metrics[key] is not None:
+                positive = True
+                break
+        for key in metrics.keys():
+            if key in updated_metrics and updated_metrics[key] is not None:
+                positive = (
+                    (metrics[key] is None) or
+                    (metrics[key] - updated_metrics[key] != 0))
+                if positive:
+                    break
+        asserts.assert_true(
+            positive,
+            "Nova metrics wasn't change during instance creating tasks")
