@@ -23,7 +23,7 @@ plugin_path = settings.LMA_COLLECTOR_PLUGIN_PATH
 version = helpers.get_plugin_version(plugin_path)
 
 default_options = {
-    "environment_label/value": "deploy_lma_toolchain",
+    "environment_label/value": settings.ENVIRONMENT_LABEL,
     "elasticsearch_mode/value": "remote",
     "influxdb_mode/value": "remote",
     "alerting_mode/value": "local",
@@ -32,7 +32,7 @@ default_options = {
 }
 
 toolchain_options = {
-    "environment_label/value": "deploy_lma_toolchain",
+    "environment_label/value": settings.ENVIRONMENT_LABEL,
     "elasticsearch_mode/value": "local",
     "influxdb_mode/value": "local",
     "alerting_mode/value": "local"

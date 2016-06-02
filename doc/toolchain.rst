@@ -19,6 +19,12 @@ Post-installation
 .. automodule:: stacklight_tests.toolchain.test_post_install
    :members:
 
+Functional
+==========
+
+.. automodule:: stacklight_tests.toolchain.test_functional
+   :members:
+
 Detached plugins
 ================
 
