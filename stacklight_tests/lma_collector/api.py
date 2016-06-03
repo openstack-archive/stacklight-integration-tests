@@ -45,7 +45,8 @@ class LMACollectorPluginApi(base_test.PluginApi):
             "collectd": 1,
             "collectdmon": 1
         }
-        if self.settings.version == "0.9":
+
+        if self.settings.version.startswith("0.9"):
             processes_count["hekad"] = 1
         else:
             # Starting with 0.10, there are one collector for logs and one for
