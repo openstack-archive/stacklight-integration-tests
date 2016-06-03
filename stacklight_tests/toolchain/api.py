@@ -11,8 +11,12 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
+import time
+
 from fuelweb_test import logger
 from fuelweb_test.tests import base_test_case
+from proboscis import asserts
 
 from stacklight_tests.elasticsearch_kibana import api as elasticsearch_api
 from stacklight_tests.helpers import checkers
@@ -83,3 +87,35 @@ class ToolchainApi(object):
 
     def get_pids_of_services(self):
         return self.plugins_mapping["lma_collector"].verify_services()
+
+    def check_nova_metrics(self):
+        time_started = "{}s".format(int(time.time()))
+        metrics = self.plugins_mapping[
+            "influxdb_grafana"].get_nova_instance_creation_time_metrics(
+                time_started)
+        asserts.assert_equal(
+            metrics, [],
+            "Spawned instances was found in Nova metrics "
+            "before instance creation")
+
+        test_name_pref = (
+            'fuel_health.tests.smoke.'
+            'test_nova_create_instance_with_connectivity.TestNovaNetwork.')
+        instance_tests = (
+            '{}test_004_create_servers'.format(test_name_pref),
+            '{}test_009_create_server_with_file'.format(test_name_pref))
+        for test_name in instance_tests:
+            self.helpers.run_single_ostf(test_sets=['smoke'],
+                                         test_name=test_name)
+
+        updated_metrics = self.plugins_mapping[
+            "influxdb_grafana"].get_nova_instance_creation_time_metrics(
+                time_started)
+
+        asserts.assert_equal(
+            len(updated_metrics), len(instance_tests),
+            "There is a mismatch of created instances in Nova metrics, "
+            "found {instances_found} instead of {tests_started}".format(
+                instances_found=len(updated_metrics),
+                tests_started=len(instance_tests))
+        )
