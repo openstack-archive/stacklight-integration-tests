@@ -15,18 +15,18 @@
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import test
 
-from stacklight_tests.influxdb_grafana import api
+from stacklight_tests.toolchain import api
 
 
 @test(groups=["plugins"])
-class TestFunctionalInfluxdbPlugin(api.InfluxdbPluginApi):
-    """Class for functional testing of plugin."""
+class TestFunctionalToolchain(api.ToolchainApi):
+    """Class for functional testing of plugins toolchain."""
 
-    @test(depends_on_groups=["deploy_influxdb_grafana"],
-          groups=["check_display_dashboards_influxdb_grafana",
-                  "influxdb_grafana", "functional"])
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_display_grafana_dashboards_toolchain",
+                  "toolchain", "functional"])
     @log_snapshot_after_test
-    def check_display_dashboards_influxdb_grafana(self):
+    def check_display_grafana_dashboards_toolchain(self):
         """Verify that the dashboards show up in the Grafana UI.
 
         Scenario:
@@ -57,8 +57,29 @@ class TestFunctionalInfluxdbPlugin(api.InfluxdbPluginApi):
         Duration 20m
         """
 
-        self.env.revert_snapshot("deploy_influxdb_grafana")
+        self.env.revert_snapshot("deploy_toolchain")
 
-        self.check_plugin_online()
+        self.check_plugins_online()
 
-        self.check_grafana_dashboards()
+        self.plugins_mapping["influxdb_grafana"].check_grafana_dashboards()
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_nova_metrics_toolchain",
+                  "toolchain", "functional"])
+    @log_snapshot_after_test
+    def check_nova_metrics_toolchain(self):
+        """Verify that the Nova metrics are collecting.
+
+        Scenario:
+            1. Revert snapshot with 3 deployed nodes
+            2. Check that plugins are online
+            3. Check Nova metrics in InfluxDB during OSTF tests
+
+        Duration 20m
+        """
+
+        self.env.revert_snapshot("deploy_toolchain")
+
+        self.check_plugins_online()
+
+        self.check_nova_metrics()

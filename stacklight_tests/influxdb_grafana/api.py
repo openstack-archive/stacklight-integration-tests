@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import json
+
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -114,3 +116,25 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def check_grafana_dashboards(self):
         grafana_url = self.get_grafana_url()
         ui_api.check_grafana_dashboards(grafana_url)
+
+    def get_nova_instance_creation_time_metrics(self, time_point=None):
+        """Gets instance creation metrics for provided interval
+
+        :param time_point: time interval
+        :type time_point: str
+        :returns: list of metrics
+        :rtype: list
+        """
+        logger.info("Getting Nova instance creation metrics")
+        interval = "now() - 1h" if time_point is None else time_point
+        query = (
+            "select value "
+            "from openstack_nova_instance_creation_time "
+            "where time >= {interval}".format(interval=interval))
+        result = self.do_influxdb_query(query=query)
+        result = json.loads(
+            result.content)["results"][0]
+
+        if result:
+            return result["series"][0]["values"]
+        return []
