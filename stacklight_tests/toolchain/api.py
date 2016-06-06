@@ -12,11 +12,13 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import os
 import time
 
 from fuelweb_test import logger
 from fuelweb_test.tests import base_test_case
 from proboscis import asserts
+import yaml
 
 from stacklight_tests.elasticsearch_kibana import api as elasticsearch_api
 from stacklight_tests.helpers import checkers
@@ -39,45 +41,73 @@ class ToolchainApi(object):
         self.checkers = checkers
         self.remote_ops = remote_ops
         self.ui_tester = ui_tester
-        self.plugins_mapping = {
-            "elasticsearch_kibana": elasticsearch_api.ElasticsearchPluginApi(),
-            "influxdb_grafana": influx_api.InfluxdbPluginApi(),
-            "lma_collector": collector_api.LMACollectorPluginApi(),
-            "lma_infrastructure_alerting":
-                infrastructure_alerting_api.InfraAlertingPluginApi()
+        self.ELASTICSEARCH_KIBANA = elasticsearch_api.ElasticsearchPluginApi()
+        self.INFLUXDB_GRAFANA = influx_api.InfluxdbPluginApi()
+        self.LMA_COLLECTOR = collector_api.LMACollectorPluginApi()
+        self.LMA_INFRASTRUCTURE_ALERTING = \
+            infrastructure_alerting_api.InfraAlertingPluginApi()
+        self._plugins = {
+            self.ELASTICSEARCH_KIBANA,
+            self.INFLUXDB_GRAFANA,
+            self.LMA_COLLECTOR,
+            self.LMA_INFRASTRUCTURE_ALERTING
         }
-        self.plugins = set(self.plugins_mapping.values())
+        self._disabled_plugins = set()
 
     def __getattr__(self, item):
         return getattr(self.test, item)
 
+    def disable_plugin(self, plugin):
+        """Disable a plugin."""
+        self._disabled_plugins.add(plugin)
+
+    def enable_plugin(self, plugin):
+        """Enable a plugin."""
+        self._disabled_plugins.remove(plugin)
+
+    def call_plugin_method(self, plugin, f):
+        """Call a method on a plugin but only if it's enabled."""
+        if plugin in self.plugins:
+            return f(plugin)
+
+    @property
+    def plugins(self):
+        """Return the list of plugins that are enabled."""
+        return list(self._plugins - self._disabled_plugins)
+
     def prepare_plugins(self):
+        """Upload and install the plugins."""
         for plugin in self.plugins:
             plugin.prepare_plugin()
 
     def activate_plugins(self):
-        msg = "Activate {} plugin"
+        """Enable and configure the plugins for the environment."""
         for plugin in self.plugins:
-            logger.info(msg.format(plugin.get_plugin_settings().name))
+            logger.info("Activate plugin {}".format(
+                plugin.get_plugin_settings().name))
             plugin.activate_plugin(
                 options=plugin.get_plugin_settings().toolchain_options)
 
     def check_plugins_online(self):
-        msg = "Check {} plugin"
         for plugin in self.plugins:
-            logger.info(msg.format(plugin.get_plugin_settings().name))
+            logger.info("Checking plugin {}".format(
+                plugin.get_plugin_settings().name))
             plugin.check_plugin_online()
 
     def check_nodes_count(self, count, hostname, state):
-        self.plugins_mapping[
-            'elasticsearch_kibana'].check_elasticsearch_nodes_count(count)
-        self.plugins_mapping[
-            'influxdb_grafana'].check_influxdb_nodes_count(count)
-        self.plugins_mapping[
-            'lma_infrastructure_alerting'].check_node_in_nagios(
-            hostname, state)
+        """Check that all nodes are present in the different backends."""
+        self.call_plugin_method(
+            self.ELASTICSEARCH_KIBANA,
+            lambda x: x.check_elasticsearch_nodes_count(count))
+        self.call_plugin_method(
+            self.INFLUXDB_GRAFANA,
+            lambda x: x.check_influxdb_nodes_count(count))
+        self.call_plugin_method(
+            self.LMA_INFRASTRUCTURE_ALERTING,
+            lambda x: x.check_node_in_nagios(hostname, state))
 
     def uninstall_plugins(self):
+        """Uninstall the plugins from the environment."""
         for plugin in self.plugins:
             plugin.uninstall_plugin()
 
@@ -86,13 +116,20 @@ class ToolchainApi(object):
             plugin.check_uninstall_failure()
 
     def get_pids_of_services(self):
-        return self.plugins_mapping["lma_collector"].verify_services()
+        """Check that all nodes run the required LMA collector services."""
+        return self.LMA_COLLECTOR.verify_services()
+
+    @staticmethod
+    def get_network_template(template_name):
+        template_path = os.path.join("network_templates",
+                                     "{}.yaml".format(template_name))
+        with open(helpers.get_fixture(template_path)) as f:
+            return yaml.load(f)
 
     def check_nova_metrics(self):
         time_started = "{}s".format(int(time.time()))
-        metrics = self.plugins_mapping[
-            "influxdb_grafana"].get_nova_instance_creation_time_metrics(
-                time_started)
+        plugin = self.INFLUXDB_GRAFANA
+        metrics = plugin.get_nova_instance_creation_time_metrics(time_started)
         asserts.assert_equal(
             metrics, [],
             "Spawned instances was found in Nova metrics "
@@ -108,9 +145,8 @@ class ToolchainApi(object):
             self.helpers.run_single_ostf(test_sets=['smoke'],
                                          test_name=test_name)
 
-        updated_metrics = self.plugins_mapping[
-            "influxdb_grafana"].get_nova_instance_creation_time_metrics(
-                time_started)
+        updated_metrics = plugin.get_nova_instance_creation_time_metrics(
+            time_started)
 
         asserts.assert_equal(
             len(updated_metrics), len(instance_tests),
@@ -121,11 +157,9 @@ class ToolchainApi(object):
         )
 
     def check_nova_logs(self):
-        indices = self.plugins_mapping[
-            'elasticsearch_kibana'].get_current_indices('log')
+        indices = self.ELASTICSEARCH_KIBANA.get_current_indices('log')
         logger.info("Found indexes {}".format(indices))
-        output = self.plugins_mapping[
-            'elasticsearch_kibana'].query_nova_logs(indices)
+        output = self.ELASTICSEARCH_KIBANA.query_nova_logs(indices)
         msg = "Indexes {} don't contain Nova logs"
         asserts.assert_not_equal(output['hits']['total'], 0, msg.format(
             indices))

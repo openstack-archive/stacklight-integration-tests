@@ -65,11 +65,15 @@ class LMACollectorPluginApi(base_test.PluginApi):
         return pids
 
     def check_plugin_online(self):
-        # Run OSTF test to check pacemaker status
-        self.helpers.run_single_ostf(
-            test_sets=['ha'],
-            test_name='fuel_health.tests.ha.test_pacemaker_status.'
-                      'TestPacemakerStatus.test_check_pacemaker_resources')
+        # Run the OSTF tests to check the Pacemaker status except when no
+        # controller are being deployed (dedicated environment case)
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+        if len(controllers) > 0:
+            self.helpers.run_single_ostf(
+                test_sets=['ha'],
+                test_name='fuel_health.tests.ha.test_pacemaker_status.'
+                          'TestPacemakerStatus.test_check_pacemaker_resources')
 
         self.verify_services()
 
