@@ -27,6 +27,13 @@ from stacklight_tests.toolchain import toolchain_settings
 
 
 class ToolchainApi(object):
+    # NOTE: the values here must match with the order in which the plugins are
+    # listed in self._plugins
+    ELASTICSEARCH_KIBANA = 0
+    INFLUXDB_GRAFANA = 1
+    LMA_COLLECTOR = 2
+    LMA_INFRASTRUCTURE_ALERTING = 3
+
     def __init__(self):
         self.test = base_test_case.TestBasic()
         self.env = self.test.env
@@ -35,45 +42,90 @@ class ToolchainApi(object):
         self.checkers = checkers
         self.remote_ops = remote_ops
         self.ui_tester = ui_tester
-        self.plugins_mapping = {
-            "elasticsearch_kibana": elasticsearch_api.ElasticsearchPluginApi(),
-            "influxdb_grafana": influx_api.InfluxdbPluginApi(),
-            "lma_collector": collector_api.LMACollectorPluginApi(),
-            "lma_infrastructure_alerting":
-                infrastructure_alerting_api.InfraAlertingPluginApi()
-        }
-        self.plugins = set(self.plugins_mapping.values())
+        self._plugins = [
+            # ELASTICSEARCH_KIBANA
+            elasticsearch_api.ElasticsearchPluginApi(),
+            # INFLUXDB_GRAFANA
+            influx_api.InfluxdbPluginApi(),
+            # LMA_COLLECTOR
+            collector_api.LMACollectorPluginApi(),
+            # LMA_INFRASTRUCTURE_ALERTING
+            infrastructure_alerting_api.InfraAlertingPluginApi()
+        ]
+        self._all_plugins = set([
+            self.ELASTICSEARCH_KIBANA,
+            self.INFLUXDB_GRAFANA,
+            self.LMA_COLLECTOR,
+            self.LMA_INFRASTRUCTURE_ALERTING
+        ])
+        self._disabled_plugins = set()
 
     def __getattr__(self, item):
         return getattr(self.test, item)
 
+    def disable_plugin_by_id(self, plugin_id):
+        """Disable a plugin."""
+        self._disabled_plugins.add(plugin_id)
+
+    def enable_plugin_by_id(self, plugin_id):
+        """Enable a plugin."""
+        self._disabled_plugins.remove(plugin_id)
+
+    def get_plugin_by_id(self, plugin_id):
+        """Return the plugin instance.
+
+        The method returns None if the plugin doesn't exist or is disabled.
+        """
+        if plugin_id not in self._disabled_plugins:
+            return self._plugins[plugin_id]
+        else:
+            return None
+
+    def call_plugin_method(self, plugin_id, f):
+        """Call a method on a plugin but only if it's enabled."""
+        plugin = self.get_plugin_by_id(plugin_id)
+        if plugin:
+            return f(plugin)
+
+    @property
+    def plugins(self):
+        """Return the list of plugins that are enabled."""
+        return [self._plugins[i]
+                for i in self._all_plugins - self._disabled_plugins]
+
     def prepare_plugins(self):
+        """Upoad and install the plugins."""
         for plugin in self.plugins:
             plugin.prepare_plugin()
 
     def activate_plugins(self):
-        msg = "Activate {} plugin"
+        """Enable and configure the plugins for the environment."""
         for plugin in self.plugins:
-            logger.info(msg.format(plugin.get_plugin_settings().name))
+            logger.info("Activate plugin {}".format(
+                plugin.get_plugin_settings().name))
             plugin.activate_plugin(
                 options=plugin.get_plugin_settings().toolchain_options)
 
     def check_plugins_online(self):
-        msg = "Check {} plugin"
         for plugin in self.plugins:
-            logger.info(msg.format(plugin.get_plugin_settings().name))
+            logger.info("Checking plugin {}".format(
+                plugin.get_plugin_settings().name))
             plugin.check_plugin_online()
 
     def check_nodes_count(self, count, hostname, state):
-        self.plugins_mapping[
-            'elasticsearch_kibana'].check_elasticsearch_nodes_count(count)
-        self.plugins_mapping[
-            'influxdb_grafana'].check_influxdb_nodes_count(count)
-        self.plugins_mapping[
-            'lma_infrastructure_alerting'].check_node_in_nagios(
-            hostname, state)
+        """Check that all nodes are present in the different backends."""
+        self.call_plugin_method(
+            self.ELASTICSEARCH_KIBANA,
+            lambda x: x.check_elasticsearch_nodes_count(count))
+        self.call_plugin_method(
+            self.INFLUXDB_GRAFANA,
+            lambda x: x.check_influxdb_nodes_count(count))
+        self.call_plugin_method(
+            self.LMA_INFRASTRUCTURE_ALERTING,
+            lambda x: x.check_node_in_nagios(hostname, state))
 
     def uninstall_plugins(self):
+        """Uninstall the plugins from the environment."""
         for plugin in self.plugins:
             plugin.uninstall_plugin()
 
@@ -82,4 +134,7 @@ class ToolchainApi(object):
             plugin.check_uninstall_failure()
 
     def get_pids_of_services(self):
-        return self.plugins_mapping["lma_collector"].verify_services()
+        """Check that all nodes run the required LMA collector services."""
+        return self.call_plugin_method(
+            self.LMA_COLLECTOR,
+            lambda x: x.verify_services())
