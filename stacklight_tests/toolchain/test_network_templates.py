@@ -13,14 +13,12 @@
 #    under the License.
 
 import copy
-import os
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from fuelweb_test import logger
 from fuelweb_test.settings import NEUTRON_SEGMENT
 from proboscis import asserts
 from proboscis import test
-import yaml
 
 from stacklight_tests.toolchain import api
 
@@ -30,15 +28,6 @@ class TestToolchainNetworkTemplates(api.ToolchainApi):
     """Class for testing the LMA Toolchain plugins when using network
     templates.
     """
-
-    @staticmethod
-    def get_network_template(template_name):
-        template = os.path.join(
-            os.environ.get("WORKSPACE", "./"),
-            "fixtures/network_templates/",
-            "{}.yaml".format(template_name))
-        with open(template) as f:
-            return yaml.load(f)
 
     @test(depends_on_groups=["prepare_slaves_3"],
           groups=["deploy_toolchain_with_network_template", "deploy",

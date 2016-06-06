@@ -25,6 +25,10 @@ from proboscis import asserts
 PLUGIN_PACKAGE_RE = re.compile(r'([^/]+)-(\d+\.\d+)-(\d+\.\d+\.\d+)')
 
 
+class NotFound(Exception):
+    pass
+
+
 def get_plugin_name(filename):
     """Extract the plugin name from the package filename.
 
@@ -55,8 +59,12 @@ def get_plugin_version(filename):
         return None
 
 
-class NotFound(Exception):
-    pass
+def get_fixture(name):
+    """Return the full path to a fixture."""
+    path = os.path.join(os.environ.get("WORKSPACE", "./"), "fixtures", name)
+    if not os.path.isfile(path):
+        raise NotFound("File {} not found".format(path))
+    return path
 
 
 class PluginHelper(object):
@@ -162,7 +170,7 @@ class PluginHelper(object):
             mode='ha_compact')
 
     def deploy_cluster(self, nodes_roles, verify_network=False,
-                       update_interfaces=True):
+                       update_interfaces=True, check_services=True):
         """Assign roles to nodes and deploy the cluster.
 
         :param nodes_roles: nodes to roles mapping.
@@ -173,13 +181,17 @@ class PluginHelper(object):
         :param update_interfaces: whether or not interfaces should be updated
         before the deployment (default: True).
         :type settings: boolean
+        :param check_services: whether or not OSTF tests should run after the
+        deployment (default: True).
+        :type settings: boolean
         :returns: None
         """
         self.fuel_web.update_nodes(self.cluster_id, nodes_roles,
                                    update_interfaces=update_interfaces)
         if verify_network:
             self.fuel_web.verify_network(self.cluster_id)
-        self.fuel_web.deploy_cluster_wait(self.cluster_id)
+        self.fuel_web.deploy_cluster_wait(self.cluster_id,
+                                          check_services=check_services)
 
     def run_ostf(self, *args, **kwargs):
         """Run the OpenStack health checks."""
