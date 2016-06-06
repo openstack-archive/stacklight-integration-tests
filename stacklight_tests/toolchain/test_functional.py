@@ -61,7 +61,7 @@ class TestFunctionalToolchain(api.ToolchainApi):
 
         self.check_plugins_online()
 
-        self.plugins_mapping["influxdb_grafana"].check_grafana_dashboards()
+        self.INFLUXDB_GRAFANA.check_grafana_dashboards()
 
     @test(depends_on_groups=["deploy_toolchain"],
           groups=["check_nova_metrics_toolchain",
