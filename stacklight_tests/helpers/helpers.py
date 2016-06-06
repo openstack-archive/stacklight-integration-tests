@@ -25,6 +25,10 @@ from proboscis import asserts
 PLUGIN_PACKAGE_RE = re.compile(r'([^/]+)-(\d+\.\d+)-(\d+\.\d+\.\d+)')
 
 
+class NotFound(Exception):
+    pass
+
+
 def get_plugin_name(filename):
     """Extract the plugin name from the package filename.
 
@@ -55,8 +59,12 @@ def get_plugin_version(filename):
         return None
 
 
-class NotFound(Exception):
-    pass
+def get_fixture(name):
+    """Return the full path to a fixture."""
+    path = os.path.join(os.environ.get("WORKSPACE", "./"), "fixtures", name)
+    if os.path.isfile(path):
+        raise NotFound("File {} not found".format(path))
+    return path
 
 
 class PluginHelper(object):
