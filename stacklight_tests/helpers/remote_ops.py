@@ -80,3 +80,31 @@ def get_pids_of_process(remote, name):
     if result['exit_code'] != 0:
         return []
     return result['stdout'][0].strip().split()
+
+
+def operate_ha_service(remote, name, operation="restart"):
+    """Operate HA service on remote node.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param name: service name.
+        :type name: str
+        :param operation: type of operation, usually start, stop or restart.
+        :type operation: str
+    """
+    remote.check_call("crm resource {operation} {service}".format(
+        operation=operation, service=name))
+
+
+def operate_service(remote, name, operation="restart"):
+    """Operate service on remote node.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param name: service name.
+        :type name: str
+        :param operation: type of operation, usually start, stop or restart.
+        :type operation: str
+    """
+    remote.check_call("initctl {operation} {service}".format(
+        operation=operation, service=name))
