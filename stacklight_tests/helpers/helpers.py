@@ -21,6 +21,9 @@ from devops.helpers import helpers
 from fuelweb_test import logger
 from proboscis import asserts
 
+from stacklight_tests.helpers import remote_ops
+from stacklight_tests import settings
+
 
 PLUGIN_PACKAGE_RE = re.compile(r'([^/]+)-(\d+\.\d+)-(\d+\.\d+\.\d+)')
 
@@ -174,16 +177,16 @@ class PluginHelper(object):
         """Assign roles to nodes and deploy the cluster.
 
         :param nodes_roles: nodes to roles mapping.
-        :type name: dict
+        :type nodes_roles: dict
         :param verify_network: whether or not network verification should be
         run before the deployment (default: False).
-        :type settings: boolean
+        :type verify_network: boolean
         :param update_interfaces: whether or not interfaces should be updated
         before the deployment (default: True).
-        :type settings: boolean
+        :type update_interfaces: boolean
         :param check_services: whether or not OSTF tests should run after the
         deployment (default: True).
-        :type settings: boolean
+        :type check_services: boolean
         :returns: None
         """
         self.fuel_web.update_nodes(self.cluster_id, nodes_roles,
@@ -437,3 +440,137 @@ class PluginHelper(object):
         result = self.nailgun_client.put_deployment_tasks_for_cluster(
             self.cluster_id, data=task_ids, node_id=node_ids)
         self.fuel_web.assert_task_success(result, timeout=timeout)
+
+    def operate_ha_services_on_controllers(self, controllers, services=None,
+                                           operation="restart"):
+        """Operate provided HA services on provided controllers.
+
+        If services list is not provided, it makes operation for all services.
+
+            :param controllers: controllers' nailgun nodes.
+            :type controllers: list
+            :param services: service names.
+            :type services: list
+            :param operation: type of operation,
+                              usually start, stop or restart.
+            :type operation: str
+        """
+        logger.info("{}ing HA services on controllers".format(
+            operation.capitalize()))
+        all_controller_ha_services = (
+            "p_heat-engine",
+            "p_neutron-plugin-openvswitch-agent",
+            "p_neutron-dhcp-agent",
+            "p_neutron-metadata-agent",
+            "p_neutron-l3-agent")
+        services = services or all_controller_ha_services
+        for controller in controllers:
+            with self.fuel_web.get_ssh_for_nailgun_node(
+                    controller) as remote:
+                for service in services:
+                    remote_ops.operate_ha_service(remote, service, operation)
+
+    def operate_services_on_controllers(self, controllers, services=None,
+                                        operation="restart"):
+        """Operate provided services on provided controllers.
+
+        If services list is not provided, it makes operation for all services.
+
+            :param controllers: controllers' nailgun nodes.
+            :type controllers: list
+            :param services: service names.
+            :type services: list
+            :param operation: type of operation,
+                              usually start, stop or restart.
+            :type operation: str
+        """
+        logger.info("{}ing services on controllers".format(
+            operation.capitalize()))
+        all_controller_services = (
+            "heat-api-cloudwatch",
+            "heat-api-cfn",
+            "heat-api",
+            "cinder-api",
+            "cinder-scheduler",
+            "nova-objectstore",
+            "nova-cert",
+            "nova-api",
+            "nova-consoleauth",
+            "nova-conductor",
+            "nova-scheduler",
+            "nova-novncproxy",
+            "neutron-server",
+        )
+        services = services or all_controller_services
+        for controller in controllers:
+            with self.fuel_web.get_ssh_for_nailgun_node(
+                    controller) as remote:
+                for service in services:
+                    remote_ops.operate_service(remote, service, operation)
+
+    def operate_services_on_computes(self, computes, services=None,
+                                     operation="restart"):
+        """Operate provided services on provided computes.
+
+        If services list is not provided, it makes operation for all services.
+
+            :param computes: computes' nailgun nodes
+            :type computes: list
+            :param services: service names.
+            :type services: list
+            :param operation: type of operation,
+                              usually start, stop or restart.
+            :type operation: str
+        """
+        logger.info("{}ing services on computes".format(
+            operation.capitalize()))
+        all_compute_services = (
+            "neutron-plugin-openvswitch-agent",
+            "nova-compute",
+        )
+        services = services or all_compute_services
+        for compute in computes:
+            with self.fuel_web.get_ssh_for_nailgun_node(compute) as remote:
+                for service in services:
+                    remote_ops.operate_service(remote, service, operation)
+
+    def apply_maintenance_update(self):
+        """Method applies maintenance updates on whole cluster."""
+        logger.info("Applying maintenance updates on master node")
+        self.env.admin_install_updates()
+
+        logger.info("Applying maintenance updates on slaves")
+        slaves_mu_script_url = (
+            "https://github.com/Mirantis/tools-sustaining/"
+            "raw/master/scripts/mos_apply_mu.py")
+
+        path_to_mu_script = "/tmp/mos_apply_mu.py"
+
+        with self.env.d_env.get_admin_remote() as remote:
+            remote.check_call("wget {uri} -O {path}".format(
+                uri=slaves_mu_script_url,
+                path=path_to_mu_script)
+            )
+
+            remote.check_call(
+                "python {path} "
+                "--env-id={identifier} "
+                "--user={username} "
+                "--pass={password} "
+                "--tenant={tenant_name} --update".format(
+                    path=path_to_mu_script,
+                    identifier=self.cluster_id,
+                    **settings.KEYSTONE_CREDS
+                )
+            )
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.cluster_id, roles=['controller', ])
+
+        computes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.cluster_id, roles=['compute', ])
+
+        logger.info("Restarting all OpenStack services")
+        self.operate_ha_services_on_controllers(controllers)
+        self.operate_services_on_controllers(controllers)
+        self.operate_services_on_computes(computes)
