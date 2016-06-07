@@ -238,3 +238,55 @@ class TestNodesToolchain(api.ToolchainApi):
         self.check_plugins_online()
 
         self.helpers.run_ostf()
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_toolchain_after_maintenance_update",
+                  "system", "toolchain", "maintenance_update"])
+    @log_snapshot_after_test
+    def check_toolchain_after_maintenance_update(self):
+        """Check work after applying maintenance update.
+
+        Scenario:
+            1. Revert the snapshot with 3 deployed nodes
+            2. Get pid of services which were launched
+               on controller/compute/storage/etc nodes by plugin and store them
+            3. Apply maintenance update
+            4. Get pid of services which were launched
+               on controller/compute/storage/etc nodes by plugin
+               and verify that they wasn't changed from last check
+            5. Run OSTF
+
+        Duration 240m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+
+        ready_nodes_before = self.helpers.get_all_ready_nodes()
+
+        ready_nodes_hostnames_before = {node["hostname"]
+                                        for node in ready_nodes_before}
+
+        pids_before = self.get_pids_of_services()
+
+        self.helpers.apply_maintenance_update()
+
+        ready_nodes_hostnames_after = {node["hostname"] for node
+                                       in self.helpers.get_all_ready_nodes()}
+
+        asserts.assert_equal(
+            ready_nodes_hostnames_before, ready_nodes_hostnames_after,
+            "List of ready nodes is not equal, "
+            "before createmirror:{}, "
+            "after createmirror: {}.".format(ready_nodes_hostnames_before,
+                                             ready_nodes_hostnames_after)
+        )
+
+        pids_after = self.get_pids_of_services()
+        asserts.assert_equal(
+            pids_after, pids_before,
+            "PIDs of services not equal, "
+            "before createmirror:{}, "
+            "after createmirror: {}.".format(pids_before, pids_after))
+
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
