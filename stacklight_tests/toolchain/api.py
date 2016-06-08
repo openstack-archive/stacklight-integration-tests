@@ -124,8 +124,13 @@ class ToolchainApi(object):
         indices = self.plugins_mapping[
             'elasticsearch_kibana'].get_current_indices('log')
         logger.info("Found indexes {}".format(indices))
+        query = {"query": {"filtered": {
+            "query": {"bool": {"should": [{"query_string": {
+                "query": "programname:nova*"}}]}},
+            "filter": {"bool": {"must": [{"range": {"Timestamp": {
+                "from": "now-1h"}}}]}}}}, "size": 100}
         output = self.plugins_mapping[
-            'elasticsearch_kibana'].query_nova_logs(indices)
+            'elasticsearch_kibana'].do_elasticsearch_query(indices, query)
         msg = "Indexes {} don't contain Nova logs"
         asserts.assert_not_equal(output['hits']['total'], 0, msg.format(
             indices))
@@ -138,3 +143,9 @@ class ToolchainApi(object):
         actual_hostnames = set([hit['_source']['Hostname']
                                 for hit in output['hits']['hits']])
         asserts.assert_equal(expected_hostnames, actual_hostnames)
+
+    def check_nova_notifications(self):
+        notification_list = self.plugins_mapping[
+            'elasticsearch_kibana'].query_nova_notifications()
+        self.helpers.check_notifications(notification_list,
+                                         self.settings.nova_event_types)
