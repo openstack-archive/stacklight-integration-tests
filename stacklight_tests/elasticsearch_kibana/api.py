@@ -23,8 +23,14 @@ from stacklight_tests.elasticsearch_kibana import plugin_settings
 class ElasticsearchPluginApi(base_test.PluginApi):
     def __init__(self):
         super(ElasticsearchPluginApi, self).__init__()
-        self.es = elasticsearch.Elasticsearch([{'host': self.get_plugin_vip(),
-                                                'port': 9200}])
+        self._es_client = None
+
+    @property
+    def es(self):
+        if self._es_client is None:
+            elasticsearch.Elasticsearch([{'host': self.get_plugin_vip(),
+                                          'port': 9200}])
+        return self._es_client
 
     def get_plugin_settings(self):
         return plugin_settings
