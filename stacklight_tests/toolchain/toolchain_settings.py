@@ -44,3 +44,23 @@ full_ha_nodes = {
     'slave-08': stacklight_roles,
     'slave-09': stacklight_roles
 }
+
+nova_event_types = [
+    "compute.instance.create.start", "compute.instance.create.end",
+    "compute.instance.delete.start", "compute.instance.delete.end",
+    "compute.instance.rebuild.start", "compute.instance.rebuild.end",
+    "compute.instance.resize.prep.start", "compute.instance.resize.prep.end",
+    "compute.instance.resize.confirm.start",
+    "compute.instance.resize.confirm.end",
+    "compute.instance.resize.revert.start",
+    "compute.instance.resize.revert.end",
+    "compute.instance.exists", "compute.instance.update",
+    "compute.instance.shutdown.start", "compute.instance.shutdown.end",
+    "compute.instance.power_off.start", "compute.instance.power_off.end",
+    "compute.instance.power_on.start", "compute.instance.power_on.end",
+    "compute.instance.snapshot.start", "compute.instance.snapshot.end",
+    "compute.instance.resize.start", "compute.instance.resize.end",
+    "compute.instance.finish_resize.start",
+    "compute.instance.finish_resize.end",
+    "compute.instance.suspend.start", "compute.instance.suspend.end",
+    "scheduler.select_destinations.start", "scheduler.select_destinations.end"]
