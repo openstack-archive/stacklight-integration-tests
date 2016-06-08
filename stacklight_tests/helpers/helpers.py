@@ -164,10 +164,11 @@ class PluginHelper(object):
         """
         if not name:
             name = self.__class__.__name__
-        return self.env.fuel_web.create_cluster(
+        self._cluster_id = self.env.fuel_web.create_cluster(
             name=name,
             settings=settings,
             mode='ha_compact')
+        return self._cluster_id
 
     def deploy_cluster(self, nodes_roles, verify_network=False,
                        update_interfaces=True, check_services=True):
