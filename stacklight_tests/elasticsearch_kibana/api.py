@@ -24,6 +24,7 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def __init__(self):
         super(ElasticsearchPluginApi, self).__init__()
         self._es_client = None
+        self._os_conn = None
 
     @property
     def es(self):
@@ -86,11 +87,25 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         indices = self.es.indices.get_aliases().keys()
         return filter(lambda x: index_type in x, sorted(indices))[-2:]
 
-    def query_nova_logs(self, indices):
+    def do_elasticsearch_query(self, indices, query):
+        return self.es.search(index=indices, body=query)
+
+    @staticmethod
+    def make_query_for_notifications(query_string):
         query = {"query": {"filtered": {
-            "query": {"bool": {"should": [{"query_string": {
-                "query": "programname:nova*"}}]}},
-            "filter": {"bool": {"must": [{"range": {"Timestamp": {
-                "from": "now-1h"}}}]}}}}, "size": 100}
-        output = self.es.search(index=indices, body=query)
-        return output
+            "query": {"bool": {"should": {"query_string": {
+                "query": ""}}}},
+            "filter": {"bool": {"must": {"range": {"Timestamp": {
+                "from": "now-1h"}}}}}}}, "size": 500}
+        query["query"]["filtered"]["query"]["bool"]["should"]["query_string"][
+            "query"] = query_string
+        return query
+
+    def query_nova_notifications(self):
+        instance = self.helpers.make_instance_actions()
+        query = self.make_query_for_notifications("instance_id={}".format(
+            instance.id))
+        indices = self.get_current_indexes("notification")
+        output = self.do_elasticsearch_query(indices, query)
+        return list(set([hit["_source"]["event_type"]
+                         for hit in output["hits"]["hits"]]))

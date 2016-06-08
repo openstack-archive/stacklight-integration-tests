@@ -18,6 +18,7 @@ import time
 import urllib2
 
 from devops.helpers import helpers
+from fuelweb_test.helpers import os_actions
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -67,6 +68,7 @@ class PluginHelper(object):
         self.fuel_web = self.env.fuel_web
         self._cluster_id = None
         self.nailgun_client = self.fuel_web.client
+        self._os_conn = None
 
     @property
     def cluster_id(self):
@@ -80,6 +82,13 @@ class PluginHelper(object):
     @cluster_id.setter
     def cluster_id(self, value):
         self._cluster_id = value
+
+    @property
+    def os_conn(self):
+        if self._os_conn is None:
+            self._os_conn = os_actions.OpenStackActions(
+                self.fuel_web.get_public_vip(self.cluster_id))
+        return self._os_conn
 
     def prepare_plugin(self, plugin_path):
         """Upload and install plugin by path."""
@@ -425,3 +434,75 @@ class PluginHelper(object):
         result = self.nailgun_client.put_deployment_tasks_for_cluster(
             self.cluster_id, data=task_ids, node_id=node_ids)
         self.fuel_web.assert_task_success(result, timeout=timeout)
+
+    @staticmethod
+    def check_notifications(actual_list, expected_list):
+        for event_type in actual_list:
+            if event_type not in expected_list:
+                raise NotFound("{} event type not found in {}".format(
+                    event_type, expected_list))
+
+    def wait_for_instance_status(self, instance, expected_status,
+                                 timeout=180, interval=30):
+        def _verify_instance_status():
+            curr_state = self.os_conn.get_instance_detail(instance).status
+            asserts.assert_equal(expected_status, curr_state)
+
+        start = time.time()
+        finish = start + timeout
+        while start < finish:
+            try:
+                _verify_instance_status()
+            except AssertionError:
+                logger.debug(
+                    "Instance is not in {} status".format(expected_status))
+                time.sleep(interval)
+                start = time.time()
+
+    def make_instance_actions(self):
+        net_name = self.fuel_web.get_cluster_predefined_networks_name(
+            self.cluster_id)['private_net']
+        flavors = self.os_conn.nova.flavors.list(sort_key="memory_mb")
+        logger.info("Launch an instance")
+        instance = self.os_conn.create_server_for_migration(label=net_name,
+                                                            flavor=flavors[0])
+        logger.info("Update the instance")
+        self.os_conn.nova.servers.update(instance, name="test-server")
+        self.wait_for_instance_status(instance, "ACTIVE")
+        image = self.os_conn._get_cirros_image()
+        logger.info("Rebuild the instance")
+        self.os_conn.nova.servers.rebuild(instance, image,
+                                          name="rebuilded_instance")
+        self.wait_for_instance_status(instance, "ACTIVE")
+        logger.info("Resize the instance")
+        self.os_conn.nova.servers.resize(instance, flavors[1])
+        self.wait_for_instance_status(instance, "VERIFY_RESIZE")
+        logger.info("Confirm the resize")
+        self.os_conn.nova.servers.confirm_resize(instance)
+        self.wait_for_instance_status(instance, "ACTIVE")
+        logger.info("Resize the instance")
+        self.os_conn.nova.servers.resize(instance, flavors[2])
+        self.wait_for_instance_status(instance, "VERIFY_RESIZE")
+        logger.info("Revert the resize")
+        self.os_conn.nova.servers.revert_resize(instance)
+        self.wait_for_instance_status(instance, "ACTIVE")
+        logger.info("Stop the instance")
+        self.os_conn.nova.servers.stop(instance)
+        self.wait_for_instance_status(instance, "SHUTOFF")
+        logger.info("Start the instance")
+        self.os_conn.nova.servers.start(instance)
+        self.wait_for_instance_status(instance, "ACTIVE")
+        logger.info("Suspend the instance")
+        self.os_conn.nova.servers.suspend(instance)
+        self.wait_for_instance_status(instance, "SUSPENDED")
+        logger.info("Resume the instance")
+        self.os_conn.nova.servers.resume(instance)
+        self.wait_for_instance_status(instance, "ACTIVE")
+        logger.info("Create an instance snapshot")
+        self.os_conn.nova.servers.create_image(instance, "test-image")
+        self.wait_for_instance_status(instance, "ACTIVE")
+        logger.info("Delete the instance")
+        self.os_conn.nova.servers.delete(instance)
+        logger.info("Check that the instance was deleted")
+        self.os_conn.verify_srv_deleted(instance)
+        return instance
