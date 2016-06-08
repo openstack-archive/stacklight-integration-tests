@@ -52,7 +52,9 @@ class LMACollectorPluginApi(base_test.PluginApi):
             # Starting with 0.10, there are one collector for logs and one for
             # metrics
             processes_count["hekad"] = 2
-        for node in self.helpers.get_all_ready_nodes():
+        online_nodes = [node for node in self.helpers.get_all_ready_nodes()
+                        if node["online"]]
+        for node in online_nodes:
             pids[node["name"]] = {}
             with self.env.d_env.get_ssh_to_remote(node["ip"]) as remote:
                 for process, count in processes_count.items():

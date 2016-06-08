@@ -241,3 +241,81 @@ class TestNodesToolchain(api.ToolchainApi):
         self.check_plugins_online()
 
         self.helpers.run_ostf()
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["shutdown_infrastructure_alerting_node_in_toolchain",
+                  "failover", "toolchain", "system", "destructive"])
+    @log_snapshot_after_test
+    def shutdown_infrastructure_alerting_node_in_toolchain(self):
+        """Verify that failover for LMA Infrastructure Alerting cluster
+        in plugins toolchain works.
+
+        Scenario:
+            1. Shutdown node were vip_infrastructure_alerting_mgmt_vip
+               was started.
+            2. Check that vip_infrastructure_alerting was started
+               on another plugin node.
+            3. Check that plugins toolchain is working.
+            4. Check that no data lost after shutdown.
+            5. Run OSTF.
+
+        Duration 30m
+        """
+        self.env.revert_snapshot("deploy_ha_toolchain")
+
+        self.plugins_mapping[
+            "lma_infrastructure_alerting"].check_plugin_failover()
+
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["shutdown_influxdb_grafana_node_in_toolchain",
+                  "failover", "toolchain", "system", "destructive"])
+    @log_snapshot_after_test
+    def shutdown_influxdb_grafana_node_in_toolchain(self):
+        """Verify that failover for InfluxDB cluster
+        in plugins toolchain works.
+
+        Scenario:
+            1. Shutdown node were vip_influxdb was started.
+            2. Check that vip_influxdb was started on another plugin node.
+            3. Check that plugins toolchain is working.
+            4. Check that no data lost after shutdown.
+            5. Run OSTF.
+
+        Duration 30m
+        """
+        self.env.revert_snapshot("deploy_ha_toolchain")
+
+        self.plugins_mapping["influxdb_grafana"].check_plugin_failover()
+
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["shutdown_elasticsearch_kibana_node_in_toolchain",
+                  "failover", "toolchain", "system", "destructive"])
+    @log_snapshot_after_test
+    def shutdown_elasticsearch_kibana_node_in_toolchain(self):
+        """Verify that failover for Elasticsearch cluster
+        in plugins toolchain works.
+
+        Scenario:
+            1. Shutdown node were es_vip_mgmt was started.
+            2. Check that es_vip_mgmt was started on another plugin node.
+            3. Check that plugins toolchain is working.
+            4. Check that no data lost after shutdown.
+            5. Run OSTF.
+
+        Duration 30m
+        """
+        self.env.revert_snapshot("deploy_ha_toolchain")
+
+        self.plugins_mapping["elasticsearch_kibana"].check_plugin_failover()
+
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
