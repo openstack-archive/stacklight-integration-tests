@@ -157,12 +157,10 @@ class ToolchainApi(object):
         )
 
     def check_nova_logs(self):
-        indices = self.ELASTICSEARCH_KIBANA.get_current_indices('log')
-        logger.info("Found indexes {}".format(indices))
-        output = self.ELASTICSEARCH_KIBANA.query_nova_logs(indices)
-        msg = "Indexes {} don't contain Nova logs"
-        asserts.assert_not_equal(output['hits']['total'], 0, msg.format(
-            indices))
+        output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
+            index_type="log", query_filter="programname:nova*")
+        asserts.assert_not_equal(output['hits']['total'], 0,
+                                 "Indexes don't contain Nova logs")
         controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
             self.helpers.cluster_id, ["controller"])
         computes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
@@ -172,3 +170,36 @@ class ToolchainApi(object):
         actual_hostnames = set([hit['_source']['Hostname']
                                 for hit in output['hits']['hits']])
         asserts.assert_equal(expected_hostnames, actual_hostnames)
+
+    def check_nova_notifications(self):
+        nova_event_types = [
+            "compute.instance.create.start", "compute.instance.create.end",
+            "compute.instance.delete.start", "compute.instance.delete.end",
+            "compute.instance.rebuild.start", "compute.instance.rebuild.end",
+            "compute.instance.rebuild.scheduled",
+            "compute.instance.resize.prep.start",
+            "compute.instance.resize.prep.end",
+            "compute.instance.resize.confirm.start",
+            "compute.instance.resize.confirm.end",
+            "compute.instance.resize.revert.start",
+            "compute.instance.resize.revert.end",
+            "compute.instance.exists", "compute.instance.update",
+            "compute.instance.shutdown.start", "compute.instance.shutdown.end",
+            "compute.instance.power_off.start",
+            "compute.instance.power_off.end",
+            "compute.instance.power_on.start", "compute.instance.power_on.end",
+            "compute.instance.snapshot.start", "compute.instance.snapshot.end",
+            "compute.instance.resize.start", "compute.instance.resize.end",
+            "compute.instance.finish_resize.start",
+            "compute.instance.finish_resize.end",
+            "compute.instance.suspend.start", "compute.instance.suspend.end",
+            "scheduler.select_destinations.start",
+            "scheduler.select_destinations.end"]
+        instance_id = self.helpers.make_instance_actions()
+        output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
+            index_type="notification",
+            query_filter="instance_id={}".format(instance_id), size=500)
+        notification_list = list(set([hit["_source"]["event_type"]
+                                      for hit in output["hits"]["hits"]]))
+        self.helpers.check_notifications(notification_list,
+                                         nova_event_types)
