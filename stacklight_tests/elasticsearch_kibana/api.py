@@ -82,15 +82,74 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
 
-    def get_current_indices(self, index_type):
-        indices = self.es.indices.get_aliases().keys()
-        return filter(lambda x: index_type in x, sorted(indices))[-2:]
+    def query_elasticsearch(self, index_type, time_range="now-1h",
+                            query_filter="*", size=100):
+        all_indices = self.es.indices.get_aliases().keys()
+        indices = filter(lambda x: index_type in x, sorted(all_indices))
+        return self.es.search(index=indices, body={
+            "query": {"filtered": {
+                "query": {"bool": {"should": {"query_string": {
+                    "query": query_filter}}}},
+                "filter": {"bool": {"must": {"range": {
+                    "Timestamp": {"from": time_range}}}}}}},
+            "size": size})
 
-    def query_nova_logs(self, indices):
-        query = {"query": {"filtered": {
-            "query": {"bool": {"should": [{"query_string": {
-                "query": "programname:nova*"}}]}},
-            "filter": {"bool": {"must": [{"range": {"Timestamp": {
-                "from": "now-1h"}}}]}}}}, "size": 100}
-        output = self.es.search(index=indices, body=query)
-        return output
+    def make_instance_actions(self):
+        net_name = self.fuel_web.get_cluster_predefined_networks_name(
+            self.cluster_id)['private_net']
+        flavors = self.os_conn.nova.flavors.list(sort_key="memory_mb")
+        logger.info("Launch an instance")
+        instance = self.os_conn.create_server_for_migration(label=net_name,
+                                                            flavor=flavors[0])
+        logger.info("Update the instance")
+        self.os_conn.nova.servers.update(instance, name="test-server")
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "ACTIVE")
+        image = self.os_conn._get_cirros_image()
+        logger.info("Rebuild the instance")
+        self.os_conn.nova.servers.rebuild(instance, image,
+                                          name="rebuilded_instance")
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "ACTIVE")
+        logger.info("Resize the instance")
+        self.os_conn.nova.servers.resize(instance, flavors[1])
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "VERIFY_RESIZE")
+        logger.info("Confirm the resize")
+        self.os_conn.nova.servers.confirm_resize(instance)
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "ACTIVE")
+        logger.info("Resize the instance")
+        self.os_conn.nova.servers.resize(instance, flavors[2])
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "VERIFY_RESIZE")
+        logger.info("Revert the resize")
+        self.os_conn.nova.servers.revert_resize(instance)
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "ACTIVE")
+        logger.info("Stop the instance")
+        self.os_conn.nova.servers.stop(instance)
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "SHUTOFF")
+        logger.info("Start the instance")
+        self.os_conn.nova.servers.start(instance)
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "ACTIVE")
+        logger.info("Suspend the instance")
+        self.os_conn.nova.servers.suspend(instance)
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "SUSPENDED")
+        logger.info("Resume the instance")
+        self.os_conn.nova.servers.resume(instance)
+        self.wait_for_resource_status(
+            self.os_conn.nova.servers, instance, "ACTIVE")
+        logger.info("Create an instance snapshot")
+        snapshot = self.os_conn.nova.servers.create_image(
+            instance, "test-image")
+        self.wait_for_resource_status(
+            self.os_conn.nova.images, snapshot, "ACTIVE")
+        logger.info("Delete the instance")
+        self.os_conn.nova.servers.delete(instance)
+        logger.info("Check that the instance was deleted")
+        self.os_conn.verify_srv_deleted(instance)
+        return instance.id
