@@ -425,3 +425,10 @@ class PluginHelper(object):
         result = self.nailgun_client.put_deployment_tasks_for_cluster(
             self.cluster_id, data=task_ids, node_id=node_ids)
         self.fuel_web.assert_task_success(result, timeout=timeout)
+
+    @staticmethod
+    def check_notifications(actual_list, expected_list):
+        for event_type in actual_list:
+            if event_type not in expected_list:
+                raise NotFound("{} event type not found in {}".format(
+                    event_type, expected_list))

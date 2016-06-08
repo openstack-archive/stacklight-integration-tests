@@ -13,6 +13,7 @@
 #    under the License.
 
 import elasticsearch
+from fuelweb_test.helpers import os_actions
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -25,6 +26,9 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         super(ElasticsearchPluginApi, self).__init__()
         self.es = elasticsearch.Elasticsearch([{'host': self.get_plugin_vip(),
                                                 'port': 9200}])
+        self.os_conn = os_actions.OpenStackActions(
+            self.fuel_web.get_public_vip(self.helpers.cluster_id))
+        self.nova = self.os_conn.nova
 
     def get_plugin_settings(self):
         return plugin_settings
@@ -80,11 +84,68 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         indices = self.es.indices.get_aliases().keys()
         return filter(lambda x: index_type in x, sorted(indices))[-2:]
 
-    def query_nova_logs(self, indices):
+    def do_elasticsearch_query(self, indices, query):
+        return self.es.search(index=indices, body=query)
+
+    @staticmethod
+    def make_query_for_notifications(query_string):
         query = {"query": {"filtered": {
-            "query": {"bool": {"should": [{"query_string": {
-                "query": "programname:nova*"}}]}},
-            "filter": {"bool": {"must": [{"range": {"Timestamp": {
-                "from": "now-1h"}}}]}}}}, "size": 100}
-        output = self.es.search(index=indices, body=query)
-        return output
+            "query": {"bool": {"should": {"query_string": {
+                "query": ""}}}},
+            "filter": {"bool": {"must": {"range": {"Timestamp": {
+                "from": "now-1h"}}}}}}}, "size": 500}
+        query["query"]["filtered"]["query"]["bool"]["should"]["query_string"][
+            "query"] = query_string
+        return query
+
+    def query_nova_notifications(self):
+        net_name = self.fuel_web.get_cluster_predefined_networks_name(
+            self.helpers.cluster_id)['private_net']
+        flavors = self.nova.flavors.list(sort_key="memory_mb")
+        logger.info("Launch an instance")
+        instance = self.os_conn.create_server_for_migration(label=net_name,
+                                                            flavor=flavors[0])
+        logger.info("Update the instance")
+        self.nova.servers.update(instance, name="test-server")
+        self.os_conn.verify_instance_status(instance, "ACTIVE")
+        image = self.os_conn._get_cirros_image()
+        logger.info("Rebuild the instance")
+        self.nova.servers.rebuild(instance, image, name="rebuilded_instance")
+        self.os_conn.verify_instance_status(instance, "ACTIVE")
+        logger.info("Resize the instance")
+        self.nova.servers.resize(instance, flavors[1])
+        self.os_conn.verify_instance_status(instance, "VERIFY_RESIZE")
+        logger.info("Confirm the resize")
+        self.nova.servers.confirm_resize(instance)
+        self.os_conn.verify_instance_status(instance, "ACTIVE")
+        logger.info("Resize the instance")
+        self.nova.servers.resize(instance, flavors[2])
+        self.os_conn.verify_instance_status(instance, "VERIFY_RESIZE")
+        logger.info("Revert the resize")
+        self.nova.servers.revert_resize(instance)
+        self.os_conn.verify_instance_status(instance, "ACTIVE")
+        logger.info("Stop the instance")
+        self.nova.servers.stop(instance)
+        self.os_conn.verify_instance_status(instance, "SHUTOFF")
+        logger.info("Start the instance")
+        self.nova.servers.start(instance)
+        self.os_conn.verify_instance_status(instance, "ACTIVE")
+        logger.info("Suspend the instance")
+        self.nova.servers.suspend(instance)
+        self.os_conn.verify_instance_status(instance, "SUSPENDED")
+        logger.info("Resume the instance")
+        self.nova.servers.resume(instance)
+        self.os_conn.verify_instance_status(instance, "ACTIVE")
+        logger.info("Create an instance snapshot")
+        self.nova.servers.create_image(instance, "test-image")
+        self.os_conn.verify_instance_status(instance, "ACTIVE")
+        logger.info("Delete the instance")
+        self.nova.servers.delete(instance)
+        logger.info("Check that the instance is deleted")
+        self.os_conn.verify_srv_deleted(instance)
+        query = self.make_query_for_notifications("instance_id={}".format(
+            instance.id))
+        indices = self.get_current_indexes("notification")
+        output = self.do_elasticsearch_query(indices, query)
+        return list(set([hit["_source"]["event_type"]
+                         for hit in output["hits"]["hits"]]))
