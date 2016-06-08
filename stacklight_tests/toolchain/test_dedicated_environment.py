@@ -13,10 +13,13 @@
 #    under the License.
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from fuelweb_test import logger
 from proboscis import asserts
 from proboscis import test
 
 from stacklight_tests.helpers import helpers
+from stacklight_tests.influxdb_grafana import (
+    plugin_settings as influxdb_settings)
 from stacklight_tests import settings
 from stacklight_tests.toolchain import api
 
@@ -92,4 +95,64 @@ class TestToolchainDedicatedEnvironment(api.ToolchainApi):
         self.check_plugins_online()
 
         self.env.make_snapshot("deploy_standalone_backends",
+                               is_make=True)
+
+    @test(depends_on=[deploy_standalone_backends],
+          groups=["deploy_env_using_standalone_backends", "deploy",
+                  "toolchain", "dedicated_environment"])
+    @log_snapshot_after_test
+    def deploy_env_using_standalone_backends(self):
+        """Deploy an OpenStack cluster using the Elasticsearch and InfluxDB
+        backends previously deployed in another environment.
+
+        Scenario:
+            1. Create the cluster
+            2. Add 1 node with the controller role
+            3. Add 1 node with the compute and cinder role
+            4. Deploy the cluster
+            5. Check that the services are running
+
+        Duration 60m
+        Snapshot deploy_env_using_standalone_backends
+        """
+        self.check_run("deploy_env_using_standalone_backends")
+
+        self.env.revert_snapshot("deploy_standalone_backends")
+
+        logger.info("Existing cluster id: {}".format(self.helpers.cluster_id))
+
+        # Get the IP addresses for the existing environment
+        elasticsearch_ip = self.ELASTICSEARCH_KIBANA.get_plugin_vip()
+        logger.info("Elasticsearch VIP: {}".format(elasticsearch_ip))
+        influxdb_ip = self.INFLUXDB_GRAFANA.get_plugin_vip()
+        logger.info("InfluxDB VIP: {}".format(influxdb_ip))
+
+        self.helpers.create_cluster(
+            name="deploy_env_using_standalone_backends"
+        )
+        logger.info("New cluster id: {}".format(self.helpers.cluster_id))
+
+        self.LMA_COLLECTOR.activate_plugin(options={
+            "environment_label/value": "deploy_env_using_standalone_backends",
+            "elasticsearch_mode/value": "remote",
+            "elasticsearch_address/value": elasticsearch_ip,
+            "influxdb_mode/value": "remote",
+            "influxdb_address/value": influxdb_ip,
+            "influxdb_database/value": "lma",
+            "influxdb_user/value": influxdb_settings.influxdb_user,
+            "influxdb_password/value": influxdb_settings.influxdb_pass,
+            "alerting_mode/value": "local"
+        })
+        self.disable_plugin(self.ELASTICSEARCH_KIBANA)
+        self.disable_plugin(self.INFLUXDB_GRAFANA)
+        self.disable_plugin(self.LMA_INFRASTRUCTURE_ALERTING)
+
+        self.helpers.deploy_cluster({
+            "slave-01": ["controller"],
+            "slave-02": ["compute", "cinder"],
+        })
+
+        self.check_plugins_online()
+
+        self.env.make_snapshot("deploy_env_using_standalone_backends",
                                is_make=True)
