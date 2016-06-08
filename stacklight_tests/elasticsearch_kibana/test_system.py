@@ -146,8 +146,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         self.helpers.run_ostf()
 
     @test(depends_on_groups=["deploy_ha_elasticsearch_kibana"],
-          groups=["check_failover_elasticsearch_kibana" "failover",
-                  "elasticsearch_kibana", "system", "destructive",
+          groups=["failover", "elasticsearch_kibana", "system", "destructive",
                   "shutdown_elasticsearch_kibana_node"])
     @log_snapshot_after_test
     def shutdown_elasticsearch_kibana_node(self):
@@ -165,15 +164,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         """
         self.env.revert_snapshot("deploy_ha_elasticsearch_kibana")
 
-        vip_name = self.helpers.full_vip_name(self.settings.vip_name)
-
-        target_node = self.helpers.get_node_with_vip(
-            self.settings.role_name, vip_name)
-
-        self.helpers.power_off_node(target_node)
-
-        self.helpers.wait_for_vip_migration(
-            target_node, self.settings.role_name, vip_name)
+        self.check_plugin_failover()
 
         self.check_plugin_online()
 
