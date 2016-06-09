@@ -110,3 +110,13 @@ class PluginApi(object):
         msg = "Plugin has not become online after a waiting period"
         devops_helpers.wait(
             check_availability, timeout=timeout, timeout_msg=msg)
+
+    def check_plugin_failover(self):
+        """Check that failover for the plugin works.
+        """
+        vip_name = self.helpers.full_vip_name(self.settings.vip_name)
+        target_node = self.helpers.get_node_with_vip(
+            self.settings.role_name, vip_name)
+        self.helpers.power_off_node(target_node)
+        self.helpers.wait_for_vip_migration(
+            target_node, self.settings.role_name, vip_name)

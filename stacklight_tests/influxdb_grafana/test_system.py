@@ -156,8 +156,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         self.helpers.run_ostf()
 
     @test(depends_on_groups=["deploy_ha_influxdb_grafana"],
-          groups=["check_failover_influxdb_grafana" "failover",
-                  "influxdb_grafana", "system", "destructive",
+          groups=["failover", "influxdb_grafana", "system", "destructive",
                   "shutdown_influxdb_grafana_node"])
     @log_snapshot_after_test
     def shutdown_influxdb_grafana_node(self):
@@ -175,19 +174,9 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         """
         self.env.revert_snapshot("deploy_ha_influxdb_grafana")
 
-        vip_name = self.helpers.full_vip_name(self.settings.vip_name)
-
-        target_node = self.helpers.get_node_with_vip(
-            self.settings.role_name, vip_name)
-
-        self.helpers.power_off_node(target_node)
-
-        self.helpers.wait_for_vip_migration(
-            target_node, self.settings.role_name, vip_name)
+        self.check_plugin_failover()
 
         self.check_plugin_online()
-
-        # TODO(rpromyshlennikov): check no data lost
 
         self.helpers.run_ostf()
 

@@ -141,7 +141,8 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
 
     @test(depends_on_groups=["deploy_ha_lma_infrastructure_alerting"],
           groups=["shutdown_infrastructure_alerting_node", "system",
-                  "lma_infrastructure_alerting", "shutdown"])
+                  "lma_infrastructure_alerting", "destructive",
+                  "failover"])
     @log_snapshot_after_test
     def shutdown_infrastructure_alerting_node(self):
         """Verify that failover for LMA Infrastructure Alerting cluster works.
@@ -158,12 +159,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         Duration 30m
         """
         self.env.revert_snapshot("deploy_ha_lma_infrastructure_alerting")
-        vip_name = self.helpers.full_vip_name(self.settings.vip_name)
-        target_node = self.helpers.get_node_with_vip(
-            self.settings.role_name, vip_name)
-        self.helpers.power_off_node(target_node)
-        self.helpers.wait_for_vip_migration(
-            target_node, self.settings.role_name, vip_name)
+        self.check_plugin_failover()
         self.check_plugin_online()
         self.helpers.run_ostf()
 

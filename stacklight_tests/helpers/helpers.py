@@ -286,6 +286,9 @@ class PluginHelper(object):
 
     def power_off_node(self, node):
         """Power off a node.
+
+        :param node: Devops node.
+        :type node: devops node instance
         """
         msg = 'Node {0} has not become offline after hard shutdown'.format(
             node.name)
