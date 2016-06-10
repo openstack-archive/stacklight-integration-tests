@@ -57,6 +57,10 @@ class ToolchainApi(object):
     def __getattr__(self, item):
         return getattr(self.test, item)
 
+    @property
+    def cluster_id(self):
+        return self.helpers.cluster_id
+
     def disable_plugin(self, plugin):
         """Disable a plugin."""
         self._disabled_plugins.add(plugin)
