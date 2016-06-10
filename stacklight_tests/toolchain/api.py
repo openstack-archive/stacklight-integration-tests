@@ -212,3 +212,17 @@ class ToolchainApi(object):
              for hit in output_for_logger["hits"]["hits"]]))
         self.helpers.check_notifications(logger_notifications,
                                          nova_event_types)
+
+    def check_glance_notifications(self):
+        glance_event_types = ["image.create", "image.prepare", "image.upload",
+                              "image.activate", "image.update", "image.delete"]
+        self.helpers.run_single_ostf(
+            test_sets=['smoke'],
+            test_name='fuel_health.tests.smoke.test_create_images.'
+                      'GlanceSmokeTests.test_create_and_delete_image_v2')
+        output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
+            index_type="notification", query_filter="Logger:glance", size=500)
+        notification_list = list(set([hit["_source"]["event_type"]
+                                      for hit in output["hits"]["hits"]]))
+        self.helpers.check_notifications(notification_list,
+                                         glance_event_types)
