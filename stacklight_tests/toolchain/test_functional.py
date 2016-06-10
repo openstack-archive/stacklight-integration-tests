@@ -86,7 +86,7 @@ class TestFunctionalToolchain(api.ToolchainApi):
 
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["check_nova_logs_in_elasticsearch", "toolchain",
-                  "functional"])
+                  "functional", "query_elasticsearch"])
     @log_snapshot_after_test
     def check_nova_logs_in_elasticsearch(self):
         """Check that Nova logs are present in Elasticsearch
@@ -107,7 +107,7 @@ class TestFunctionalToolchain(api.ToolchainApi):
 
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["check_nova_notifications_toolchain", "toolchain",
-                  "functional"])
+                  "functional", "query_elasticsearch"])
     @log_snapshot_after_test
     def check_nova_notifications_toolchain(self):
         """Check that Nova notifications are present in Elasticsearch
@@ -126,3 +126,25 @@ class TestFunctionalToolchain(api.ToolchainApi):
         self.check_plugins_online()
 
         self.check_nova_notifications()
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["check_glance_notifications_toolchain", "toolchain",
+                  "functional", "query_elasticsearch"])
+    @log_snapshot_after_test
+    def check_glance_notifications_toolchain(self):
+        """Check that Glance notifications are present in Elasticsearch
+
+        Scenario:
+            1. Revert snapshot with 9 deployed nodes in HA configuration
+            2. Run the OSTF platform test "Check create, update and delete
+               image actions using Glance v2"
+            3. Check that Glance notifications are present in current
+               Elasticsearch index
+
+        Duration 25m
+        """
+        self.env.revert_snapshot("deploy_ha_toolchain")
+
+        self.check_plugins_online()
+
+        self.check_glance_notifications()
