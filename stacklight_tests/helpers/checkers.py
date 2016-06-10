@@ -43,8 +43,8 @@ def check_process_count(remote, process, count):
 
     :param remote: SSH connection to the node.
     :type remote: SSHClient
-    :param service_name: the process name to match.
-    :type service_name: str
+    :param process: the process name to match.
+    :type process: str
     :param count: the number of processes to match.
     :type count: int
     :returns: list of PIDs.
