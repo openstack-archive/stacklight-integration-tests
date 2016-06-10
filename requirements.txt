@@ -1,5 +1,6 @@
 elasticsearch
 git+git://github.com/openstack/fuel-devops.git@2.9.20
+oslo.config<3.11.0  # python-keystoneclient pulled by fuel-qa brings buggy oslo.config
 PyYAML
 requests
 selenium
