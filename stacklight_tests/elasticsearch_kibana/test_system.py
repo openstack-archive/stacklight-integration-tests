@@ -55,7 +55,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         self.helpers.run_ostf(should_fail=1)
 
         # Add a controller
-        self.helpers.add_node_to_cluster(target_node)
+        self.helpers.add_nodes_to_cluster(target_node)
 
         self.check_plugin_online()
 
@@ -94,7 +94,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         self.helpers.run_ostf(should_fail=1)
 
         # Add a compute node
-        self.helpers.add_node_to_cluster(target_node)
+        self.helpers.add_nodes_to_cluster(target_node)
 
         self.check_plugin_online()
 
@@ -137,7 +137,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         self.fuel_web.run_ostf()
 
         # Add an Elasticsearch-Kibana node
-        self.helpers.add_node_to_cluster(target_node)
+        self.helpers.add_nodes_to_cluster(target_node)
 
         self.check_plugin_online()
 

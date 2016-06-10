@@ -59,7 +59,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         self.helpers.run_ostf(should_fail=1)
 
         # Add controller
-        self.helpers.add_node_to_cluster(manipulated_node)
+        self.helpers.add_nodes_to_cluster(manipulated_node)
 
         self.check_plugin_online()
 
@@ -102,7 +102,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         self.helpers.run_ostf(should_fail=1)
 
         # Add compute
-        self.helpers.add_node_to_cluster(manipulated_node)
+        self.helpers.add_nodes_to_cluster(manipulated_node)
 
         self.check_plugin_online()
 
@@ -147,7 +147,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         self.fuel_web.run_ostf()
 
         # Add InfluxDB-Grafana node
-        self.helpers.add_node_to_cluster(manipulated_node)
+        self.helpers.add_nodes_to_cluster(manipulated_node)
 
         self.check_plugin_online()
 
