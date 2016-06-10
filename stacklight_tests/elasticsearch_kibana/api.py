@@ -153,3 +153,17 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         logger.info("Check that the instance was deleted")
         self.os_conn.verify_srv_deleted(instance)
         return instance.id
+
+    def make_volume_actions(self):
+        logger.info("Create a volume")
+        volume = self.os_conn.cinder.volumes.create(size=1)
+        self.wait_for_resource_status(
+            self.os_conn.cinder.volumes, volume.id, "available")
+        logger.info("Update the volume")
+        self.os_conn.cinder.volumes.update(volume,
+                                           display_name="updated_volume")
+        self.wait_for_resource_status(
+            self.os_conn.cinder.volumes, volume.id, "available")
+        logger.info("Delete the volume")
+        self.os_conn.cinder.volumes.delete(volume)
+        return volume.id

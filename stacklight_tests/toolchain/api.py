@@ -203,3 +203,14 @@ class ToolchainApi(object):
                                       for hit in output["hits"]["hits"]]))
         self.helpers.check_notifications(notification_list,
                                          nova_event_types)
+
+    def check_cinder_notifications(self):
+        cinder_event_types = ["volume.update.start", "volume.update.end"]
+        volume_id = self.ELASTICSEARCH_KIBANA.make_volume_actions()
+        output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
+            index_type="notification",
+            query_filter="volume_id={}".format(volume_id), size=500)
+        notification_list = list(set([hit["_source"]["event_type"]
+                                      for hit in output["hits"]["hits"]]))
+        self.helpers.check_notifications(notification_list,
+                                         cinder_event_types)
