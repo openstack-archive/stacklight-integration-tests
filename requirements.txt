@@ -1,6 +1,6 @@
 elasticsearch
 git+git://github.com/openstack/fuel-devops.git@2.9.20
-oslo.config<3.11.0  # python-keystoneclient (dependency of fuel-qa) fails with the latest oslo.config
+oslo.i18n>=3.1.0  # the more recent python-*client (dependencies of fuel-qa) require at least this version of oslo.i18n
 PyYAML
 requests
 selenium
