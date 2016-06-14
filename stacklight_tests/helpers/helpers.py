@@ -18,7 +18,6 @@ import time
 import urllib2
 
 from devops.helpers import helpers
-from fuelweb_test.helpers import os_actions
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -30,10 +29,6 @@ PLUGIN_PACKAGE_RE = re.compile(r'([^/]+)-(\d+\.\d+)-(\d+\.\d+\.\d+)')
 
 
 class NotFound(Exception):
-    pass
-
-
-class TimeoutException(Exception):
     pass
 
 
@@ -83,7 +78,6 @@ class PluginHelper(object):
         self.fuel_web = self.env.fuel_web
         self._cluster_id = None
         self.nailgun_client = self.fuel_web.client
-        self._os_conn = None
 
     @property
     def cluster_id(self):
@@ -97,13 +91,6 @@ class PluginHelper(object):
     @cluster_id.setter
     def cluster_id(self, value):
         self._cluster_id = value
-
-    @property
-    def os_conn(self):
-        if self._os_conn is None:
-            self._os_conn = os_actions.OpenStackActions(
-                self.fuel_web.get_public_vip(self.cluster_id))
-        return self._os_conn
 
     def prepare_plugin(self, plugin_path):
         """Upload and install plugin by path."""
@@ -535,27 +522,3 @@ class PluginHelper(object):
             with self.fuel_web.get_ssh_for_nailgun_node(compute) as remote:
                 for service in compute_services:
                     remote_ops.manage_initctl_service(remote, service)
-
-    @staticmethod
-    def check_notifications(got_list, expected_list):
-        for event_type in expected_list:
-            asserts.assert_true(
-                event_type in got_list, "{} event type not found in {}".format(
-                    event_type, got_list))
-
-    @staticmethod
-    def wait_for_resource_status(resource_client, resource, expected_status,
-                                 timeout=180, interval=30):
-        start = time.time()
-        finish = start + timeout
-        while start < finish:
-            curr_state = resource_client.get(resource).status
-            if curr_state == expected_status:
-                return
-            else:
-                logger.debug(
-                    "Instance is not in {} status".format(expected_status))
-                time.sleep(interval)
-                start = time.time()
-        raise TimeoutException("Timed out waiting to become {}".format(
-            expected_status))
