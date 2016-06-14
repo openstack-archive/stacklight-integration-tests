@@ -206,7 +206,7 @@ class PluginHelper(object):
         self.fuel_web.run_single_ostf_test(self.cluster_id, test_sets,
                                            test_name, *args, **kwargs)
 
-    def add_node_to_cluster(self, node, redeploy=True, check_services=False):
+    def add_nodes_to_cluster(self, node, redeploy=True, check_services=False):
         """Add nodes to the cluster.
 
         :param node: list of nodes with their roles.

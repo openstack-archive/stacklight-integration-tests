@@ -55,7 +55,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         self.check_plugin_online()
         self.check_node_in_nagios(target_node_hostname, False)
 
-        self.helpers.add_node_to_cluster(target_node)
+        self.helpers.add_nodes_to_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
         target_node_hostname = self.helpers.get_hostname_by_node_name(
@@ -94,7 +94,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         self.check_plugin_online()
         self.check_node_in_nagios(target_node_hostname, False)
 
-        self.helpers.add_node_to_cluster(target_node)
+        self.helpers.add_nodes_to_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
         target_node_hostname = self.helpers.get_hostname_by_node_name(
@@ -132,7 +132,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         self.check_plugin_online()
         self.check_node_in_nagios(target_node_hostname, False)
 
-        self.helpers.add_node_to_cluster(target_node)
+        self.helpers.add_nodes_to_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
         target_node_hostname = self.helpers.get_hostname_by_node_name(
