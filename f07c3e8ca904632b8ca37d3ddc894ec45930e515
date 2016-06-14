@@ -1,0 +1,8 @@
+Code-Review+2: Vitaly Gusev <vgusev@mirantis.com>
+Workflow+1: Guillaume Thouvenin <gthouvenin@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Tue, 14 Jun 2016 12:44:51 +0000
+Reviewed-on: https://review.openstack.org/329414
+Project: openstack/stacklight-integration-tests
+Branch: refs/heads/master
