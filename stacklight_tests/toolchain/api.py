@@ -212,3 +212,37 @@ class ToolchainApi(object):
              for hit in output_for_logger["hits"]["hits"]]))
         self.helpers.check_notifications(logger_notifications,
                                          nova_event_types)
+
+    def check_heat_notifications(self):
+        heat_event_types = [
+            "orchestration.stack.check.start",
+            "orchestration.stack.check.end",
+            "orchestration.stack.create.start",
+            "orchestration.stack.create.end",
+            "orchestration.stack.delete.start",
+            "orchestration.stack.delete.end",
+            "orchestration.stack.resume.start",
+            "orchestration.stack.resume.end",
+            "orchestration.stack.rollback.start",
+            "orchestration.stack.rollback.end",
+            "orchestration.stack.suspend.start",
+            "orchestration.stack.suspend.end"
+        ]
+        test_class_main = ('fuel_health.tests.tests_platform.test_heat.'
+                           'HeatSmokeTests')
+
+        test_names = ['test_actions', 'test_advanced_actions', 'test_rollback']
+
+        test_classes = []
+
+        for test_name in test_names:
+            test_classes.append('{0}.{1}'.format(test_class_main, test_name))
+
+        for test_name in test_classes:
+            self.helpers.run_single_ostf(
+                test_sets=['smoke'], test_name=test_name)
+        output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
+            index_type="notification", query_filter="Logger:heat", size=500)
+        notification_list = list(set(
+            [hit["_source"]["event_type"] for hit in output["hits"]["hits"]]))
+        self.helpers.check_notifications(notification_list, heat_event_types)
