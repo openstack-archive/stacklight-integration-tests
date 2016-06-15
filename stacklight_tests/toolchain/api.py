@@ -212,3 +212,35 @@ class ToolchainApi(object):
              for hit in output_for_logger["hits"]["hits"]]))
         self.helpers.check_notifications(logger_notifications,
                                          nova_event_types)
+
+    def check_neutron_notifications(self):
+        neutron_event_types = [
+            "subnet.delete.start", "subnet.delete.end",
+            "subnet.create.start", "subnet.create.end",
+            "security_group_rule.create.start",
+            "security_group_rule.create.end",
+            "security_group.delete.start", "security_group.delete.end",
+            "security_group.create.start", "security_group.create.end",
+            "router.update.start", "router.update.end",
+            "router.interface.delete", "router.interface.create",
+            "router.delete.start", "router.delete.end",
+            "router.create.start", "router.create.end",
+            "port.delete.start", "port.delete.end",
+            "port.create.start", "port.create.end",
+            "network.delete.start", "network.delete.end",
+            "network.create.start", "network.create.end",
+            "floatingip.update.start", "floatingip.update.end",
+            "floatingip.delete.start", "floatingip.delete.end",
+            "floatingip.create.start", "floatingip.create.end"
+        ]
+        self.helpers.run_single_ostf(
+            test_sets=['smoke'],
+            test_name='fuel_health.tests.smoke.test_neutron_actions.'
+                      'TestNeutron.test_check_neutron_objects_creation')
+        output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
+            index_type="notification",
+            query_filter="Logger:neutron", size=500)
+        notification_list = list(set(
+            [hit["_source"]["event_type"] for hit in output["hits"]["hits"]]))
+        self.helpers.check_notifications(notification_list,
+                                         neutron_event_types)
