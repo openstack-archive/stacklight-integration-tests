@@ -170,3 +170,24 @@ class TestFunctionalToolchain(api.ToolchainApi):
         self.check_plugins_online()
 
         self.check_keystone_notifications()
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_heat_notifications_toolchain", "toolchain",
+                  "functional", "query_elasticsearch"])
+    @log_snapshot_after_test
+    def check_heat_notifications_toolchain(self):
+        """Check that Heat notifications are present in Elasticsearch
+
+        Scenario:
+            1. Revert snapshot with 3 deployed nodes
+            2. Run OSTF Heat platform tests
+            3. Check that Heat notifications are present in current
+               Elasticsearch index
+
+        Duration 25m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+
+        self.check_plugins_online()
+
+        self.check_heat_notifications()
