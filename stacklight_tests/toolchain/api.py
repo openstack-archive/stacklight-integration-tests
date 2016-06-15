@@ -212,3 +212,22 @@ class ToolchainApi(object):
              for hit in output_for_logger["hits"]["hits"]]))
         self.helpers.check_notifications(logger_notifications,
                                          nova_event_types)
+
+    def check_keystone_notifications(self):
+        keystone_event_types = [
+            "identity.role.created", "identity.role.deleted",
+            "identity.user.created", "identity.user.deleted",
+            "identity.project.created", "identity.project.deleted",
+            "identity.authenticate"
+        ]
+        self.helpers.run_single_ostf(
+            test_sets=['smoke'],
+            test_name='fuel_health.tests.smoke.test_user_create.'
+                      'TestUserTenantRole.test_create_user')
+        output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
+            index_type="notification",
+            query_filter="Logger:keystone", size=500)
+        notification_list = list(set(
+            [hit["_source"]["event_type"] for hit in output["hits"]["hits"]]))
+        self.helpers.check_notifications(notification_list,
+                                         keystone_event_types)

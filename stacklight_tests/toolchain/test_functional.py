@@ -126,3 +126,25 @@ class TestFunctionalToolchain(api.ToolchainApi):
         self.check_plugins_online()
 
         self.check_nova_notifications()
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_keystone_notifications_toolchain", "toolchain",
+                  "functional", "query_elasticsearch"])
+    @log_snapshot_after_test
+    def check_keystone_notifications_toolchain(self):
+        """Check that Keystone notifications are present in Elasticsearch
+
+        Scenario:
+            1. Revert snapshot with 3 deployed nodes
+            2. Run OSTF functional test "Create user and authenticate with it
+               to Horizon"
+            3. Check that Keystone notifications are present in current
+               Elasticsearch index
+
+        Duration 25m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+
+        self.check_plugins_online()
+
+        self.check_keystone_notifications()
