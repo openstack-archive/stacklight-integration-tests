@@ -88,7 +88,7 @@ class TestLMACollectorPlugin(api.LMACollectorPluginApi):
 
         self.env.make_snapshot("deploy_lma_collector", is_make=True)
 
-    @test(depends_on=[deploy_lma_collector],
+    @test(depends_on_groups=[deploy_lma_collector],
           groups=["uninstall_deployed_lma_collector", "uninstall",
                   "lma_collector", "smoke"])
     @log_snapshot_after_test

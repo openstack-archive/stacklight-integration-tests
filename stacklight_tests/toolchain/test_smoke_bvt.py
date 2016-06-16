@@ -119,7 +119,7 @@ class TestToolchain(api.ToolchainApi):
 
         self.env.make_snapshot("deploy_ha_toolchain", is_make=True)
 
-    @test(depends_on=[deploy_toolchain],
+    @test(depends_on_groups=[deploy_toolchain],
           groups=["uninstall_deployed_toolchain", "uninstall", "toolchain",
                   "smoke"])
     @log_snapshot_after_test

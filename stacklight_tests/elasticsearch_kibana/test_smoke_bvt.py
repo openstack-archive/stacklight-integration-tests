@@ -140,7 +140,7 @@ class TestElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.uninstall_plugin()
 
-    @test(depends_on=[deploy_elasticsearch_kibana],
+    @test(depends_on_groups=[deploy_elasticsearch_kibana],
           groups=["uninstall_deployed_elasticsearch_kibana", "uninstall",
                   "elasticsearch_kibana", "smoke"])
     @log_snapshot_after_test

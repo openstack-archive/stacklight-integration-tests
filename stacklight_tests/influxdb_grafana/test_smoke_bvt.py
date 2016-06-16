@@ -140,7 +140,7 @@ class TestInfluxdbPlugin(api.InfluxdbPluginApi):
 
         self.uninstall_plugin()
 
-    @test(depends_on=[deploy_influxdb_grafana],
+    @test(depends_on_groups=[deploy_influxdb_grafana],
           groups=["uninstall_deployed_influxdb_grafana", "uninstall",
                   "influxdb_grafana", "smoke"])
     @log_snapshot_after_test

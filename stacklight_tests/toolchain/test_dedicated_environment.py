@@ -97,7 +97,7 @@ class TestToolchainDedicatedEnvironment(api.ToolchainApi):
         self.env.make_snapshot("deploy_standalone_backends",
                                is_make=True)
 
-    @test(depends_on=[deploy_standalone_backends],
+    @test(depends_on_groups=[deploy_standalone_backends],
           groups=["deploy_env_using_standalone_backends", "deploy",
                   "toolchain", "dedicated_environment"])
     @log_snapshot_after_test
