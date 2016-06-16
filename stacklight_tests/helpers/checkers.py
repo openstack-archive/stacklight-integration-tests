@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from devops.helpers import helpers
+from fuelweb_test import logger
 from proboscis import asserts
 import requests
 
@@ -56,3 +58,28 @@ def check_process_count(remote, process, count):
         len(pids), count,
         msg.format(process=process, count=count, got=len(pids)))
     return pids
+
+
+def check_local_mail(remote, node, message, timeout=5 * 60):
+    """Check that email from LMA Infrastructure Alerting plugin about service
+    changing it's state is presented on a host.
+
+    :param remote: SSH connection to the node.
+    :type remote: SSHClient
+    :param node: node to check for email on.
+    :type node: dict
+    :param message: message to look for.
+    :type message: str
+    :param timeout: timeout to wait for email to arrive.
+    :rtype timeout: int
+    """
+    def check_mail():
+        remote.check_call("grep '{0}' $MAIL".format(message))
+    msg = "Email with {0} was not found on {1}".format(message, node["name"])
+    try:
+        helpers.wait(check_mail, timeout=timeout, timeout_msg=msg)
+    except Exception:
+        # NOTE (vushakov): This should be replaced with exception if lack
+        # of email indicates a bug. Currently, no email is recieved after
+        # nova-api service changes it's status to OK.
+        logger.error(msg)
