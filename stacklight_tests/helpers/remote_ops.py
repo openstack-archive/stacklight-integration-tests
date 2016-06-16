@@ -129,7 +129,7 @@ def manage_pacemaker_service(remote, name, operation="restart"):
         operation=operation, service=name))
 
 
-def manage_initctl_service(remote, name, operation="restart"):
+def manage_service(remote, name, operation="restart"):
     """Operate service on remote node.
 
         :param remote: SSH connection to the node.
@@ -139,8 +139,24 @@ def manage_initctl_service(remote, name, operation="restart"):
         :param operation: type of operation, usually start, stop or restart.
         :type operation: str
     """
-    remote.check_call("initctl {operation} {service}".format(
-        operation=operation, service=name))
+
+    if remote.execute("service {} status".format(name))['exit_code'] == 0:
+        service_cmd = 'service {service} {operation}'
+    elif remote.execute("initctl status {}".format(name))['exit_code'] == 0:
+        service_cmd = 'initctl {operation} {service}'
+    else:
+        raise Exception('no service handler!')
+
+    remote.check_call(service_cmd.format(service=name, operation=operation))
+
+
+def clear_local_mail(remote):
+    """Clean local mail
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+    """
+    remote.check_call("rm -f $MAIL")
 
 
 def fill_up_filesystem(remote, fs, percent, file_name):

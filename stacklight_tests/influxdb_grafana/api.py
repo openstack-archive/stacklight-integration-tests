@@ -22,6 +22,10 @@ from stacklight_tests.influxdb_grafana.grafana_ui import api as ui_api
 from stacklight_tests.influxdb_grafana import plugin_settings
 
 
+class NotFound(Exception):
+    pass
+
+
 class InfluxdbPluginApi(base_test.PluginApi):
     def __init__(self):
         super(InfluxdbPluginApi, self).__init__()
@@ -179,3 +183,35 @@ class InfluxdbPluginApi(base_test.PluginApi):
         if result:
             return result["series"][0]["values"]
         return []
+
+    def check_cluster_status(self, name, expected_status, interval='3m'):
+        output = ("SELECT last(value) FROM cluster_status WHERE "
+                  "time > now() - {0} AND cluster_name='{1}'".format(interval,
+                                                                     name))
+        msg_header = "Wrong '{0}' service state has been found!".format(
+            name)
+        self._check_influx_query_last_value(output, expected_status,
+                                            msg_header)
+
+    def check_count_of_haproxy_backends(self, service, node_state='down',
+                                        expected_count=0, interval='3m'):
+
+        query = ("SELECT last(value) FROM haproxy_backend_servers WHERE "
+                 "backend='{0}' AND state='{1}' and "
+                 "time > now() - {2}".format(service, node_state, interval))
+
+        msg_header = ("Wrong amout of nodes with service '{0}' "
+                      "in '{1}' state!".format(service, node_state))
+        self._check_influx_query_last_value(query, expected_count, msg_header)
+
+    def _check_influx_query_last_value(self, query, expected_value,
+                                       msg_header):
+        output = self.do_influxdb_query(query)
+        lines = output.json()
+        if not lines['results'][0]:
+            logger.error("The query ['result'] is empty!")
+            raise NotFound
+        state = lines['results'][0]['series'][0]['values'][0][1]
+        asserts.assert_equal(expected_value, state,
+                             msg_header + " Expected {0} but"
+                             " found {1}".format(expected_value, state))

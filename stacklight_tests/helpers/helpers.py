@@ -576,7 +576,7 @@ class PluginHelper(object):
                 for service in ha_services:
                     remote_ops.manage_pacemaker_service(remote, service)
                 for service in non_ha_services:
-                    remote_ops.manage_initctl_service(remote, service)
+                    remote_ops.manage_service(remote, service)
 
         logger.info("Restarting services on computes")
         compute_services = (
@@ -586,7 +586,7 @@ class PluginHelper(object):
         for compute in computes:
             with self.fuel_web.get_ssh_for_nailgun_node(compute) as remote:
                 for service in compute_services:
-                    remote_ops.manage_initctl_service(remote, service)
+                    remote_ops.manage_service(remote, service)
 
     @staticmethod
     def check_notifications(got_list, expected_list):
