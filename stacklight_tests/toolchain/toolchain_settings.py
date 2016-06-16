@@ -27,6 +27,12 @@ stacklight_roles = (elasticsearch_settings.role_name +
                     collector_settings.role_name +
                     infrastructure_alerting_settings.role_name)
 
+OKAY = 0
+WARN = 1
+UNKW = 2
+CRIT = 3
+DOWN = 4
+
 base_nodes = {
     'slave-01': ['controller'],
     'slave-02': ['compute', 'cinder'],
