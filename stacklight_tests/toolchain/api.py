@@ -44,8 +44,8 @@ class ToolchainApi(object):
         self.ELASTICSEARCH_KIBANA = elasticsearch_api.ElasticsearchPluginApi()
         self.INFLUXDB_GRAFANA = influx_api.InfluxdbPluginApi()
         self.LMA_COLLECTOR = collector_api.LMACollectorPluginApi()
-        self.LMA_INFRASTRUCTURE_ALERTING = \
-            infrastructure_alerting_api.InfraAlertingPluginApi()
+        self.LMA_INFRASTRUCTURE_ALERTING = (
+            infrastructure_alerting_api.InfraAlertingPluginApi())
         self._plugins = {
             self.ELASTICSEARCH_KIBANA,
             self.INFLUXDB_GRAFANA,
@@ -322,3 +322,66 @@ class ToolchainApi(object):
                                       for hit in output["hits"]["hits"]]))
         self.helpers.check_notifications(notification_list,
                                          cinder_event_types)
+
+    def change_verify_service_state(self, service, action, state,
+                                    influx_service_state, lma_node,
+                                    nailgun_node, nagios_driver):
+        logger.info("Changing state of service {0}. "
+                    "New state is {1}".format(service[0], state[0]))
+        self.remote_ops.clear_local_mail(lma_node)
+        with self.helpers.fuel_web.get_ssh_for_nailgun_node(
+                nailgun_node) as remote:
+            self.remote_ops.manage_initctl_service(remote, service, action)
+        self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+            nagios_driver, {service[1]: state[0]})
+        self.INFLUXDB_GRAFANA.check_cluster_state(
+            service[1], influx_service_state[0])
+        self.INFLUXDB_GRAFANA.check_count_of_haproxy_backends(
+            service[0], quantity=influx_service_state[1])
+        with self.helpers.fuel_web.get_ssh_for_nailgun_node(
+                lma_node) as remote:
+            self.checkers.check_local_mail(
+                remote, lma_node, "{0} is {1}".format(
+                    service[1], state[0]))
+
+    def change_verify_node_service_state(self, services, state, influx_state,
+                                         parameter, lma_node, service_nodes,
+                                         nagios_driver):
+        self.remote_ops.clear_local_mail(lma_node)
+
+        self.remote_ops.fill_mysql_space(service_nodes[0], parameter)
+
+        self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+            nagios_driver, {services[0]: 'OK'})
+        self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+            nagios_driver, {services[1]: state},
+            [service_nodes[0]['hostname']])
+        self.INFLUXDB_GRAFANA.check_cluster_state(services[0], 0)
+
+        self.remote_ops.fill_mysql_space(service_nodes[1], parameter)
+
+        for node in service_nodes:
+            self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                nagios_driver, {services[0]: state})
+            self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                nagios_driver, {services[1]: state}, [node['hostname']])
+        self.INFLUXDB_GRAFANA.check_cluster_state(services[0], influx_state)
+
+        with self.helpers.fuel_web.get_ssh_for_nailgun_node(
+                lma_node) as remote:
+            self.checkers.check_local_mail(
+                remote, lma_node, "{0} is {1}".format(services[0], state))
+
+        self.remote_ops.clean_mysql_space(service_nodes)
+
+        for node in service_nodes:
+            self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                nagios_driver, {services[0]: 'OK'})
+            self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                nagios_driver, {services[1]: 'OK'}, [node['hostname']])
+        self.INFLUXDB_GRAFANA.check_cluster_state(services[0], 0)
+
+        with self.helpers.fuel_web.get_ssh_for_nailgun_node(
+                lma_node) as remote:
+            self.checkers.check_local_mail(
+                remote, lma_node, "{0} is {1}".format(services[0], 'OK'))
