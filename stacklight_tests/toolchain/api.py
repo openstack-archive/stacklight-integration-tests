@@ -199,7 +199,7 @@ class ToolchainApi(object):
         instance_id = self.ELASTICSEARCH_KIBANA.make_instance_actions()
         output_for_instance_id = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification",
-            query_filter='instance_id="{}"'.format(instance_id), size=500)
+            query_filter='instance_id:"{}"'.format(instance_id), size=500)
         instance_id_notifications = list(set(
             [hit["_source"]["event_type"]
              for hit in output_for_instance_id["hits"]["hits"]]))
