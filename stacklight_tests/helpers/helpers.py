@@ -191,16 +191,16 @@ class PluginHelper(object):
         """Assign roles to nodes and deploy the cluster.
 
         :param nodes_roles: nodes to roles mapping.
-        :type nodes_roles: dict
+        :type name: dict
         :param verify_network: whether or not network verification should be
         run before the deployment (default: False).
-        :type verify_network: boolean
+        :type settings: boolean
         :param update_interfaces: whether or not interfaces should be updated
         before the deployment (default: True).
-        :type update_interfaces: boolean
+        :type settings: boolean
         :param check_services: whether or not OSTF tests should run after the
         deployment (default: True).
-        :type check_services: boolean
+        :type settings: boolean
         :returns: None
         """
         self.fuel_web.update_nodes(self.cluster_id, nodes_roles,
@@ -559,3 +559,25 @@ class PluginHelper(object):
                 start = time.time()
         raise TimeoutException("Timed out waiting to become {}".format(
             expected_status))
+
+    def clear_local_mail(self, node):
+        with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+            remote.check_call("rm -f $MAIL")
+
+    def change_service_state(self, service, action, service_nodes):
+        for node in service_nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                remote.check_call("service {0} {1}".format(service[0], action))
+
+    def fill_mysql_space(self, node, parameter):
+        with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+            cmd = "fallocate -l $(df | grep /dev/mapper/mysql-root |" \
+                  " awk '{{ printf(\"%.0f\\n\", " \
+                  "1024 * ((($3 + $4) * {0} / 100) - $3))}}') " \
+                  "/var/lib/mysql/test".format(parameter)
+            remote.check_call(cmd)
+
+    def clean_mysql_space(self, service_nodes):
+        for node in service_nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                remote.check_call("rm /var/lib/mysql/test")

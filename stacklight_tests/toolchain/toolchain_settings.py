@@ -41,6 +41,6 @@ full_ha_nodes = {
     'slave-05': ['compute', 'cinder'],
     'slave-06': ['compute', 'cinder'],
     'slave-07': stacklight_roles,
-    'slave-08': stacklight_roles,
-    'slave-09': stacklight_roles
+    'slave-08': stacklight_roles
+    # 'slave-09': stacklight_roles
 }

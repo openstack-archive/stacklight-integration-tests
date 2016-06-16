@@ -311,3 +311,59 @@ class ToolchainApi(object):
             [hit["_source"]["event_type"] for hit in output["hits"]["hits"]]))
         self.helpers.check_notifications(notification_list,
                                          neutron_event_types)
+
+    def change_verify_service_state(self, service, action, state,
+                                    influx_service_state, lma_node,
+                                    nailgun_node, nagios_driver):
+        logger.info("Changing state of service {0}. "
+                    "New state is {1}".format(service[0], state[0]))
+        self.helpers.clear_local_mail(lma_node)
+        self.helpers.change_service_state(service, action, nailgun_node)
+        self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+            nagios_driver, {service[1]: state[0]})
+        self.INFLUXDB_GRAFANA.influx_service_status_check(
+            service[1], influx_service_state[0])
+        self.INFLUXDB_GRAFANA.influx_nodes_state_check(
+            service[0], quantity=influx_service_state[1])
+        self.checkers.check_local_mail(self.helpers.fuel_web, lma_node,
+                                       "{0} is {1}".format(service[1],
+                                                           state[0]))
+
+    def change_verify_node_service_state(self, services, state, influx_state,
+                                         parameter, lma_node, service_nodes,
+                                         nagios_driver):
+        self.helpers.clear_local_mail(lma_node)
+
+        self.helpers.fill_mysql_space(service_nodes[0], parameter)
+
+        self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+            nagios_driver, {services[0]: 'OK'})
+        self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+            nagios_driver, {services[1]: state},
+            [service_nodes[0]['hostname']])
+        self.INFLUXDB_GRAFANA.influx_service_status_check(services[0], 0)
+
+        self.helpers.fill_mysql_space(service_nodes[1], parameter)
+
+        for node in service_nodes:
+            self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                nagios_driver, {services[0]: state})
+            self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                nagios_driver, {services[1]: state}, [node['hostname']])
+        self.INFLUXDB_GRAFANA.influx_service_status_check(services[0],
+                                                          influx_state)
+
+        self.checkers.check_local_mail(self.helpers.fuel_web, lma_node,
+                                       "{0} is {1}".format(services[0], state))
+
+        self.helpers.clean_mysql_space(service_nodes)
+
+        for node in service_nodes:
+            self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                nagios_driver, {services[0]: 'OK'})
+            self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                nagios_driver, {services[1]: 'OK'}, [node['hostname']])
+        self.INFLUXDB_GRAFANA.influx_service_status_check(services[0], 0)
+
+        self.checkers.check_local_mail(self.helpers.fuel_web, lma_node,
+                                       "{0} is {1}".format(services[0], 'OK'))

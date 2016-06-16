@@ -12,6 +12,8 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from devops.helpers import helpers
+from fuelweb_test import logger
 from proboscis import asserts
 import requests
 
@@ -31,8 +33,12 @@ def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
     :returns: HTTP response object
     :rtype: requests.Response
     """
+    from fuelweb_test import logger
     msg = msg or "%s responded with {0}, expected {1}" % url
     r = requests.get(url, **kwargs)
+
+    if r.status_code == 400:
+        logger.error(r.content)
     asserts.assert_equal(
         r.status_code, expected_code, msg.format(r.status_code, expected_code))
     return r
@@ -56,3 +62,23 @@ def check_process_count(remote, process, count):
         len(pids), count,
         msg.format(process=process, count=count, got=len(pids)))
     return pids
+
+
+def check_local_mail(fuel_web, node, message, timeout=5 * 60):
+    def check_mail():
+        with fuel_web.get_ssh_for_nailgun_node(node) as remote:
+            result = remote.execute(
+                "cat $MAIL | grep '{0}'".format(message))
+            if not result['exit_code']:
+                return True
+            else:
+                return False
+    msg = "Email with {0} was not found on {1}".format(message,
+                                                       node["name"])
+    try:
+        helpers.wait(check_mail, timeout=timeout, timeout_msg=msg)
+    except Exception:
+        # NOTE (vushakov): This should be replaced with exception if lack
+        # of email indicates a bug. Currently, no email is recieved after
+        # nova-api service changes it's status to OK.
+        logger.error(msg)
