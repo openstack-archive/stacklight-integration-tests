@@ -108,3 +108,50 @@ def manage_initctl_service(remote, name, operation="restart"):
     """
     remote.check_call("initctl {operation} {service}".format(
         operation=operation, service=name))
+
+
+def manage_service(remote, name, operation="restart"):
+    """Operate service on remote node.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param name: service name.
+        :type name: str
+        :param operation: type of operation, usually start, stop or restart.
+        :type operation: str
+    """
+    remote.check_call("service {service} {operation}".format(
+        service=name, operation=operation))
+
+
+def clear_local_mail(remote):
+    """Clean local mail
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+    """
+    remote.check_call("rm -f $MAIL")
+
+
+def fill_mysql_space(remote, percent):
+    """Fill space on node.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param percent: amount of space to be filled in percentages.
+        :type name: int
+    """
+    cmd = ("fallocate -l $(df | grep /dev/mapper/mysql-root |"
+           " awk '{{ printf(\"%.0f\\n\", "
+           "1024 * ((($3 + $4) * {0} / 100) - $3))}}') "
+           "/var/lib/mysql/test/bigfile".format(percent))
+    remote.check_call(cmd)
+
+
+def clean_mysql_space(remote):
+    """Clean space filled by fill_mysql_space function
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+    """
+    remote.check_call("rm /var/lib/mysql/test/bigfile")
