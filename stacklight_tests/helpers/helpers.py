@@ -563,3 +563,25 @@ class PluginHelper(object):
     def get_fuel_release(self):
         version = self.nailgun_client.get_api_version()
         return version.get('release')
+
+    def clear_local_mail(self, node):
+        with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+            remote.check_call("rm -f $MAIL")
+
+    def change_service_state(self, service, action, service_nodes):
+        for node in service_nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                remote.check_call("service {0} {1}".format(service[0], action))
+
+    def fill_mysql_space(self, node, parameter):
+        with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+            cmd = "fallocate -l $(df | grep /dev/mapper/mysql-root |" \
+                  " awk '{{ printf(\"%.0f\\n\", " \
+                  "1024 * ((($3 + $4) * {0} / 100) - $3))}}') " \
+                  "/var/lib/mysql/test".format(parameter)
+            remote.check_call(cmd)
+
+    def clean_mysql_space(self, service_nodes):
+        for node in service_nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                remote.check_call("rm /var/lib/mysql/test")
