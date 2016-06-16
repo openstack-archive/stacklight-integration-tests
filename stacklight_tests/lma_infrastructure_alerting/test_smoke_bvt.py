@@ -45,7 +45,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
 
         self.activate_plugin()
 
-    @test(depends_on=["prepare_slaves_3"],
+    @test(depends_on_groups=["prepare_slaves_3"],
           groups=["deploy_lma_infrastructure_alerting", "deploy",
                   "lma_infrastructure_alerting", "smoke"])
     @log_snapshot_after_test
