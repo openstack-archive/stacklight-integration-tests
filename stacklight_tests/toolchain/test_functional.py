@@ -213,3 +213,24 @@ class TestFunctionalToolchain(api.ToolchainApi):
         self.check_plugins_online()
 
         self.check_neutron_notifications()
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_cinder_notifications_toolchain", "toolchain",
+                  "functional", "query_elasticsearch"])
+    @log_snapshot_after_test
+    def check_cinder_notifications_toolchain(self):
+        """Check that Cinder notifications are present in Elasticsearch
+
+        Scenario:
+            1. Revert snapshot with 3 deployed nodes
+            2. Create a volume and update it
+            3. Check that Cinder notifications are present in current
+               Elasticsearch index
+
+        Duration 25m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+
+        self.check_plugins_online()
+
+        self.check_cinder_notifications()
