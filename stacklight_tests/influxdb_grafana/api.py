@@ -167,3 +167,40 @@ class InfluxdbPluginApi(base_test.PluginApi):
         if result:
             return result["series"][0]["values"]
         return []
+
+    def check_cluster_state(self, service, state=0, interval='3m'):
+        output = ("SELECT last(value) FROM cluster_status WHERE "
+                  "time > now() - {0} AND cluster_name='{1}'".format(interval,
+                                                                     service))
+        msg_header = "Wrong '{0}' service state has been found!".format(
+            service)
+        self.check_influx_query(output, state, msg_header)
+
+    def check_count_of_haproxy_backends(self, service, node_state='down',
+                                        quantity=0, interval='3m'):
+
+        query = ("SELECT last(value) FROM haproxy_backend_servers WHERE "
+                 "backend='{0}' AND state='{1}' and "
+                 "time > now() - {2}".format(service, node_state, interval))
+
+        msg_header = ("Wrong amout of nodes with service '{0}' "
+                      "in '{1}' state!".format(service, node_state))
+        self.check_influx_query(query, quantity, msg_header)
+
+    def check_influx_query(self, query, expected_state, msg_header):
+        output = self.do_influxdb_query(query)
+        lines = output.json()
+        if not lines['results'][0]:
+            # NOTE (vushakov): This should be replaced with exception if empty
+            # query indicates a bug. Currently, the following services will
+            # have an empty query result for nodes in down state:
+            #     nova-scheduler
+            #     apache2
+            #     cinder-scheduler
+            #     neutron-server
+            logger.error("The query ['result'] is empty!")
+            return None
+        state = lines['results'][0]['series'][0]['values'][0][1]
+        asserts.assert_equal(expected_state, state,
+                             msg_header + " Expected {0} but"
+                             " found {1}".format(expected_state, state))
