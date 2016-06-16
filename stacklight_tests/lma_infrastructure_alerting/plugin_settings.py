@@ -17,7 +17,7 @@ from stacklight_tests import settings
 
 name = 'lma_infrastructure_alerting'
 role_name = ['infrastructure_alerting']
-vip_name = 'infrastructure_alerting_ui'
+failover_vip = 'infrastructure_alerting_ui'
 plugin_path = settings.LMA_INFRA_ALERTING_PLUGIN_PATH
 version = helpers.get_plugin_version(plugin_path)
 
