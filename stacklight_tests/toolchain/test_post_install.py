@@ -58,7 +58,7 @@ class TestToolchainPostInstallation(api.ToolchainApi):
         self.env.make_snapshot("deploy_environment_without_toolchain",
                                is_make=True)
 
-    @test(depends_on=[deploy_environment_without_toolchain],
+    @test(depends_on_groups=[deploy_environment_without_toolchain],
           groups=["deploy_toolchain_in_existing_environment", "deploy",
                   "toolchain", "detached_plugins"])
     @log_snapshot_after_test
