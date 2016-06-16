@@ -15,6 +15,9 @@
 from contextlib import closing
 import socket
 
+from devops.error import DevopsCalledProcessError
+from devops.helpers import helpers as devops_helpers
+from fuelweb_test import logger
 from proboscis import asserts
 import requests
 from requests.packages.urllib3 import poolmanager
@@ -48,6 +51,7 @@ def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
     cert = helpers.get_fixture("https/rootCA.pem")
     msg = msg or "%s responded with {0}, expected {1}" % url
     r = s.get(url, verify=cert, **kwargs)
+    logger.info(r.text)
     asserts.assert_equal(
         r.status_code, expected_code, msg.format(r.status_code, expected_code))
     return r
@@ -83,3 +87,32 @@ def check_port(address, port):
     """
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         return sock.connect_ex((address, port)) == 0
+
+
+def check_local_mail(remote, node, service, state, timeout=10 * 60):
+    """Check that email from LMA Infrastructure Alerting plugin about service
+    changing it's state is presented on a host.
+
+    :param remote: SSH connection to the node.
+    :type remote: SSHClient
+    :param node: node to check for email on.
+    :type node: dict
+    :param message: message to look for.
+    :type message: str
+    :param timeout: timeout to wait for email to arrive.
+    :rtype timeout: int
+    """
+    def check_mail():
+        try:
+            responce = remote.check_call("cat $MAIL")
+            if not responce:
+                return False
+            if ("Service: {}\n".format(service) in responce['stdout'] and
+                    "State: {}\n".format(state) in responce['stdout']):
+                return True
+        except DevopsCalledProcessError:
+            return False
+    msg = ("Email about service {0} in {1} state was not "
+           "found on {2} after {3} seconds").format(
+        service, state, node["name"], timeout)
+    devops_helpers.wait(check_mail, timeout=timeout, timeout_msg=msg)
