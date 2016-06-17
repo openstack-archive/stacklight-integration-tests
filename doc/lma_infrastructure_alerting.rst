@@ -12,3 +12,9 @@ System
 
 .. automodule:: stacklight_tests.lma_infrastructure_alerting.test_system
    :members:
+
+Destructive
+===========
+
+.. automodule:: stacklight_tests.lma_infrastructure_alerting.test_destructive
+   :members:
