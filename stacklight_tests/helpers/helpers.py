@@ -559,3 +559,7 @@ class PluginHelper(object):
                 start = time.time()
         raise TimeoutException("Timed out waiting to become {}".format(
             expected_status))
+
+    def get_fuel_release(self):
+        version = self.nailgun_client.get_api_version()
+        return version.get('release')

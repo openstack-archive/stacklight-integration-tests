@@ -71,6 +71,8 @@ class TestToolchainPostInstallation(api.ToolchainApi):
             3. Configure the plugins
             4. Add 3 nodes with the plugin roles
             5. Deploy the cluster
+            6. Redeploy the nodes that existed before the last deploy (MOS 8
+            only)
             6. Check that LMA Toolchain plugins are running
             7. Run OSTF
 
@@ -90,10 +92,13 @@ class TestToolchainPostInstallation(api.ToolchainApi):
             'slave-04': settings.stacklight_roles,
             'slave-05': settings.stacklight_roles
         })
-        # The 'hiera' and post-deployment tasks have to be re-executed
-        # "manually" for the existing nodes
-        self.helpers.run_tasks(existing_nodes, tasks=['hiera'],
-                               start="post_deployment_start", timeout=20 * 60)
+        if self.helpers.get_fuel_release() == '8.0':
+            # The 'hiera' and post-deployment tasks have to be re-executed
+            # "manually" for the existing nodes on MOS 8. With later versions
+            # of MOS, these tasks should be re-executed automatically.
+            self.helpers.run_tasks(
+                existing_nodes, tasks=['hiera'], start="post_deployment_start",
+                timeout=20 * 60)
 
         self.check_plugins_online()
 
