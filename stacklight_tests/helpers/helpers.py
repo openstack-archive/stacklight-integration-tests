@@ -563,3 +563,29 @@ class PluginHelper(object):
     def get_fuel_release(self):
         version = self.nailgun_client.get_api_version()
         return version.get('release')
+
+    def check_pacemaker_resource(self, resource_name, role):
+        """Check that the pacemaker resource is started on all controllers
+        :param resource_name: the name of the pacemaker resource
+        :type resource_name: str
+        :param role: the role of node when run pacemaker
+        """
+        cluster_id = self.cluster_id
+        n_ctrls = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            cluster_id, [role])
+        d_ctrls = self.fuel_web.get_devops_nodes_by_nailgun_nodes(n_ctrls)
+        pcm_nodes = ' '.join(self.fuel_web.get_pcm_nodes(
+            d_ctrls[0].name, pure=True)['Online'])
+        logger.info("pacemaker nodes are {0}".format(pcm_nodes))
+        resource_nodes = self.fuel_web.get_pacemaker_resource_location(
+            d_ctrls[0].name, resource_name)
+        for resource_node in resource_nodes:
+            logger.info("Check resource [{0}] on node {1}".format(
+                resource_name, resource_node.name))
+            config = self.fuel_web.get_pacemaker_config(resource_node)
+            asserts.assert_not_equal(
+                re.search(
+                    "Clone Set: clone_{0} \[{0}\]\s+Started: \[ {1} \]".format(
+                        resource_name, pcm_nodes), config), None,
+                'Resource [{0}] is not properly configured'.format(
+                    resource_name))
