@@ -72,10 +72,7 @@ class LMACollectorPluginApi(base_test.PluginApi):
         controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
             self.helpers.cluster_id, ["controller"])
         if len(controllers) > 0:
-            self.helpers.run_single_ostf(
-                test_sets=['ha'],
-                test_name='fuel_health.tests.ha.test_pacemaker_status.'
-                          'TestPacemakerStatus.test_check_pacemaker_resources')
+            self.helpers.check_pacemaker_resource("lma_collector")
 
         self.verify_services()
 
