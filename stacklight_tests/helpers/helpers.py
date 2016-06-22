@@ -672,3 +672,50 @@ class PluginHelper(object):
                                               disk_format='qcow2',
                                               data=fp)
         return image
+
+    def check_nodes_presence(self, nodes):
+        """Check that all nodes in ready state exist in the node_list array.
+
+        :param nodes: list to look for nodes in
+        :type nodes: list
+        """
+
+        missing_nodes = []
+        for node in self.get_all_ready_nodes():
+            if node["hostname"] not in nodes:
+                missing_nodes.append(node["hostname"])
+        asserts.assert_false(len(missing_nodes) > 0,
+                             "The following nodes couldn't be "
+                             "found: {0}".format(missing_nodes))
+
+    def pcmk_manage_pcs_resource(self, nodes, resources, action,
+                                 timeout=5 * 60):
+        for resource in resources:
+            with self.fuel_web.get_ssh_for_nailgun_node(nodes[0]) as remote:
+                remote.check_call("pcs resource {0} {1} --wait={2}".format(
+                    action, resource, timeout))
+
+    def pcmk_move_resource(self, resource_name, move_to):
+        with self.fuel_web.get_ssh_for_nailgun_node(move_to) as remote:
+            remote.check_call("pcs resource move {0} {1}".format(
+                resource_name, move_to["fqdn"]))
+
+    def get_tasks_pids(self, processes, nodes=None, exit_code=0):
+        nodes = (nodes or
+                 self.fuel_web.client.list_cluster_nodes(
+                     self.fuel_web.get_last_created_cluster()))
+        pids = {}
+        for node in nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                pids[node["name"]] = {}
+                for process in processes:
+                    result = remote_ops.get_pids_of_process(remote, process)
+                    if exit_code:
+                        asserts.assert_equal([], result,
+                                             "process {0} is running on "
+                                             "{1}".format(process,
+                                                          node["name"]))
+                    else:
+                        pids[node["name"]][process] = result
+
+        return pids
