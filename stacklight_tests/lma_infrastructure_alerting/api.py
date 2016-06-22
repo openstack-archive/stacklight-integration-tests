@@ -11,7 +11,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import six.moves as sm
+
+import datetime
+import time
 
 from devops.helpers import helpers
 from fuelweb_test import logger
@@ -111,13 +113,13 @@ class InfraAlertingPluginApi(base_test.PluginApi):
             driver = self.open_nagios_page(
                 driver, 'Hosts', "//table[@class='headertable']")
             asserts.assert_equal(state, self.node_is_present(
-                driver, changed_node), "Failed to find node '{0}' "
-                                       "on nagios!".format(changed_node))
+                driver, changed_node), "Failed to find node '{0}'"
+                                       " on nagios!".format(changed_node))
 
     def node_is_present(self, driver, name):
         table = self.ui_tester.get_table(driver,
                                          "/html/body/div[2]/table/tbody")
-        for ind in sm.xrange(2, self.ui_tester.get_table_size(table) + 1):
+        for ind in xrange(2, self.ui_tester.get_table_size(table) + 1):
             node_name = self.ui_tester.get_table_cell(
                 table, ind, 1).text.rstrip()
             if name == node_name:
@@ -200,3 +202,41 @@ class InfraAlertingPluginApi(base_test.PluginApi):
         helpers.wait(lambda: self.check_service_state_on_nagios(
             driver, service_state, node_names), timeout=60 * 5,
             timeout_msg=msg)
+
+    def lma_infrastructure_alerting_check(self, interval=600):
+        nailgun_nodes = self.helpers.get_all_ready_nodes()
+        with self.ui_tester.ui_driver(
+                self.get_authenticated_nagios_url(), "//frame[2]",
+                "Nagios Core") as driver:
+            driver = self.open_nagios_page(
+                driver, 'Hosts', "//table[@class='headertable']")
+            for node in nailgun_nodes:
+                time_before = time.time() - interval
+                check = False
+                table = self.ui_tester.get_table(
+                    driver, "/html/body/div[2]/table/tbody")
+                for index in range(2,
+                                   self.ui_tester.get_table_size(table) + 1):
+                    node_name = self.ui_tester.get_table_cell(
+                        table, index, 1).text.rstrip()
+                    if node["hostname"] == node_name:
+                        check = True
+                        state = self.ui_tester.get_table_cell(
+                            table, index, 2).text.rstrip()
+                        timestamp = datetime.datetime.strptime(
+                            self.ui_tester.get_table_cell(
+                                table, index, 3).text.rstrip(),
+                            '%Y-%m-%d %H:%M:%S')
+                        asserts.assert_equal(
+                            'UP', state, "Node {0} is in wrong state! {1} is"
+                                         " not 'UP'".format(node["hostname"],
+                                                            state))
+                        asserts.assert_true(
+                            time.mktime(timestamp.timetuple()) > time_before,
+                            "Node {0} check is outdated! Must be {1} secs, now"
+                            " {2}".format(node["hostname"], interval,
+                                          time.time() -
+                                          time.mktime(timestamp.timetuple())))
+                        break
+                asserts.assert_true(check, "Node {0} was not found in "
+                                           "nagios!".format(node["hostname"]))

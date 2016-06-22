@@ -184,6 +184,15 @@ class InfluxdbPluginApi(base_test.PluginApi):
             return result["series"][0]["values"]
         return []
 
+    def check_nodes_in_influxdb(self, interval='3m', measurement='cpu_user'):
+        output = self.do_influxdb_query(
+            "SELECT last(value), hostname FROM {0} WHERE time > now() - {1}"
+            " GROUP BY hostname".format(measurement, interval))
+        lines = json.loads(output.text)
+        nodes = [line["tags"]["hostname"] for line in
+                 lines["results"][0]["series"]]
+        self.helpers.check_nodes_presence(nodes)
+
     def check_cluster_status(self, name, expected_status, interval='3m'):
         output = ("SELECT last(value) FROM cluster_status WHERE "
                   "time > now() - {0} AND cluster_name='{1}'".format(interval,
