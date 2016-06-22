@@ -14,6 +14,7 @@
 
 import os
 import time
+import traceback
 
 from devops.helpers import helpers as devops_helpers
 from fuelweb_test import logger
@@ -45,8 +46,8 @@ class ToolchainApi(object):
         self.ELASTICSEARCH_KIBANA = elasticsearch_api.ElasticsearchPluginApi()
         self.INFLUXDB_GRAFANA = influx_api.InfluxdbPluginApi()
         self.LMA_COLLECTOR = collector_api.LMACollectorPluginApi()
-        self.LMA_INFRASTRUCTURE_ALERTING = \
-            infrastructure_alerting_api.InfraAlertingPluginApi()
+        self.LMA_INFRASTRUCTURE_ALERTING = (
+            infrastructure_alerting_api.InfraAlertingPluginApi())
         self._plugins = {
             self.ELASTICSEARCH_KIBANA,
             self.INFLUXDB_GRAFANA,
@@ -341,3 +342,131 @@ class ToolchainApi(object):
             source, value)
         devops_helpers.wait(check_result, timeout=60 * 5,
                             interval=10, timeout_msg=msg)
+
+    def restart_services_actions(self, queue, cluster_id):
+        fuel_web = self.helpers.fuel_web
+        try:
+            logger.info("Moving vip__management service to another node")
+            nailgun_controllers = fuel_web.get_nailgun_cluster_nodes_by_roles(
+                cluster_id, ['controller'])
+            devops_nodes = fuel_web.get_devops_nodes_by_nailgun_nodes(
+                nailgun_controllers)
+            service_node = fuel_web.get_pacemaker_resource_location(
+                devops_nodes[1].name, "vip__management")[0]
+
+            for node in nailgun_controllers:
+                if node['name'] == service_node.name + "_controller_ceph-osd":
+                    nailgun_controllers.remove(node)
+
+            self.helpers.pcmk_move_resource("vip__management",
+                                            nailgun_controllers[0])
+            self.monitoring_check()
+            logger.info("Waiting for 1 hour")
+            # time.sleep(3600)
+            logger.info("Moving vip__management service to another node")
+            self.helpers.pcmk_move_resource("vip__management",
+                                            nailgun_controllers[1])
+            self.monitoring_check()
+
+            nailgun_controllers = (
+                fuel_web.get_nailgun_cluster_nodes_by_roles(cluster_id,
+                                                            ['controller']))
+
+            logger.info("Checking PIDs of hekad and collectd on all nodes.")
+            pids = self.helpers.get_tasks_pids(['hekad', 'collectd'])
+
+            self.manage_lma_collector(nailgun_controllers)
+            self.monitoring_check()
+
+            nailgun_compute = fuel_web.get_nailgun_cluster_nodes_by_roles(
+                cluster_id, ['compute'])
+            nailgun_plugins = fuel_web.get_nailgun_cluster_nodes_by_roles(
+                cluster_id, self.settings.stacklight_roles)
+
+            logger.info("Restarting collectors on all nodes except"
+                        " controllers.")
+            self.change_lma_collectors_state(
+                nailgun_compute, nailgun_plugins, "restart")
+            logger.info("Checking PID of hekad on all nodes")
+            new_pids = self.helpers.get_tasks_pids(['hekad'])
+
+            for node in new_pids:
+                asserts.assert_true(
+                    new_pids[node]["hekad"] != pids[node]["hekad"],
+                    "hekad on {0} hasn't changed it's pid! Was {1} now "
+                    "{2}".format(node, pids[node]["hekad"],
+                                 new_pids[node]["hekad"]))
+            self.monitoring_check()
+
+            logger.info("Stopping lma_collector on all nodes except"
+                        " controllers.")
+            self.change_lma_collectors_state(
+                nailgun_compute, nailgun_plugins, "stop")
+            logger.info("Checking PID of hekad on all nodes except"
+                        " controllers")
+            self.helpers.get_tasks_pids(['hekad'], nailgun_compute, False)
+            self.helpers.get_tasks_pids(['hekad'], nailgun_plugins, False)
+            logger.info("Starting lma_collector on all nodes except"
+                        " controllers.")
+            self.change_lma_collectors_state(
+                nailgun_compute, nailgun_plugins, "start")
+            self.monitoring_check()
+
+            self.killing_heka_on_controllers(nailgun_controllers)
+
+            queue.put(True)
+        except Exception as ex:
+            logger.error(ex)
+            logger.error(traceback.format_exc())
+            queue.put(False)
+            queue.put(os.getpid())
+
+    def monitoring_check(self):
+        logger.info("Checking that lma_collector (heka) sending data to"
+                    " Elasticsearch, InfluxDB, Nagios.")
+        self.ELASTICSEARCH_KIBANA.check_nodes_in_elasticsearch()
+        self.INFLUXDB_GRAFANA.check_nodes_in_influxdb()
+        self.LMA_INFRASTRUCTURE_ALERTING.lma_infrastructure_alerting_check()
+
+    def manage_lma_collector(self, nailgun_controllers):
+        collector_processes = ["metric_collector", "log_collector"]
+
+        logger.info("Stopping lma_collector (heka).")
+        self.helpers.pcmk_manage_pcs_resource(nailgun_controllers,
+                                              collector_processes, "disable")
+        logger.info("Checking PID of hekad on all controllers.")
+        self.helpers.get_tasks_pids(['hekad'],
+                                    nailgun_controllers, False)
+        logger.info("Starting lma_collector (heka)")
+        self.helpers.pcmk_manage_pcs_resource(nailgun_controllers,
+                                              collector_processes, "enable")
+
+    def change_lma_collectors_state(self, nailgun_compute, nailgun_plugins,
+                                    action):
+        self.LMA_COLLECTOR.manage_lma_collector_service(
+            nailgun_compute, action)
+        self.LMA_COLLECTOR.manage_lma_collector_service(
+            nailgun_plugins, action)
+
+    def killing_heka_on_controllers(self, nailgun_controllers):
+        msg = ("hekad has not been restarted by pacemaker on node {0} after"
+               " kill -9")
+        for node in nailgun_controllers:
+            with self.helpers.fuel_web.get_ssh_for_nailgun_node(
+                    node) as remote:
+                def wait_for_restart():
+                    if remote.execute("pidof hekad")["exit_code"]:
+                        return False
+                    else:
+                        return True
+                logger.info("Killing heka process with 'kill -9' command "
+                            "on {0}.".format(node["name"]))
+                exec_res = remote.execute("kill -9 `pidof hekad`")
+                asserts.assert_equal(0, exec_res['exit_code'],
+                                     "Failed to kill -9 hekad on"
+                                     " {0}".format(node["name"]))
+                logger.info("Waiting while pacemaker starts heka process "
+                            "on {0}.".format(node["name"]))
+                devops_helpers.wait(wait_for_restart,
+                                    timeout=60 * 5,
+                                    timeout_msg=msg.format(node["name"]))
