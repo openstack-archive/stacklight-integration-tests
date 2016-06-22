@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+import json
+import time
+
 import elasticsearch
 from fuelweb_test import logger
 from proboscis import asserts
@@ -228,3 +232,32 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         logger.info("Delete the volume")
         cinder.volumes.delete(volume)
         return volume.id
+
+    def check_nodes_in_elasticsearch(self, interval=300):
+        dt = datetime.datetime.now() - datetime.timedelta(
+            seconds=interval)
+        # Note (vushakov): time.mktime() method returns seconds since the
+        #  epoch, while the Elasticsearch timestamp is in milliseconds
+        #  from the epoch.
+        timestamp = time.mktime(dt.timetuple()) * 1000
+        elasticsearch_url = self.get_elasticsearch_url()
+
+        data = {"aggs": {
+            "nodes": {"terms": {"field": "Hostname", "size": 10000},
+                      "aggs": {
+                          "fquery": {
+                              "range": {
+                                  "field": "Timestamp",
+                                  "ranges": [{
+                                      "from": "{0}".format(timestamp)}]}}}}},
+                "size": 0}
+
+        url = '{0}/log-{1}/_search?pretty'.format(elasticsearch_url,
+                                                  dt.strftime("%Y.%m.%d"))
+        output = self.checkers.check_http_get_response(url=url,
+                                                       data=json.dumps(data))
+        lines = json.loads(output.text)
+        nodes = [
+            line["key"] for line in lines["aggregations"]["nodes"]["buckets"]]
+        logger.info(nodes)
+        self.helpers.check_nodes_presence(nodes)
