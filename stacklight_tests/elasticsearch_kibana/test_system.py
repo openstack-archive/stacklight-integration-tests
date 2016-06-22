@@ -47,7 +47,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         target_node = {'slave-03': ['controller']}
 
         # Remove a controller
-        self.helpers.remove_node_from_cluster(target_node)
+        self.helpers.remove_nodes_from_cluster(target_node)
 
         self.check_plugin_online()
 
@@ -86,7 +86,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         target_node = {'slave-04': ['compute', 'cinder']}
 
         # Remove a compute node
-        self.helpers.remove_node_from_cluster(target_node)
+        self.helpers.remove_nodes_from_cluster(target_node)
 
         self.check_plugin_online()
 
@@ -128,7 +128,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
         target_node = {'slave-07': self.settings.role_name}
 
         # Remove an Elasticsearch-Kibana node
-        self.helpers.remove_node_from_cluster(target_node)
+        self.helpers.remove_nodes_from_cluster(target_node)
 
         self.check_plugin_online()
 

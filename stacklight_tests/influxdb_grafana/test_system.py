@@ -52,7 +52,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         # nova has been keeping it in service list
 
         # Remove controller
-        self.helpers.remove_node_from_cluster(manipulated_node)
+        self.helpers.remove_nodes_from_cluster(manipulated_node)
 
         self.check_plugin_online()
 
@@ -95,7 +95,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         # nova has been keeping it in service list
 
         # Remove compute
-        self.helpers.remove_node_from_cluster(manipulated_node)
+        self.helpers.remove_nodes_from_cluster(manipulated_node)
 
         self.check_plugin_online()
 
@@ -136,7 +136,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         manipulated_node = {'slave-07': self.settings.role_name}
 
         # Remove InfluxDB-Grafana node
-        self.helpers.remove_node_from_cluster(manipulated_node)
+        self.helpers.remove_nodes_from_cluster(manipulated_node)
 
         self.check_plugin_online()
 

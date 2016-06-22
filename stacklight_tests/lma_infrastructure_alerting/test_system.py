@@ -50,7 +50,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         target_node = {'slave-02': ['controller']}
         target_node_hostname = self.helpers.get_hostname_by_node_name(
             target_node.keys()[0])
-        self.helpers.remove_node_from_cluster(target_node)
+        self.helpers.remove_nodes_from_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
         self.check_node_in_nagios(target_node_hostname, False)
@@ -89,7 +89,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         target_node = {'slave-04': ['compute', 'cinder']}
         target_node_hostname = self.helpers.get_hostname_by_node_name(
             target_node.keys()[0])
-        self.helpers.remove_node_from_cluster(target_node, False, True)
+        self.helpers.remove_nodes_from_cluster(target_node, False, True)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
         self.check_node_in_nagios(target_node_hostname, False)
@@ -127,7 +127,7 @@ class TestLMAInfraAlertingPluginSystem(api.InfraAlertingPluginApi):
         target_node = {'slave-05': self.settings.role_name}
         target_node_hostname = self.helpers.get_hostname_by_node_name(
             target_node.keys()[0])
-        self.helpers.remove_node_from_cluster(target_node)
+        self.helpers.remove_nodes_from_cluster(target_node)
         self.helpers.run_ostf(should_fail=1)
         self.check_plugin_online()
         self.check_node_in_nagios(target_node_hostname, False)

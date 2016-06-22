@@ -160,7 +160,7 @@ class PluginHelper(object):
         asserts.assert_is_not_none(
             vip, "Failed to get the IP of {} server".format(vip_name))
 
-        logger.debug("Check that {} is ready".format(vip_name))
+        logger.debug("VIP '{0}': {1}".format(vip_name, vip))
         return vip
 
     def get_all_ready_nodes(self):
@@ -219,11 +219,11 @@ class PluginHelper(object):
         self.fuel_web.run_single_ostf_test(self.cluster_id, test_sets,
                                            test_name, *args, **kwargs)
 
-    def add_nodes_to_cluster(self, node, redeploy=True, check_services=False):
+    def add_nodes_to_cluster(self, nodes, redeploy=True, check_services=False):
         """Add nodes to the cluster.
 
-        :param node: list of nodes with their roles.
-        :type: node: dict
+        :param nodes: list of nodes with their roles.
+        :type: nodes: dict
         :param redeploy: whether to redeploy the cluster (default: True).
         :type redeploy: boolean
         :param check_services: run OSTF after redeploy (default: False).
@@ -231,18 +231,18 @@ class PluginHelper(object):
         """
         self.fuel_web.update_nodes(
             self.cluster_id,
-            node,
+            nodes,
         )
         if redeploy:
             self.fuel_web.deploy_cluster_wait(self.cluster_id,
                                               check_services=check_services)
 
-    def remove_node_from_cluster(self, node, redeploy=True,
-                                 check_services=False):
+    def remove_nodes_from_cluster(self, nodes, redeploy=True,
+                                  check_services=False):
         """Remove nodes from the cluster.
 
-        :param node: list of nodes to remove from the cluster.
-        :type node: dict
+        :param nodes: list of nodes to remove from the cluster.
+        :type nodes: dict
         :param redeploy: whether to redeploy the cluster (default: True).
         :type redeploy: boolean
         :param check_services: run OSTF after redeploy (default: False).
@@ -250,7 +250,7 @@ class PluginHelper(object):
         """
         self.fuel_web.update_nodes(
             self.cluster_id,
-            node,
+            nodes,
             pending_addition=False, pending_deletion=True,
         )
         if redeploy:
