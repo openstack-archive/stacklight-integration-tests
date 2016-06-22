@@ -52,6 +52,7 @@ def import_tests():
     from stacklight_tests.lma_infrastructure_alerting import (  # noqa
         test_system)
     from stacklight_tests.toolchain import test_dedicated_environment  # noqa
+    from stacklight_tests.toolchain import test_destructive  # noqa
     from stacklight_tests.toolchain import test_detached_plugins  # noqa
     from stacklight_tests.toolchain import test_functional  # noqa
     from stacklight_tests.toolchain import test_network_templates  # noqa
