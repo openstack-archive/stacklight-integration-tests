@@ -12,6 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import datetime
+import json
+import time
+
 import elasticsearch
 from fuelweb_test import logger
 from proboscis import asserts
@@ -170,3 +174,28 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         logger.info("Delete the volume")
         cinder.volumes.delete(volume)
         return volume.id
+
+    def query_nova_logs(self, indices):
+        return self.query_elasticsearch(indices,
+                                        query_filter="programname:nova*")
+
+    def check_nodes_in_elasticsearch(self, interval=300 * 1000):
+        timestamp = int(round(time.time() * 1000)) - interval
+        dt = datetime.datetime.fromtimestamp(timestamp / 1000)
+        elasticsearch_url = self.get_elasticsearch_url()
+
+        data = {"aggregations": {"nodes": {"terms": {
+            "field": "Hostname", "size": 10000, "exclude": []},
+            "aggregations": {"fquery": {"filter": {"bool": {"must": [{
+                "range": {"Timestamp": {
+                    "from": "2016-07-05T10:00:00"}}}]}}}}}}, "size": 0}
+
+        url = '{0}/log-{1}/_search?pretty'.format(elasticsearch_url,
+                                                  dt.strftime("%Y.%m.%d"))
+        output = self.checkers.check_http_get_response(url=url,
+                                                       data=json.dumps(data))
+        lines = json.loads(output.text)
+        nodes = [
+            line["key"] for line in lines["aggregations"]["nodes"]["buckets"]]
+        logger.info(nodes)
+        self.helpers.check_all_node_exist(nodes)

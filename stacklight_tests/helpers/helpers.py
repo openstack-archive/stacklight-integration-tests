@@ -563,3 +563,65 @@ class PluginHelper(object):
     def get_fuel_release(self):
         version = self.nailgun_client.get_api_version()
         return version.get('release')
+
+    def check_all_node_exist(self, node_list):
+        """Check that all nodes in ready state exist in the node_list array.
+
+        :param node_list: list to look for nodes in
+        :type node_list: list
+        """
+
+        nailgun_nodes = self.get_all_ready_nodes()
+        missing_nodes = []
+        for node in nailgun_nodes:
+            if node["hostname"] not in node_list:
+                missing_nodes.append(node["hostname"])
+        asserts.assert_false(len(missing_nodes),
+                             "Failed to find {0} nodes in the output! Missing"
+                             " nodes are: {1}".format(len(missing_nodes),
+                                                      missing_nodes))
+
+    def pcmk_manage_pcs_resource(self, nodes, resources, action, check):
+        def check_state():
+            grep = "grep {0} | grep {1} | grep {2}".format(
+                nodes[0]["hostname"], nodes[1]["hostname"],
+                nodes[2]["hostname"])
+            with self.fuel_web.get_ssh_for_nailgun_node(nodes[0]) as remote:
+                result = remote.execute(
+                    "pcs status | grep {0} | {1}".format(check, grep))
+                if not result['exit_code']:
+                    return True
+                else:
+                    return False
+        for resource in resources:
+            with self.fuel_web.get_ssh_for_nailgun_node(nodes[0]) as remote:
+                remote.check_call("pcs resource {0} {1}".format(action,
+                                                                resource))
+
+        msg = "Failed to stop {0} on all nodes!".format(resources)
+        helpers.wait(check_state, timeout=5 * 60, timeout_msg=msg)
+
+    def pcmk_move_resource(self, resource_name, move_to):
+        with self.fuel_web.get_ssh_for_nailgun_node(move_to) as remote:
+            remote.check_call("pcs resource move {0} {1}".format(
+                resource_name, move_to["fqdn"]))
+
+    def get_tasks_pids(self, processes, nodes=None, exit_code=0):
+        nodes = (nodes or
+                 self.fuel_web.client.list_cluster_nodes(
+                     self.fuel_web.get_last_created_cluster()))
+        pids = {}
+        for node in nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                pids[node["name"]] = {}
+                for process in processes:
+                    result = remote_ops.get_pids_of_process(remote, process)
+                    if exit_code:
+                        asserts.assert_equal([], result,
+                                             "process {0} is running on "
+                                             "{1}".format(process,
+                                                          node["name"]))
+                    else:
+                        pids[node["name"]][process] = result
+
+        return pids
