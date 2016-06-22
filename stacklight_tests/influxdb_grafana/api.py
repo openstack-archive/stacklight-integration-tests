@@ -142,3 +142,12 @@ class InfluxdbPluginApi(base_test.PluginApi):
         if result:
             return result["series"][0]["values"]
         return []
+
+    def get_metrics_per_node(self, interval='3m', measurement='cpu_user'):
+        output = self.do_influxdb_query(
+            "SELECT last(value), hostname FROM {0} WHERE time > now() - {1}"
+            " GROUP BY hostname".format(measurement, interval))
+        lines = json.loads(output.text)
+        nodes = [line["tags"]["hostname"] for line in
+                 lines["results"][0]["series"]]
+        self.helpers.check_all_node_exist(nodes)
