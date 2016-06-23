@@ -1,0 +1,111 @@
+# LDIF Export for dc=example,dc=com
+# Server: My LDAP Server (127.0.0.1)
+# Search Scope: sub
+# Search Filter: (objectClass=*)
+# Total Entries: 9
+
+version: 1
+
+## Entry 1: dc=example,dc=com
+## This entry should be created during the installation of the LDAP server
+#dn: dc=example,dc=com
+#dc: example
+#o: example
+#objectclass: top
+#bjectclass: dcObject
+#objectclass: organization
+
+## Entry 2: cn=admin,dc=example,dc=com
+## This entry is the admin user. It should be created during the installation
+## of the LDAP server
+#dn: cn=admin,dc=example,dc=com
+#cn: admin
+#description: LDAP administrator
+#objectclass: simpleSecurityObject
+#objectclass: organizationalRole
+#userpassword: <set during the installation>
+
+# Entry 3: ou=groups,dc=example,dc=com
+dn: ou=groups,dc=example,dc=com
+objectclass: organizationalUnit
+objectclass: top
+ou: groups
+
+# Entry 4: cn=grafana_admins,ou=groups,dc=example,dc=com
+dn: cn=grafana_admins,ou=groups,dc=example,dc=com
+cn: grafana_admins
+gidnumber: 501
+memberuid: lma
+objectclass: posixGroup
+objectclass: top
+
+# Entry 5: cn=grafana_editors,ou=groups,dc=example,dc=com
+dn: cn=grafana_editors,ou=groups,dc=example,dc=com
+cn: grafana_editors
+gidnumber: 502
+memberuid: user1
+objectclass: posixGroup
+objectclass: top
+
+# Entry 6: cn=grafana_viewers,ou=groups,dc=example,dc=com
+dn: cn=grafana_viewers,ou=groups,dc=example,dc=com
+cn: grafana_viewers
+gidnumber: 503
+memberuid: user2
+objectclass: posixGroup
+objectclass: top
+
+# Entry 7: uid=lma,dc=example,dc=com
+dn: uid=lma,dc=example,dc=com
+cn: lma
+gecos: lma
+gidnumber: 500
+homedirectory: /home/lma
+loginshell: /bin/bash
+objectclass: top
+objectclass: account
+objectclass: posixAccount
+objectclass: shadowAccount
+shadowlastchange: 0
+shadowmax: 0
+shadowwarning: 0
+uid: lma
+uidnumber: 16860
+userpassword: lma
+
+# Entry 8: uid=user1,dc=example,dc=com
+dn: uid=user1,dc=example,dc=com
+cn: user1
+gecos: user1
+gidnumber: 500
+homedirectory: /home/user1
+loginshell: /bin/bash
+objectclass: top
+objectclass: account
+objectclass: posixAccount
+objectclass: shadowAccount
+shadowlastchange: 0
+shadowmax: 0
+shadowwarning: 0
+uid: user1
+uidnumber: 16861
+userpassword: user1
+
+# Entry 9: uid=user2,dc=example,dc=com
+dn: uid=user2,dc=example,dc=com
+cn: user2
+gecos: user2
+gidnumber: 500
+homedirectory: /home/user2
+loginshell: /bin/bash
+objectclass: top
+objectclass: account
+objectclass: posixAccount
+objectclass: shadowAccount
+shadowlastchange: 0
+shadowmax: 0
+shadowwarning: 0
+uid: user2
+uidnumber: 16862
+userpassword: user2
+
