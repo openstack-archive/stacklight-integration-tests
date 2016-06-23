@@ -111,7 +111,7 @@ class PluginHelper(object):
         self.env.admin_actions.install_plugin(
             plugin_file_name=os.path.basename(plugin_path))
 
-    def activate_plugin(self, name, version, options=None):
+    def activate_plugin(self, name, version, options=None, strict=False):
         """Enable and configure a plugin for the cluster.
 
         :param name: name of the plugin.
@@ -120,6 +120,9 @@ class PluginHelper(object):
         :type name: str
         :param options: configuration of the plugin (optional).
         :type options: dict
+        :param strict: whether or not to fail when setting an unknown option
+        (default: False).
+        :type options: boolean
         :returns: None
         """
         if options is None:
@@ -147,8 +150,19 @@ class PluginHelper(object):
         for option, value in options.items():
             path = option.split("/")
             for p in path[:-1]:
-                plugin_settings = plugin_data[p]
-            plugin_settings[path[-1]] = value
+                if p in plugin_data:
+                    plugin_option = plugin_data[p]
+                else:
+                    msg = "Plugin option {} not found".format(option)
+                    if strict:
+                        raise NotFound(msg)
+                    logger.warn(msg)
+                    plugin_option = None
+                    break
+
+            if plugin_option is not None:
+                plugin_option[path[-1]] = value
+
         self.nailgun_client.update_cluster_attributes(self.cluster_id, {
             "editable": {name: attributes}
         })
