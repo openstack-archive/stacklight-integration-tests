@@ -61,7 +61,11 @@ class ElasticsearchPluginApi(base_test.PluginApi):
 
         logger.info("Check that Kibana is running")
         msg = "Kibana responded with {0}, expected {1}"
-        self.checkers.check_http_get_response(self.get_kibana_url(), msg=msg)
+        self.checkers.check_http_get_response(
+            self.get_kibana_url(), msg=msg,
+            auth=(self.settings.kibana_username,
+                  self.settings.kibana_password)
+        )
 
     def check_elasticsearch_nodes_count(self, expected_count):
         logger.debug("Get information about Elasticsearch nodes")
