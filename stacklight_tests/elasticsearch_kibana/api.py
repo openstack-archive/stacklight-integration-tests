@@ -47,19 +47,22 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
-    def get_elasticsearch_url(self, query=''):
-        return "http://{}:9200/{}".format(self.get_plugin_vip(), query)
+    def get_elasticsearch_url(self, path=''):
+        return "http://{}:9200/{}".format(self.get_plugin_vip(), path)
 
     def get_kibana_url(self):
         return "http://{}:80/".format(self.get_plugin_vip())
 
     def check_plugin_online(self):
-        logger.info("Check that Elasticsearch is ready")
+        logger.info("Checking Elasticsearch service at {}".format(
+            self.get_elasticsearch_url()
+        ))
         msg = "Elasticsearch responded with {0}, expected {1}"
         self.checkers.check_http_get_response(
             self.get_elasticsearch_url(), msg=msg)
 
-        logger.info("Check that Kibana is running")
+        logger.info("Checking Kibana service at {}".format(
+            self.get_kibana_url()))
         msg = "Kibana responded with {0}, expected {1}"
         self.checkers.check_http_get_response(
             self.get_kibana_url(), msg=msg,
@@ -69,7 +72,7 @@ class ElasticsearchPluginApi(base_test.PluginApi):
 
     def check_elasticsearch_nodes_count(self, expected_count):
         logger.debug("Get information about Elasticsearch nodes")
-        url = self.get_elasticsearch_url(query='_nodes')
+        url = self.get_elasticsearch_url(path='_nodes')
         response = self.checkers.check_http_get_response(url)
         nodes_count = len(response.json()['nodes'])
 
