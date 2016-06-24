@@ -39,10 +39,10 @@ class InfraAlertingPluginApi(base_test.PluginApi):
 
     def get_plugin_vip(self):
         try:
+            return self.helpers.get_plugin_vip(self.settings.vip_name)
+        except Exception:
             return self.helpers.get_plugin_vip(
                 'infrastructure_alerting_mgmt_vip')
-        except Exception:
-            return self.helpers.get_plugin_vip(self.settings.vip_name)
 
     def check_plugin_online(self):
         logger.info("Check that the Nagios server is running")
