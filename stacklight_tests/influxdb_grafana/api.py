@@ -38,11 +38,11 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
-    def get_grafana_url(self, resource=''):
-        return "http://{0}:8000/{1}".format(self.get_plugin_vip(), resource)
+    def get_grafana_url(self, path=''):
+        return "http://{0}:8000/{1}".format(self.get_plugin_vip(), path)
 
-    def get_influxdb_url(self, resource=''):
-        return "http://{0}:8086/{1}".format(self.get_plugin_vip(), resource)
+    def get_influxdb_url(self, path=''):
+        return "http://{0}:8086/{1}".format(self.get_plugin_vip(), path)
 
     def do_influxdb_query(self,
                           query,
@@ -56,6 +56,8 @@ class InfluxdbPluginApi(base_test.PluginApi):
             params={"db": db, "u": user, "p": password, "q": query})
 
     def check_plugin_online(self):
+        logger.info("InfluxDB service is at {}".format(
+            self.get_influxdb_url()))
         logger.info("Check that the InfluxDB server replies to ping requests")
         self.checkers.check_http_get_response(
             url=self.get_influxdb_url('ping'),
@@ -77,11 +79,13 @@ class InfluxdbPluginApi(base_test.PluginApi):
                                user=plugin_settings.influxdb_rootuser,
                                password=plugin_settings.influxdb_rootpass)
 
+        logger.info("Grafana service is at {}".format(
+            self.get_grafana_url()))
         logger.info("Check that the Grafana UI server is running")
         self.checkers.check_http_get_response(
             self.get_grafana_url('login'))
 
-        logger.info("Check that the Grafana user is authorized")
+        logger.info("Check that the Grafana admin user is authorized")
         self.checkers.check_http_get_response(
             self.get_grafana_url('api/org'),
             auth=(plugin_settings.grafana_user, plugin_settings.grafana_pass))

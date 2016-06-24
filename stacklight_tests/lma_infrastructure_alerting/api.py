@@ -45,16 +45,29 @@ class InfraAlertingPluginApi(base_test.PluginApi):
             return self.helpers.get_plugin_vip(self.settings.vip_name)
 
     def check_plugin_online(self):
-        logger.info("Check that the Nagios server is running")
-        self.checkers.check_http_get_response(self.get_nagios_url())
+        logger.info("Nagios UI is at {}".format(self.get_nagios_url()))
+        logger.info("Check that the '{}' user is authorized".format(
+            self.settings.nagios_user))
+        self.checkers.check_http_get_response(
+            self.get_nagios_url(),
+            auth=(self.settings.nagios_user, self.settings.nagios_password)
+        )
+        logger.info("Check that the Nagios UI requires authentication")
+        self.checkers.check_http_get_response(
+            self.get_nagios_url(),
+            auth=(self.settings.nagios_user, 'rogue')
+        )
 
-    def get_nagios_url(self):
+    def get_authenticated_nagios_url(self):
         return "http://{0}:{1}@{2}:8001".format(self.settings.nagios_user,
                                                 self.settings.nagios_password,
                                                 self.get_plugin_vip())
 
+    def get_nagios_url(self):
+        return "http://{}:8001/".format(self.get_plugin_vip())
+
     def open_nagios_page(self, link_text, anchor):
-        driver = self.ui_tester.get_driver(self.get_nagios_url(),
+        driver = self.ui_tester.get_driver(self.get_authenticated_nagios_url(),
                                            "//frame[2]", "Nagios Core")
         driver.switch_to.default_content()
         driver.switch_to.frame(driver.find_element_by_name("side"))
