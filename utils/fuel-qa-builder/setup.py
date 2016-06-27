@@ -11,7 +11,7 @@ def read(fname):
 def get_requirements_list(requirements):
     all_requirements = read(requirements)
     all_requirements = [req for req in all_requirements.splitlines()
-                        if 'devops' not in req]
+                        if 'devops' not in req and 'launchpadlib' not in req]
     return all_requirements
 
 
