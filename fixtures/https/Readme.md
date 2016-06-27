@@ -2,6 +2,10 @@
 
 - **rootCA.key** is the key used to self-signed rootCA.pem
 - **rootCA.pem** is the certificate that will act as the **StackLight Root Authority**
+- **md5.txt** that contains the checksum of the two previous files
+
+The **rootCA.pem** is the one that you need to add to your client to
+authenticate certificates that will be signed by this certificate.
 
 The certificate has the following information:
 ```
@@ -29,8 +33,35 @@ the client by using the correct option.
 
 # Create a certificate
 
-Follow these steps to generate a new certificate that can be used to enable
-HTTPS for the StackLight plugins.
+To create a certificate you just need to run the script
+**create_certificate.sh** provided in this directory. You must pass the common
+name that will be used in the certificate by your plugin. For example if you
+need a certificate for the *Elasticsearch-Kibana* plugin and if you will
+access to server using the FQDN *kibana.fuel.local* you will generate the
+certificate by running:
+```
+create_certificate.sh kibana.fuel.local
+```
+
+It will create four files:
+- kibana.key: the private key
+- kibana.csr: the certificate singing request. The script will create a
+  certificate with the following parameters:
+  - Common Name: *kibana.fuel.local* (that parameter you gave to the script)
+  - Organization: *Mirantis*
+  - Organizational Unit: *Fuel plugins*
+  - City: *Grenoble*
+  - State: *Rhone-Alpes*
+  - Country: *FR*
+- kibana.crt: The certificate signed by the StackLight authority
+- kibana.pem: The concatenation of the CRT certificate and the private key
+
+Only **kibana.pem** is needed for configuring the Fuel plugin. Currently you
+can only pass the common name as a parameter. But it is easy to modify the
+other parameters directly in the script if needed.
+
+If you don't want to use the script and prefer to do it manually, follow these
+steps:
 
 - Generate the key for the plugin _my-plugin_.
 ```
