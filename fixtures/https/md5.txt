@@ -1,0 +1,2 @@
+8e3c74e6a6f143c902540968fce833d2  rootCA.key
+9f9813ac87039b621d50a47d20cc3568  rootCA.pem
