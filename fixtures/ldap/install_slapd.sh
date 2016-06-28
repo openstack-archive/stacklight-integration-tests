@@ -9,6 +9,12 @@ then echo "Please run as root"
     exit 1
 fi
 
+OPENSSL=$(which openssl)
+if [ "$?" -ne 0 ]; then
+    echo "openssl: command not found"
+    exit 1
+fi
+
 DOMAIN="stacklight.ci"
 BASE_DN="dc=stacklight,dc=ci"
 BIND_DN="cn=admin,${BASE_DN}"
@@ -94,6 +100,36 @@ memberuid: uviewer
 objectclass: posixGroup
 objectclass: top
 EOF
+
+# ############################################################################
+# Configure LDAPS
+
+SLAPD_CERT_DIR="/etc/ldap/ssl"
+SLAPD_CERT="${SLAPD_CERT_DIR}/slapd.pem"
+mkdir $SLAPD_CERT_DIR
+$OPENSSL req -newkey rsa:2048 -x509 -nodes -days 3650 \
+    -out $SLAPD_CERT -keyout $SLAPD_CERT \
+    -subj "/C=FR/ST=Rhone-Alpes/L=Grenoble/O=Mirantis/OU=StackLigh CI/CN=localhost"
+chown -R openldap:openldap $SLAPD_CERT_DIR
+chmod 0400 $SLAPD_CERT
+
+
+ldapmodify -Y EXTERNAL -H ldapi:/// << EOF
+add: olcTLSCACertificateFile
+olcTLSCACertificateFile: "${SLAPD_CERT}"
+-
+add: olcTLSCertificateFile
+olcTLSCertificateFile: "${SLAPD_CERT}"
+-
+add: olcTLSCertificateKeyFile
+olcTLSCertificateKeyFile: "${SLAPD_CERT}"
+EOF
+
+# Enable ldaps in the configuration file
+sed -i 's,^SLAPD_SERVICES=.*$,SLAPD_SERVICES="ldap:/// ldaps:/// ldapi:///",g' /etc/default/slapd
+
+# Restart the service
+/etc/init.d/slapd restart
 
 # ############################################################################
 # Validate the installation
