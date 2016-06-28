@@ -15,8 +15,11 @@ perform the following actions:
     - *uadmin* user that will belong to admins group
     - *uviewer* user that will belong to viewers group
 
-To check that every is fine you can do the following search that should show
-all inputs listed above.
+To check that everything works well you can perform the following search
+that should show all inputs listed above.
 ```
 ldapsearch -x -b "dc=stacklight,dc=ci" -D "cn=admin,dc=stacklight,dc=ci" -W
 ```
+
+The server is running LDAP and LDAPS. The self-signed certificate is generated
+by the script and stored in */etc/ldap/ssl/slapd.pem*.
