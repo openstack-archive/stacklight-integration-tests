@@ -115,6 +115,7 @@ chmod 0400 $SLAPD_CERT
 
 
 ldapmodify -Y EXTERNAL -H ldapi:/// << EOF
+dn: cn=config
 add: olcTLSCACertificateFile
 olcTLSCACertificateFile: "${SLAPD_CERT}"
 -
