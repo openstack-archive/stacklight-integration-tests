@@ -26,14 +26,28 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def __init__(self):
         super(InfluxdbPluginApi, self).__init__()
         self._grafana_port = None
+        self._grafana_protocol = None
 
     @property
     def grafana_port(self):
         if self._grafana_port is None:
-            self._grafana_port = 80
+            if self.grafana_protocol == 'http':
+                self._grafana_port = 80
+            else:
+                self._grafana_port = 443
+            # TODO(pasquier-s): remove this code once all plugins use the
+            # standard ports
             if self.checkers.check_port(self.get_plugin_vip(), 8000):
                 self._grafana_port = 8000
+            elif self.checkers.check_port(self.get_plugin_vip(), 8443):
+                self._grafana_port = 8443
         return self._grafana_port
+
+    @property
+    def grafana_protocol(self):
+        if self._grafana_protocol is None:
+            self._grafana_protocol = self.get_http_protocol()
+        return self._grafana_protocol
 
     def get_plugin_settings(self):
         return plugin_settings
@@ -51,8 +65,9 @@ class InfluxdbPluginApi(base_test.PluginApi):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
     def get_grafana_url(self, path=''):
-        return "http://{0}:{1}/{2}".format(self.get_plugin_vip(),
-                                           self.grafana_port, path)
+        return "{0}://{1}:{2}/{3}".format(self.grafana_protocol,
+                                          self.get_plugin_vip(),
+                                          self.grafana_port, path)
 
     def get_influxdb_url(self, path=''):
         return "http://{0}:8086/{1}".format(self.get_plugin_vip(), path)

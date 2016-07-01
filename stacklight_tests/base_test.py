@@ -120,3 +120,11 @@ class PluginApi(object):
         self.helpers.power_off_node(target_node)
         self.helpers.wait_for_vip_migration(
             target_node, self.settings.role_name, vip_name)
+
+    def get_http_protocol(self, tls_parameter='tls_enabled'):
+        """Return the HTTP protocol configured for the plugin (http or https).
+        """
+        protocol = 'http'
+        if self.helpers.get_plugin_setting(self.settings.name, tls_parameter):
+            protocol = 'https'
+        return protocol
