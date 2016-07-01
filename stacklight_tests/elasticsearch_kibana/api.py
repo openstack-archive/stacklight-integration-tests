@@ -24,6 +24,8 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def __init__(self):
         super(ElasticsearchPluginApi, self).__init__()
         self._es_client = None
+        self._kibana_port = None
+        self._kibana_protocol = None
 
     @property
     def es(self):
@@ -31,6 +33,21 @@ class ElasticsearchPluginApi(base_test.PluginApi):
             self._es_client = elasticsearch.Elasticsearch(
                 [{'host': self.get_plugin_vip(), 'port': 9200}])
         return self._es_client
+
+    @property
+    def kibana_port(self):
+        if self._kibana_port is None:
+            if self.kibana_protocol == 'http':
+                self._kibana_port = 80
+            else:
+                self._kibana_port = 443
+        return self._kibana_port
+
+    @property
+    def kibana_protocol(self):
+        if self._kibana_protocol is None:
+            self._kibana_protocol = self.get_http_protocol()
+        return self._kibana_protocol
 
     def get_plugin_settings(self):
         return plugin_settings
@@ -51,7 +68,8 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         return "http://{}:9200/{}".format(self.get_plugin_vip(), path)
 
     def get_kibana_url(self):
-        return "http://{}:80/".format(self.get_plugin_vip())
+        return "{0}://{1}:{2}/".format(
+            self.kibana_protocol, self.get_plugin_vip(), self.kibana_port)
 
     def check_plugin_online(self):
         elasticsearch_url = self.get_elasticsearch_url()
