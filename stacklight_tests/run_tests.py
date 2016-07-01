@@ -55,6 +55,7 @@ def import_tests():
     from stacklight_tests.toolchain import test_dedicated_environment  # noqa
     from stacklight_tests.toolchain import test_detached_plugins  # noqa
     from stacklight_tests.toolchain import test_functional  # noqa
+    from stacklight_tests.toolchain import test_https_plugins  # noqa
     from stacklight_tests.toolchain import test_network_templates  # noqa
     from stacklight_tests.toolchain import test_post_install  # noqa
     from stacklight_tests.toolchain import test_reduced_footprint  # noqa
