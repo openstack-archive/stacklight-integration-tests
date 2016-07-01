@@ -91,7 +91,7 @@ class PluginApi(object):
         pass
 
     @abc.abstractmethod
-    def check_plugin_online(self):
+    def check_plugin_online(self, tls=False):
         """Check that the plugin works properly.
         """
         pass
