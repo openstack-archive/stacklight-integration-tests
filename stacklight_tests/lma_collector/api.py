@@ -66,7 +66,7 @@ class LMACollectorPluginApi(base_test.PluginApi):
                             remote, process, count))
         return pids
 
-    def check_plugin_online(self):
+    def check_plugin_online(self, ssl=False):
         # Run the OSTF tests to check the Pacemaker status except when no
         # controller are being deployed (dedicated environment case)
         controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(

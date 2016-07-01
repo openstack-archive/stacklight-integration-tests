@@ -44,8 +44,8 @@ class InfraAlertingPluginApi(base_test.PluginApi):
             return self.helpers.get_plugin_vip(
                 'infrastructure_alerting_mgmt_vip')
 
-    def check_plugin_online(self):
-        nagios_url = self.get_nagios_url()
+    def check_plugin_online(self, ssl=False):
+        nagios_url = self.get_nagios_url(ssl)
         logger.info("Nagios UI is at {}".format(nagios_url))
         logger.info("Check that the '{}' user is authorized".format(
             self.settings.nagios_user))
@@ -64,8 +64,9 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                                                 self.settings.nagios_password,
                                                 self.get_plugin_vip())
 
-    def get_nagios_url(self):
-        return "http://{}:8001/".format(self.get_plugin_vip())
+    def get_nagios_url(self, ssl):
+        return "http{}://{}:8001/".format("s" if ssl else "",
+                                          self.get_plugin_vip())
 
     def open_nagios_page(self, link_text, anchor):
         driver = self.ui_tester.get_driver(self.get_authenticated_nagios_url(),
