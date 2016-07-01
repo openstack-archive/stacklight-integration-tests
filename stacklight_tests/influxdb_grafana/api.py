@@ -38,8 +38,9 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
-    def get_grafana_url(self, path=''):
-        return "http://{0}:8000/{1}".format(self.get_plugin_vip(), path)
+    def get_grafana_url(self, path='', tls=False):
+        proto = "https" if tls else "http"
+        return "{0}://{1}:8000/{2}".format(proto, self.get_plugin_vip(), path)
 
     def get_influxdb_url(self, path=''):
         return "http://{0}:8086/{1}".format(self.get_plugin_vip(), path)
@@ -55,7 +56,7 @@ class InfluxdbPluginApi(base_test.PluginApi):
             expected_code=expected_code,
             params={"db": db, "u": user, "p": password, "q": query})
 
-    def check_plugin_online(self):
+    def check_plugin_online(self, tls=False):
         logger.info("InfluxDB service is at {}".format(
             self.get_influxdb_url()))
         logger.info("Check that the InfluxDB server replies to ping requests")
@@ -83,16 +84,16 @@ class InfluxdbPluginApi(base_test.PluginApi):
             self.get_grafana_url()))
         logger.info("Check that the Grafana UI server is running")
         self.checkers.check_http_get_response(
-            self.get_grafana_url('login'))
+            self.get_grafana_url('login', tls=tls))
 
         logger.info("Check that the Grafana admin user is authorized")
         self.checkers.check_http_get_response(
-            self.get_grafana_url('api/org'),
+            self.get_grafana_url('api/org', tls=tls),
             auth=(plugin_settings.grafana_user, plugin_settings.grafana_pass))
 
         logger.info("Check that the Grafana API requires authentication")
         self.checkers.check_http_get_response(
-            self.get_grafana_url('api/org'),
+            self.get_grafana_url('api/org', tls=tls),
             auth=(plugin_settings.grafana_user, 'rogue'), expected_code=401)
 
     def check_influxdb_nodes_count(self, count=1):
