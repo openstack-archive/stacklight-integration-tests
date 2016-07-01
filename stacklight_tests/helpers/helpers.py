@@ -111,6 +111,34 @@ class PluginHelper(object):
         self.env.admin_actions.install_plugin(
             plugin_file_name=os.path.basename(plugin_path))
 
+    def get_plugin_setting(self, plugin, parameter):
+        """Return the given parameter's value for the plugin.
+
+        :param plugin: name of the plugin.
+        :type plugin: str
+        :param parameter: name of the parameter.
+        :type name: str
+        :returns: parameter's value
+        """
+        asserts.assert_true(
+            self.fuel_web.check_plugin_exists(self.cluster_id, plugin),
+            "Plugin {0} isn't found.".format(plugin))
+
+        attributes = self.nailgun_client.get_cluster_attributes(
+            self.cluster_id)
+        attributes = attributes['editable'][plugin]
+
+        value = None
+        for item in attributes['metadata']['versions']:
+            if (parameter in item and
+               item['metadata']['plugin_version'] == attributes['chosen_id']):
+                value = item[parameter]['value']
+                break
+        asserts.assert_is_not_none(
+            value, "Parameter {0} for plugin {1} is not found".format(
+                parameter, plugin))
+        return value
+
     def activate_plugin(self, name, version, options=None, strict=False):
         """Enable and configure a plugin for the cluster.
 
@@ -122,7 +150,7 @@ class PluginHelper(object):
         :type options: dict
         :param strict: whether or not to fail when setting an unknown option
         (default: False).
-        :type options: boolean
+        :type strict: boolean
         :returns: None
         """
         if options is None:
