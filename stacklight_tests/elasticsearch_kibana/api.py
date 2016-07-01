@@ -50,17 +50,18 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def get_elasticsearch_url(self, path=''):
         return "http://{}:9200/{}".format(self.get_plugin_vip(), path)
 
-    def get_kibana_url(self):
-        return "http://{}:80/".format(self.get_plugin_vip())
+    def get_kibana_url(self, tls):
+        proto = "https" if tls else "http"
+        return "{}://{}:80/".format(proto, self.get_plugin_vip())
 
-    def check_plugin_online(self):
+    def check_plugin_online(self, tls=False):
         elasticsearch_url = self.get_elasticsearch_url()
         logger.info("Checking Elasticsearch service at {}".format(
             elasticsearch_url))
         msg = "Elasticsearch responded with {0}, expected {1}"
         self.checkers.check_http_get_response(elasticsearch_url, msg=msg)
 
-        kibana_url = self.get_kibana_url()
+        kibana_url = self.get_kibana_url(tls)
         logger.info("Checking Kibana service at {}".format(kibana_url))
         msg = "Kibana responded with {0}, expected {1}"
         self.checkers.check_http_get_response(

@@ -88,11 +88,11 @@ class ToolchainApi(object):
             plugin.activate_plugin(
                 options=plugin.get_plugin_settings().toolchain_options)
 
-    def check_plugins_online(self):
+    def check_plugins_online(self, tls=False):
         for plugin in self.plugins:
             logger.info("Checking plugin {}".format(
                 plugin.get_plugin_settings().name))
-            plugin.check_plugin_online()
+            plugin.check_plugin_online(tls)
 
     def check_nodes_count(self, count, hostname, state):
         """Check that all nodes are present in the different backends."""
