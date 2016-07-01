@@ -14,8 +14,17 @@
 
 from proboscis import asserts
 import requests
+from requests.packages.urllib3 import poolmanager
 
+from stacklight_tests.helpers import helpers
 from stacklight_tests.helpers import remote_ops
+
+
+class TestHTTPAdapter(requests.adapters.HTTPAdapter):
+    """Custom transport adapter to disable host checking in https requests."""
+
+    def init_poolmanager(self, connections, maxsize, block=False):
+        self.poolmanager = poolmanager.PoolManager(assert_hostname=False)
 
 
 def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
@@ -31,8 +40,11 @@ def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
     :returns: HTTP response object
     :rtype: requests.Response
     """
+    s = requests.Session()
+    s.mount("https://", TestHTTPAdapter())
+    cert = helpers.get_fixture("https/rootCA.pem")
     msg = msg or "%s responded with {0}, expected {1}" % url
-    r = requests.get(url, **kwargs)
+    r = s.get(url, verify=cert, **kwargs)
     asserts.assert_equal(
         r.status_code, expected_code, msg.format(r.status_code, expected_code))
     return r
