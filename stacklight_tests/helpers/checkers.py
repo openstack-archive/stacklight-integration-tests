@@ -12,6 +12,9 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+from contextlib import closing
+import socket
+
 from proboscis import asserts
 import requests
 
@@ -56,3 +59,15 @@ def check_process_count(remote, process, count):
         len(pids), count,
         msg.format(process=process, count=count, got=len(pids)))
     return pids
+
+
+def check_port(address, port):
+    """Check whether or not a TCP port is open.
+
+    :param address: server address
+    :type address: str
+    :param port: server port
+    :type port: str
+    """
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        return sock.connect_ex((address, port)) == 0
