@@ -45,39 +45,66 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                 'infrastructure_alerting_mgmt_vip')
 
     def check_plugin_online(self):
-        nagios_url = self.get_nagios_url()
-        logger.info("Nagios UI is at {}".format(nagios_url))
-        logger.info("Check that the '{}' user is authorized".format(
-            self.settings.nagios_user))
-        self.checkers.check_http_get_response(
-            nagios_url,
-            auth=(self.settings.nagios_user, self.settings.nagios_password)
-        )
+        try:
+            nagios_url = self.get_nagios_url()
+            logger.info("Nagios UI is at {}".format(nagios_url))
+            logger.info("Check that the '{}' user is authorized".format(
+                self.settings.nagios_user))
+            self.checkers.check_http_get_response(
+                nagios_url,
+                auth=(self.settings.nagios_user, self.settings.nagios_password)
+            )
+        except Exception:
+            logger.info("Nagios UI is at {}".format(nagios_url))
+            logger.info("Check that the '{}' user is authorized".format(
+                self.settings.nagios_user))
+            nagios_url = self.get_nagios_url(port=8001)
+            self.checkers.check_http_get_response(
+                nagios_url,
+                auth=(self.settings.nagios_user, self.settings.nagios_password)
+            )
+
         logger.info("Check that the Nagios UI requires authentication")
         self.checkers.check_http_get_response(
             nagios_url, expected_code=401,
             auth=(self.settings.nagios_user, 'rogue')
         )
 
-    def get_authenticated_nagios_url(self):
-        return "http://{0}:{1}@{2}:8001".format(self.settings.nagios_user,
-                                                self.settings.nagios_password,
-                                                self.get_plugin_vip())
+    def get_authenticated_nagios_url(self, port=80):
+        return "http://{0}:{1}@{2}:{3}".format(self.settings.nagios_user,
+                                               self.settings.nagios_password,
+                                               self.get_plugin_vip(),
+                                               port)
 
-    def get_nagios_url(self):
-        return "http://{}:8001/".format(self.get_plugin_vip())
+    def get_nagios_url(self, port=80):
+        return "http://{1}:{2}".format(self.get_plugin_vip(), port)
 
     def open_nagios_page(self, link_text, anchor):
-        driver = self.ui_tester.get_driver(self.get_authenticated_nagios_url(),
-                                           "//frame[2]", "Nagios Core")
-        driver.switch_to.default_content()
-        driver.switch_to.frame(driver.find_element_by_name("side"))
-        link = driver.find_element_by_link_text(link_text)
-        link.click()
-        driver.switch_to.default_content()
-        driver.switch_to.frame(driver.find_element_by_name("main"))
-        WebDriverWait(driver, 120).until(
-            EC.presence_of_element_located((By.XPATH, anchor)))
+        try:
+            nagios_url = self.get_authenticated_nagios_url()
+            driver = self.ui_tester.get_driver(nagios_url,
+                                               "//frame[2]", "Nagios Core")
+            driver.switch_to.default_content()
+            driver.switch_to.frame(driver.find_element_by_name("side"))
+            link = driver.find_element_by_link_text(link_text)
+            link.click()
+            driver.switch_to.default_content()
+            driver.switch_to.frame(driver.find_element_by_name("main"))
+            WebDriverWait(driver, 120).until(
+                EC.presence_of_element_located((By.XPATH, anchor)))
+        except Exception:
+            nagios_url = self.get_authenticated_nagios_url(port=8001)
+            driver = self.ui_tester.get_driver(nagios_url,
+                                               "//frame[2]", "Nagios Core")
+            driver.switch_to.default_content()
+            driver.switch_to.frame(driver.find_element_by_name("side"))
+            link = driver.find_element_by_link_text(link_text)
+            link.click()
+            driver.switch_to.default_content()
+            driver.switch_to.frame(driver.find_element_by_name("main"))
+            WebDriverWait(driver, 120).until(
+                EC.presence_of_element_located((By.XPATH, anchor)))
+
         return driver
 
     def check_node_in_nagios(self, changed_node, state):
