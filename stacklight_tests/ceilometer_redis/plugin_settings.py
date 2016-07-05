@@ -26,3 +26,4 @@ base_nodes = {
     'slave-04': ['compute', 'cinder'],
     'slave-05': ['compute', 'cinder']
 }
+polling_interval = 600
