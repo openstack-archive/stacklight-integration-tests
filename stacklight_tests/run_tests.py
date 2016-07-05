@@ -42,6 +42,7 @@ class CloseSSHConnectionsPlugin(plugins.Plugin):
 
 def import_tests():
     from stacklight_tests.ceilometer_redis import test_smoke_bvt  # noqa
+    from stacklight_tests.ceilometer_redis import test_system  # noqa
     from stacklight_tests.elasticsearch_kibana import test_smoke_bvt  # noqa
     from stacklight_tests.elasticsearch_kibana import test_system  # noqa
     from stacklight_tests.influxdb_grafana import test_destructive  # noqa
