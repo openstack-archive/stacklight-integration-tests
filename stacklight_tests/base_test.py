@@ -20,6 +20,10 @@ from fuelweb_test.tests import base_test_case
 import requests
 import six
 
+# Imports used in check_port() method
+from contextlib import closing
+import socket
+
 from stacklight_tests.helpers import checkers
 from stacklight_tests.helpers import helpers
 from stacklight_tests.helpers import remote_ops
@@ -38,6 +42,7 @@ class PluginApi(object):
         self.checkers = checkers
         self.remote_ops = remote_ops
         self.ui_tester = ui_tester
+        self._checked_ports = {}
 
     def __getattr__(self, item):
         return getattr(self.test, item)
@@ -120,3 +125,14 @@ class PluginApi(object):
         self.helpers.power_off_node(target_node)
         self.helpers.wait_for_vip_migration(
             target_node, self.settings.role_name, vip_name)
+
+    def check_port(self, address, port):
+        k = "{}{}".format(address, port)
+        if k not in self._checked_ports.keys():
+            with closing(socket.socket(
+                    socket.AF_INET, socket.SOCK_STREAM)) as sock:
+                if sock.connect_ex((address, port)) == 0:
+                    self._checked_ports[k] = True
+                else:
+                    self._checked_ports[k] = False
+        return self._checked_ports[k]

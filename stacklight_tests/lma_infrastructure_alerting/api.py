@@ -60,15 +60,25 @@ class InfraAlertingPluginApi(base_test.PluginApi):
         )
 
     def get_authenticated_nagios_url(self):
-        return "http://{0}:{1}@{2}:8001".format(self.settings.nagios_user,
-                                                self.settings.nagios_password,
-                                                self.get_plugin_vip())
+        vip = self.get_plugin_vip()
+        port = 80
+        if self.check_port(vip, 8001):
+            port = 8001
+        return "http://{0}:{1}@{2}:{3}".format(self.settings.nagios_user,
+                                               self.settings.nagios_password,
+                                               vip,
+                                               port)
 
     def get_nagios_url(self):
-        return "http://{}:8001/".format(self.get_plugin_vip())
+        vip = self.get_plugin_vip()
+        port = 80
+        if self.check_port(vip, 8001):
+            port = 8001
+        return "http://{1}:{2}".format(vip, port)
 
     def open_nagios_page(self, link_text, anchor):
-        driver = self.ui_tester.get_driver(self.get_authenticated_nagios_url(),
+        nagios_url = self.get_authenticated_nagios_url()
+        driver = self.ui_tester.get_driver(nagios_url,
                                            "//frame[2]", "Nagios Core")
         driver.switch_to.default_content()
         driver.switch_to.frame(driver.find_element_by_name("side"))

@@ -39,7 +39,11 @@ class InfluxdbPluginApi(base_test.PluginApi):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
     def get_grafana_url(self, path=''):
-        return "http://{0}:8000/{1}".format(self.get_plugin_vip(), path)
+        vip = self.get_plugin_vip()
+        port = 80
+        if self.check_port(vip, 8000):
+            port = 8000
+        return "http://{0}:{1}/{2}".format(vip, port, path)
 
     def get_influxdb_url(self, path=''):
         return "http://{0}:8086/{1}".format(self.get_plugin_vip(), path)
@@ -119,7 +123,11 @@ class InfluxdbPluginApi(base_test.PluginApi):
 
     def check_grafana_dashboards(self):
         grafana_url = self.get_grafana_url()
-        ui_api.check_grafana_dashboards(grafana_url)
+        try:
+            ui_api.check_grafana_dashboards(grafana_url)
+        except Exception:
+            ui_api.check_grafana_dashboards(
+                self.get_grafana_url())
 
     def get_nova_instance_creation_time_metrics(self, time_point=None):
         """Gets instance creation metrics for provided interval
