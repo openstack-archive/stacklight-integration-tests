@@ -25,6 +25,18 @@ from stacklight_tests.lma_infrastructure_alerting import(
 
 
 class InfraAlertingPluginApi(base_test.PluginApi):
+    def __init__(self):
+        super(InfraAlertingPluginApi, self).__init__()
+        self._nagios_port = None
+
+    @property
+    def nagios_port(self):
+        if self._nagios_port is None:
+            self._nagios_port = 80
+            if self.checkers.check_port(self.get_plugin_vip(), 8001):
+                self._nagios_port = 8001
+        return self._nagios_port
+
     def get_plugin_settings(self):
         return infra_alerting_plugin_settings
 
@@ -60,12 +72,13 @@ class InfraAlertingPluginApi(base_test.PluginApi):
         )
 
     def get_authenticated_nagios_url(self):
-        return "http://{0}:{1}@{2}:8001".format(self.settings.nagios_user,
-                                                self.settings.nagios_password,
-                                                self.get_plugin_vip())
+        return "http://{0}:{1}@{2}:{3}".format(self.settings.nagios_user,
+                                               self.settings.nagios_password,
+                                               self.get_plugin_vip(),
+                                               self.nagios_port)
 
     def get_nagios_url(self):
-        return "http://{}:8001/".format(self.get_plugin_vip())
+        return "http://{0}:{1}".format(self.get_plugin_vip(), self.nagios_port)
 
     def open_nagios_page(self, link_text, anchor):
         driver = self.ui_tester.get_driver(self.get_authenticated_nagios_url(),
