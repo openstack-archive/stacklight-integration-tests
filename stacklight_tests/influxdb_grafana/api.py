@@ -38,8 +38,8 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def get_plugin_vip(self):
         return self.helpers.get_plugin_vip(self.settings.vip_name)
 
-    def get_grafana_url(self, path=''):
-        return "http://{0}:8000/{1}".format(self.get_plugin_vip(), path)
+    def get_grafana_url(self, path='', port=80):
+        return "http://{0}:{1}/{2}".format(self.get_plugin_vip(), port, path)
 
     def get_influxdb_url(self, path=''):
         return "http://{0}:8086/{1}".format(self.get_plugin_vip(), path)
@@ -82,17 +82,23 @@ class InfluxdbPluginApi(base_test.PluginApi):
         logger.info("Grafana service is at {}".format(
             self.get_grafana_url()))
         logger.info("Check that the Grafana UI server is running")
-        self.checkers.check_http_get_response(
-            self.get_grafana_url('login'))
+        try:
+            self.checkers.check_http_get_response(
+                self.get_grafana_url('login', 80))
+            grafana_port = 80
+        except Exception:
+            self.checkers.check_http_get_response(
+                self.get_grafana_url('login'), 8000)
+            grafana_port = 8000
 
         logger.info("Check that the Grafana admin user is authorized")
         self.checkers.check_http_get_response(
-            self.get_grafana_url('api/org'),
+            self.get_grafana_url('api/org', grafana_port),
             auth=(plugin_settings.grafana_user, plugin_settings.grafana_pass))
 
         logger.info("Check that the Grafana API requires authentication")
         self.checkers.check_http_get_response(
-            self.get_grafana_url('api/org'),
+            self.get_grafana_url('api/org', grafana_port),
             auth=(plugin_settings.grafana_user, 'rogue'), expected_code=401)
 
     def check_influxdb_nodes_count(self, count=1):
@@ -118,8 +124,12 @@ class InfluxdbPluginApi(base_test.PluginApi):
             self.settings.name, self.settings.version)
 
     def check_grafana_dashboards(self):
-        grafana_url = self.get_grafana_url()
-        ui_api.check_grafana_dashboards(grafana_url)
+        grafana_url = self.get_grafana_url(port=80)
+        try:
+            ui_api.check_grafana_dashboards(grafana_url)
+        except Exception:
+            ui_api.check_grafana_dashboards(
+                self.get_grafana_url(port=8000))
 
     def get_nova_instance_creation_time_metrics(self, time_point=None):
         """Gets instance creation metrics for provided interval
