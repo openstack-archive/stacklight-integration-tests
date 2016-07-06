@@ -94,6 +94,12 @@ class ToolchainApi(object):
                 plugin.get_plugin_settings().name))
             plugin.check_plugin_online()
 
+    def check_plugins_ldap(self, authZ=False):
+        for plugin in (self._plugins - {self.LMA_COLLECTOR}):
+            logger.info("Checking LDAP with plugin {}".format(
+                plugin.get_plugin_settings().name))
+            plugin.check_plugin_ldap(authZ)
+
     def check_nodes_count(self, count, hostname, state):
         """Check that all nodes are present in the different backends."""
         self.call_plugin_method(

@@ -96,6 +96,10 @@ class PluginApi(object):
         """
         pass
 
+    def check_plugin_ldap(self, authZ=False):
+        """Check that the plugin works properly with LDAP."""
+        pass
+
     def wait_plugin_online(self, timeout=5 * 60):
         """Wait until the plugin will start working properly.
         """
