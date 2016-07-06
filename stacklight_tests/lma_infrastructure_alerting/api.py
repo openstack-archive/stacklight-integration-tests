@@ -59,6 +59,11 @@ class InfraAlertingPluginApi(base_test.PluginApi):
             auth=(self.settings.nagios_user, 'rogue')
         )
 
+    def check_plugin_ldap(self, authz=False):
+        # TODO(idegtiarov): add checking nagios plugin uses LDAP for
+        # authentication when ui_nagios testing will be available
+        pass
+
     def get_authenticated_nagios_url(self):
         return "http://{0}:{1}@{2}:8001".format(self.settings.nagios_user,
                                                 self.settings.nagios_password,
