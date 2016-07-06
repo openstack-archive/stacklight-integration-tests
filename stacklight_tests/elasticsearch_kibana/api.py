@@ -17,6 +17,7 @@ from fuelweb_test import logger
 from proboscis import asserts
 
 from stacklight_tests import base_test
+from stacklight_tests.elasticsearch_kibana.kibana_ui import api as ui_api
 from stacklight_tests.elasticsearch_kibana import plugin_settings
 
 
@@ -94,6 +95,14 @@ class ElasticsearchPluginApi(base_test.PluginApi):
             auth=(self.settings.kibana_username,
                   self.settings.kibana_password)
         )
+
+    def check_plugin_ldap(self, authz=False):
+        """Check dashboard is available when using LDAP for authentication.
+
+        :param authz: adds checking LDAP for authorisation
+        :type authz: boolean
+        """
+        ui_api.check_kibana_ldap(self.get_kibana_url(), authz)
 
     def check_elasticsearch_nodes_count(self, expected_count):
         logger.debug("Get information about Elasticsearch nodes")

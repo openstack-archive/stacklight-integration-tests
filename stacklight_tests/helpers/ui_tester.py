@@ -24,7 +24,7 @@ from stacklight_tests.helpers.ui import ui_settings
 
 
 @contextlib.contextmanager
-def ui_driver(url, wait_element, title):
+def ui_driver(url, title, wait_element='/html'):
     vdisplay = None
     # Start a virtual display server for running the tests headless.
     if ui_settings.headless_mode:

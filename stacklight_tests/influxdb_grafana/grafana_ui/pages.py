@@ -27,15 +27,20 @@ class DashboardPage(base_pages.PageObject):
 class MainPage(base_pages.PageObject):
     _dropdown_menu_locator = (
         by.By.CLASS_NAME,
-        'top-nav-dashboards-btn')
+        'navbar-brand-btn')
 
     _dashboards_list_locator = (
         by.By.CLASS_NAME,
-        'search-results-container'
+        'sidemenu'
     )
 
     _dashboard_locator = (by.By.CLASS_NAME,
                           "search-item-dash-db")
+
+    _dashboard_main_locator = (
+        by.By.CLASS_NAME,
+        "dropdown"
+    )
 
     def __init__(self, driver):
         super(MainPage, self).__init__(driver)
@@ -53,6 +58,12 @@ class MainPage(base_pages.PageObject):
     def dashboards_list(self):
         self.open_dropdown_menu()
         return self._get_element(*self._dashboards_list_locator)
+
+    @property
+    def main_menu_items(self):
+        return self.dashboards_list.find_elements(
+            *self._dashboard_main_locator
+        )
 
     @property
     def dashboards(self):
@@ -77,9 +88,7 @@ class MainPage(base_pages.PageObject):
 class LoginPage(base_pages.PageObject):
     _login_username_field_locator = (by.By.NAME, 'username')
     _login_password_field_locator = (by.By.NAME, 'password')
-    _login_submit_button_locator = (
-        by.By.CLASS_NAME,
-        'login-submit-button-row')
+    _login_submit_button_locator = (by.By.CLASS_NAME, "btn")
 
     def __init__(self, driver):
         super(LoginPage, self).__init__(driver)
