@@ -11,7 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
+from fuelweb_test import logger
 from proboscis import asserts
 
 from stacklight_tests.helpers.ui_tester import ui_driver
@@ -22,7 +22,7 @@ def check_grafana_dashboards(grafana_url):
 
     login_key_xpath = '/html/body/div/div[2]/div/div/div[2]/form/div[2]/button'
 
-    with ui_driver(grafana_url, login_key_xpath, "Grafana") as driver:
+    with ui_driver(grafana_url, "Grafana", login_key_xpath) as driver:
         login_page = pages.LoginPage(driver)
         login_page.is_login_page()
         home_page = login_page.login("grafana", "grafanapass")
@@ -46,3 +46,31 @@ def check_grafana_dashboards(grafana_url):
         for name in available_dashboards_names:
             dashboard_page = home_page.open_dashboard(name)
             dashboard_page.get_back_to_home()
+
+
+def check_grafana_ldap(grafana_url, authz=False, uadmin=("uadmin", "uadmin"),
+                       uviewer=("uviewer", "uviewer")):
+
+    _check_available_menu_items_for_user(uadmin, grafana_url, authz)
+    _check_available_menu_items_for_user(uviewer, grafana_url, authz)
+
+
+def _check_available_menu_items_for_user(user, url, authz):
+    logger.info("Checking Grafana service at {} with LDAP authorization "
+                "for {} user".format(url, user[0]))
+    login_key_xpath = '//form[1]//button[1]'
+    admin_panels = ["Dashboards", "Data Sources", "Plugins"]
+    viewer_panel = list(admin_panels[1]) if authz else admin_panels
+
+    with ui_driver(url, "Grafana", login_key_xpath) as driver:
+        login_page = pages.LoginPage(driver)
+        login_page.is_login_page()
+        home_page = login_page.login(*user)
+        home_page.is_main_page()
+        menu_items = [name.text for name in home_page.main_menu_items]
+        msg = "Not all required panels are available in main menu."
+        asserts.assert_true(
+            (admin_panels if ("uadmin" in user)
+             else viewer_panel) == menu_items,
+            msg
+        )
