@@ -17,6 +17,7 @@ from fuelweb_test import logger
 from proboscis import asserts
 
 from stacklight_tests import base_test
+from stacklight_tests.elasticsearch_kibana.kibana_ui import api as ui_api
 from stacklight_tests.elasticsearch_kibana import plugin_settings
 
 
@@ -34,13 +35,18 @@ class ElasticsearchPluginApi(base_test.PluginApi):
                 [{'host': self.get_elasticsearch_vip(), 'port': 9200}])
         return self._es_client
 
-    @property
-    def kibana_port(self):
+    def kibana_port(self, admin_role=True):
         if self._kibana_port is None:
-            if self.kibana_protocol == 'http':
-                self._kibana_port = 80
+            if admin_role:
+                if self.kibana_protocol == 'http':
+                    self._kibana_port = 80
+                else:
+                    self._kibana_port = 443
             else:
-                self._kibana_port = 443
+                if self.kibana_protocol == 'http':
+                    self._kibana_port = 81
+                else:
+                    self._kibana_port = 8433
         return self._kibana_port
 
     @property
@@ -75,9 +81,15 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         else:
             return self.helpers.get_vip_address('kibana')
 
-    def get_kibana_url(self):
+    def get_kibana_url(self, admin_role=True, credentials=None):
+        if credentials:
+            return "{0}://{1}:{2}@{3}:{4}/".format(
+                self.kibana_protocol, credentials[0], credentials[1],
+                self.get_kibana_vip(), self.kibana_port(admin_role)
+            )
         return "{0}://{1}:{2}/".format(
-            self.kibana_protocol, self.get_kibana_vip(), self.kibana_port)
+            self.kibana_protocol, self.get_kibana_vip(),
+            self.kibana_port(admin_role))
 
     def check_plugin_online(self):
         elasticsearch_url = self.get_elasticsearch_url()
@@ -94,6 +106,20 @@ class ElasticsearchPluginApi(base_test.PluginApi):
             auth=(self.settings.kibana_username,
                   self.settings.kibana_password)
         )
+
+    def check_plugin_ldap(self, authz=False, uadmin=('uadmin', 'uadmin'),
+                          uviewer=('uviewer', 'uviewer')):
+        """Check dashboard is available when using LDAP for authentication.
+
+        :param authz: adds checking LDAP for authorisation
+        :type authz: boolean
+        """
+        url_admin = self.get_kibana_url(credentials=uadmin)
+        url_viewer = self.get_kibana_url(admin_role=(False if authz else True),
+                                         credentials=uviewer)
+
+        ui_api.check_kibana_ldap(url_admin, uadmin[0], authz)
+        ui_api.check_kibana_ldap(url_viewer, uviewer[0], authz)
 
     def check_elasticsearch_nodes_count(self, expected_count):
         logger.debug("Get information about Elasticsearch nodes")
