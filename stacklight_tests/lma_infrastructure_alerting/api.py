@@ -60,20 +60,23 @@ class InfraAlertingPluginApi(base_test.PluginApi):
     def get_nagios_vip(self):
         return self.helpers.get_vip_address('infrastructure_alerting_ui')
 
-    def check_plugin_online(self):
+    def check_plugin_online(self, user=None, password=None):
+        user = user or self.settings.nagios_user
+        password = password or self.settings.nagios_password
         nagios_url = self.get_nagios_url()
         logger.info("Nagios UI is at {}".format(nagios_url))
-        logger.info("Check that the '{}' user is authorized".format(
-            self.settings.nagios_user))
-        self.checkers.check_http_get_response(
-            nagios_url,
-            auth=(self.settings.nagios_user, self.settings.nagios_password)
-        )
+        logger.info("Check that the '{}' user is authorized".format(user))
+        self.checkers.check_http_get_response(nagios_url,
+                                              auth=(user, password))
         logger.info("Check that the Nagios UI requires authentication")
         self.checkers.check_http_get_response(
             nagios_url, expected_code=401,
-            auth=(self.settings.nagios_user, 'rogue')
+            auth=(user, 'rogue')
         )
+
+    def check_plugin_ldap(self, authz=False):
+        """Check dashboard is available when using LDAP for authentication."""
+        self.check_plugin_online(user='uadmin', password='uadmin')
 
     def get_authenticated_nagios_url(self):
         return "{0}://{1}:{2}@{3}:{4}".format(self.nagios_protocol,

@@ -150,6 +150,14 @@ class InfluxdbPluginApi(base_test.PluginApi):
     def check_grafana_dashboards(self):
         ui_api.check_grafana_dashboards(self.get_grafana_url())
 
+    def check_plugin_ldap(self, authz=False):
+        """Check dashboard is available when using LDAP for authentication.
+
+        :param authz: adds checking LDAP for authorisation
+        :type authz: boolean
+        """
+        ui_api.check_grafana_ldap(self.get_grafana_url(), authz)
+
     def get_nova_instance_creation_time_metrics(self, time_point=None):
         """Gets instance creation metrics for provided interval
 
