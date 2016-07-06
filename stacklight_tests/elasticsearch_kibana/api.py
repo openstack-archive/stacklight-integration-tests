@@ -95,6 +95,11 @@ class ElasticsearchPluginApi(base_test.PluginApi):
                   self.settings.kibana_password)
         )
 
+    def check_plugin_ldap(self, authz=False):
+        # TODO(idegtiarov): add checking kibana plugin uses LDAP for
+        # authentication when ui_kibana testing will be available
+        pass
+
     def check_elasticsearch_nodes_count(self, expected_count):
         logger.debug("Get information about Elasticsearch nodes")
         url = self.get_elasticsearch_url(path='_nodes')
