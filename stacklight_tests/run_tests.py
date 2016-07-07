@@ -13,8 +13,6 @@
 #    under the License.
 
 import os
-import re
-import sys
 
 from nose import plugins
 from paramiko import transport
@@ -74,10 +72,4 @@ def run_tests():
 
 if __name__ == '__main__':
     import_tests()
-    from fuelweb_test.helpers.patching import map_test
-    if any(re.search(r'--group=patching_master_tests', arg)
-           for arg in sys.argv):
-        map_test('master')
-    elif any(re.search(r'--group=patching.*', arg) for arg in sys.argv):
-        map_test('environment')
     run_tests()
