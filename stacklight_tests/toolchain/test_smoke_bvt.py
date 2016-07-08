@@ -13,6 +13,7 @@
 #    under the License.
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from fuelweb_test import settings
 from proboscis import test
 
 from stacklight_tests.toolchain import api
@@ -159,3 +160,115 @@ class TestToolchain(api.ToolchainApi):
         self.prepare_plugins()
 
         self.uninstall_plugins()
+
+    @test(depends_on_groups=["prepare_slaves_9"],
+          groups=["deploy_toolchain_ha_ceph_backend", "deploy", "deploy_ha",
+                  "toolchain", "smoke"])
+    @log_snapshot_after_test
+    def deploy_toolchain_ha_ceph_backend(self):
+        """Deploy plugins in HA mode with CEPH backend
+
+        Scenario:
+            1.  Create new environment with plugins and CEPH backend.
+            2.  Add 3 controllers, 3 compute+ceph, 3 toolchain nodes
+                and deploy the environment.
+            3.  Check that plugins work.
+            4.  Run OSTF.
+
+        Duration 120m
+        """
+
+        self.env.revert_snapshot("ready_with_9_slaves")
+
+        self.prepare_plugins()
+
+        data = {
+            'volumes_ceph': True,
+            'images_ceph': True,
+            'volumes_lvm': False,
+            'tenant': 'toolchainceph',
+            'user': 'toolchainceph',
+            'password': 'toolchainceph',
+            'net_provider': 'neutron',
+            'net_segment_type': settings.NEUTRON_SEGMENT['vlan']
+        }
+
+        self.helpers.create_cluster(name=self.__class__.__name__,
+                                    settings=data)
+
+        self.activate_plugins()
+
+        node_roles = {
+            'slave-01': ['controller'],
+            'slave-02': ['controller'],
+            'slave-03': ['controller'],
+            'slave-04': ['compute', 'ceph-osd'],
+            'slave-05': ['compute', 'ceph-osd'],
+            'slave-06': ['compute', 'ceph-osd'],
+            'slave-07': self.settings.stacklight_roles,
+            'slave-08': self.settings.stacklight_roles,
+            'slave-09': self.settings.stacklight_roles
+        }
+
+        self.helpers.deploy_cluster(node_roles)
+
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
+
+    @test(depends_on_groups=["prepare_slaves_9"],
+          groups=["deploy_toolchain_ha_platform_components", "deploy",
+                  "deploy_ha", "toolchain", "smoke"])
+    @log_snapshot_after_test
+    def deploy_toolchain_ha_platform_components(self):
+        """Deploy plugins with platform components
+
+        Scenario:
+            1.  Create new environment with plugins and enable Ceilometer,
+                Sahara, Murano and Ironic.
+            2.  Add 3 controllers+mongo, 3 compute+cinder+ironic,
+                3 toolchain nodes and deploy the environment.
+            3.  Check that plugins work.
+            4.  Run OSTF.
+
+        Duration 120m
+        """
+
+        self.env.revert_snapshot("ready_with_9_slaves")
+
+        self.prepare_plugins()
+
+        data = {
+            'net_provider': 'neutron',
+            'net_segment_type': settings.NEUTRON_SEGMENT['vlan'],
+            'ironic': True,
+            'sahara': True,
+            'murano': True,
+            'ceilometer': True,
+            'tenant': 'toolchaincomponents',
+            'user': 'toolchaincomponents',
+            'password': 'toolchaincomponents'
+        }
+
+        self.helpers.create_cluster(name=self.__class__.__name__,
+                                    settings=data)
+
+        self.activate_plugins()
+
+        node_roles = {
+            'slave-01': ['controller', 'mongo'],
+            'slave-02': ['controller', 'mongo'],
+            'slave-03': ['controller', 'mongo'],
+            'slave-04': ['compute', 'cinder', 'ironic'],
+            'slave-05': ['compute', 'cinder', 'ironic'],
+            'slave-06': ['compute', 'cinder', 'ironic'],
+            'slave-07': self.settings.stacklight_roles,
+            'slave-08': self.settings.stacklight_roles,
+            'slave-09': self.settings.stacklight_roles
+        }
+
+        self.helpers.deploy_cluster(node_roles)
+
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
