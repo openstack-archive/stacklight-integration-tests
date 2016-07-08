@@ -16,7 +16,7 @@ import copy
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from fuelweb_test import logger
-from fuelweb_test.settings import NEUTRON_SEGMENT
+from fuelweb_test import settings
 from proboscis import asserts
 from proboscis import test
 
@@ -24,9 +24,9 @@ from stacklight_tests.toolchain import api
 
 
 @test(groups=["plugins"])
-class TestToolchainNetworkTemplates(api.ToolchainApi):
-    """Class for testing the LMA Toolchain plugins when using network
-    templates.
+class TestToolchainNetwork(api.ToolchainApi):
+    """Class for testing the LMA Toolchain plugins when using different network
+    configurations.
     """
 
     @test(depends_on_groups=["prepare_slaves_3"],
@@ -62,7 +62,7 @@ class TestToolchainNetworkTemplates(api.ToolchainApi):
             name="deploy_toolchain_with_network_template",
             settings={
                 "net_provider": "neutron",
-                "net_segment_type": NEUTRON_SEGMENT["tun"]
+                "net_segment_type": settings.NEUTRON_SEGMENT["tun"]
             }
         )
 
@@ -115,3 +115,48 @@ class TestToolchainNetworkTemplates(api.ToolchainApi):
 
         self.env.make_snapshot("deploy_toolchain_with_network_template",
                                is_make=True)
+
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["deploy_toolchain_neutron_vxlan", "deploy",
+                  "toolchain", "network_configuration"])
+    @log_snapshot_after_test
+    def deploy_toolchain_neutron_vxlan(self):
+        """Deploy a cluster with the LMA Toolchain plugins with
+        Neutron VxLAN segmentation.
+
+        Scenario:
+            1. Upload the LMA Toolchain plugins to the master node
+            2. Install the plugins
+            3. Create the cluster using VxLAN segmentation
+            4. Add 1 node with controller role
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with plugin roles
+            7. Deploy the cluster
+            8. Check that LMA Toolchain plugins are running
+            9. Run OSTF
+
+        Duration 60m
+        Snapshot deploy_toolchain_neutron_vxlan
+        """
+        self.check_run("deploy_toolchain_neutron_vxlan")
+        self.env.revert_snapshot("ready_with_3_slaves")
+
+        self.prepare_plugins()
+
+        self.helpers.create_cluster(
+            name="deploy_toolchain_neutron_vxlan",
+            settings={
+                "net_provider": "neutron",
+                "net_segment_type": settings.NEUTRON_SEGMENT["tun"]
+            }
+        )
+
+        self.activate_plugins()
+
+        self.helpers.deploy_cluster(self.settings.base_nodes,
+                                    verify_network=True)
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
+
+        self.env.make_snapshot("deploy_toolchain_neutron_vxlan", is_make=True)
