@@ -68,10 +68,10 @@ class TestToolchainLDAP(api.ToolchainApi):
 
         for name, plugin in plugins_ldap.items():
             if name == "grafana":
-                self._activate_ldap_plugin(plugin, "(uid=%s)", ldap_hostname)
+                _activate_ldap_plugin(plugin, "(uid=%s)", ldap_hostname)
             else:
-                self._activate_ldap_plugin(plugin, "(objectClass=*)",
-                                           ldap_hostname)
+                _activate_ldap_plugin(plugin, "(objectClass=*)",
+                                      ldap_hostname)
 
         self.helpers.deploy_cluster(self.settings.base_nodes)
 
@@ -147,11 +147,11 @@ class TestToolchainLDAP(api.ToolchainApi):
 
         for name, plugin in plugins_ldap.items():
             if name == "grafana":
-                self._activate_ldap_plugin(plugin, "(uid=%s)", ldap_hostname,
-                                           authz=True)
+                _activate_ldap_plugin(plugin, "(uid=%s)", ldap_hostname,
+                                      authz=True)
             else:
-                self._activate_ldap_plugin(plugin, "(objectClass=*)",
-                                           ldap_hostname, authz=True)
+                _activate_ldap_plugin(plugin, "(objectClass=*)",
+                                      ldap_hostname, authz=True)
 
         self.helpers.deploy_cluster(self.settings.base_nodes)
 
@@ -179,47 +179,132 @@ class TestToolchainLDAP(api.ToolchainApi):
 
         self.env.make_snapshot("deploy_toolchain_ldap_authz", is_make=True)
 
-    @staticmethod
-    def _activate_ldap_plugin(plugin, ufilter, ldap_node, authz=False,
-                              protocol="ldap"):
-        """Activate LDAP option in plugin."""
-        name = plugin.get_plugin_settings().name
-        logger.info(
-            "Enable LDAP in plugin {}, authorization {}, protocol: {}".format(
-                name, authz, protocol))
 
-        options = {
-            "ldap_enabled/value": True,
-            "ldap_protocol/value": protocol,
-            "ldap_servers/value": ldap_node,
-            "ldap_bind_dn/value": "cn=admin,dc=stacklight,dc=ci",
-            "ldap_bind_password/value": "admin",
-            "ldap_user_search_base_dns/value": "dc=stacklight,dc=ci",
-            "ldap_user_search_filter/value": ufilter,
+@test(groups=["ldaps"])
+class TestToolchainLDAPS(api.ToolchainApi):
+    """Class testing the LMA Toolchain plugins with LDAPS for authentication.
+    """
+    @test(depends_on_groups=['prepare_slaves_3'],
+          groups=["ldaps", "deploy_toolchain_with_ldaps_authz", "toolchain",
+                  "deploy"])
+    @log_snapshot_after_test
+    def deploy_toolchain_with_ldaps_authz(self):
+        """Install the LMA Toolchain plugins with LDAPS integration for
+        authentication and authorization
+
+        Scenario:
+            1. Upload the LMA Toolchain plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Enable and configure LDAPS for plugin authentication and
+               authorization
+            5. Deploy the cluster
+            6. Upload install_slapd.sh script on plugin node
+            7. Install and configure the LDAPS plugin
+            8. Check that LMA Toolchain plugins are running
+            9. Check plugins are available with LDAPS for authentication and
+               authorization
+
+        Duration 120m
+        """
+        fuel_web = self.helpers.fuel_web
+
+        self.env.revert_snapshot("ready_with_3_slaves")
+
+        self.prepare_plugins()
+
+        self.helpers.create_cluster(name=self.__class__.__name__)
+
+        self.activate_plugins()
+
+        fuel_web.update_nodes(self.helpers.cluster_id,
+                              self.settings.base_nodes, update_interfaces=True)
+
+        plugins_ldap = {
+            "kibana": self.ELASTICSEARCH_KIBANA,
+            "grafana": self.INFLUXDB_GRAFANA,
+            "nagios": self.LMA_INFRASTRUCTURE_ALERTING,
         }
 
-        if authz:
-            options.update({
-                "ldap_authorization_enabled/value": True,
-            })
-            if name in ["elasticsearch_kibana", "lma_infrastructure_alerting"]:
-                options.update({
-                    "ldap_admin_group_dn/value":
-                        "cn=plugin_admins,ou=groups,dc=stacklight,dc=ci"
-                })
-                if name == "elasticsearch_kibana":
-                    options.update({
-                        "ldap_viewer_group_dn/value":
-                            "cn=plugin_viewers,ou=groups,dc=stacklight,dc=ci"
-                    })
-            else:
-                options.update({
-                    "ldap_group_search_base_dns/value":
-                        "ou=groups,dc=stacklight,dc=ci",
-                    "ldap_group_search_filter/value":
-                        "(&(objectClass=posixGroup)(memberUid=%s)",
-                    "ldap_admin_group_dn/value": "plugin_admins",
-                    "ldap_viewer_group_dn/value": "plugin_viewers"
-                })
+        ldap_hostname = fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, roles=["controller", ],
+            role_status='pending_roles')[0]['hostname']
 
-        plugin.activate_plugin(options=options)
+        for name, plugin in plugins_ldap.items():
+            if name == "grafana":
+                _activate_ldap_plugin(plugin, "(uid=%s)", ldap_hostname,
+                                      authz=True, protocol='ldaps')
+            else:
+                _activate_ldap_plugin(plugin, "(objectClass=*)", ldap_hostname,
+                                      authz=True, protocol='ldaps')
+
+        self.helpers.deploy_cluster(self.settings.base_nodes)
+
+        ldap_node = fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, roles=["controller", ])[0]
+
+        with fuel_web.get_ssh_for_nailgun_node(ldap_node) as remote:
+            remote.upload(
+                helpers.get_fixture("ldap/install_slapd.sh"),
+                "/tmp"
+            )
+            mgmt_network = remote.check_call(
+                "ip addr show br-mgmt | grep 'inet ' | awk '{print $2}'"
+            )['stdout'][0].rstrip()
+            remote.check_call(
+                "bash -x /tmp/install_slapd.sh && iptables -I INPUT -s {0} "
+                "-p tcp -m multiport --ports 389,636 -m comment --comment "
+                "'ldap server' -j ACCEPT".format(mgmt_network), verbose=True
+            )
+
+        self.check_plugins_online()
+
+        for plugin in plugins_ldap.values():
+            plugin.check_plugin_ldap(authz=True)
+
+        self.env.make_snapshot("deploy_toolchain_ldap_authZ", is_make=True)
+
+
+def _activate_ldap_plugin(plugin, ufilter, ldap_node, authz=False,
+                          protocol="ldap"):
+    """Activate LDAP option in plugin."""
+    name = plugin.get_plugin_settings().name
+    logger.info(
+        "Enable LDAP in plugin {}, authorization {}, protocol: {}".format(
+            name, authz, protocol))
+
+    options = {
+        "ldap_enabled/value": True,
+        "ldap_protocol/value": protocol,
+        "ldap_servers/value": ldap_node,
+        "ldap_bind_dn/value": "cn=admin,dc=stacklight,dc=ci",
+        "ldap_bind_password/value": "admin",
+        "ldap_user_search_base_dns/value": "dc=stacklight,dc=ci",
+        "ldap_user_search_filter/value": ufilter,
+    }
+
+    if authz:
+        options.update({
+            "ldap_authorization_enabled/value": True,
+        })
+        if name in ["elasticsearch_kibana", "lma_infrastructure_alerting"]:
+            options.update({
+                "ldap_admin_group_dn/value":
+                    "cn=plugin_admins,ou=groups,dc=stacklight,dc=ci"
+            })
+            if name == "elasticsearch_kibana":
+                options.update({
+                    "ldap_viewer_group_dn/value":
+                        "cn=plugin_viewers,ou=groups,dc=stacklight,dc=ci"
+                })
+        else:
+            options.update({
+                "ldap_group_search_base_dns/value":
+                    "ou=groups,dc=stacklight,dc=ci",
+                "ldap_group_search_filter/value":
+                    "(&(objectClass=posixGroup)(memberUid=%s)",
+                "ldap_admin_group_dn/value": "plugin_admins",
+                "ldap_viewer_group_dn/value": "plugin_viewers"
+            })
+
+    plugin.activate_plugin(options=options)
