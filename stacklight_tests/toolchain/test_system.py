@@ -47,7 +47,7 @@ class TestNodesToolchain(api.ToolchainApi):
         manipulated_node = {'slave-03': ['controller']}
 
         # Remove controller
-        self.helpers.remove_node_from_cluster(manipulated_node)
+        self.helpers.remove_nodes_from_cluster(manipulated_node)
 
         self.check_plugins_online()
 
@@ -84,7 +84,7 @@ class TestNodesToolchain(api.ToolchainApi):
         manipulated_node = {'slave-04': ['compute', 'cinder']}
 
         # Remove compute
-        self.helpers.remove_node_from_cluster(manipulated_node)
+        self.helpers.remove_nodes_from_cluster(manipulated_node)
 
         self.check_plugins_online()
 
@@ -126,7 +126,7 @@ class TestNodesToolchain(api.ToolchainApi):
         self.check_nodes_count(3, manipulated_node_hostname, True)
 
         # Remove node with StackLight roles
-        self.helpers.remove_node_from_cluster(manipulated_node)
+        self.helpers.remove_nodes_from_cluster(manipulated_node)
 
         self.check_plugin_online()
 
