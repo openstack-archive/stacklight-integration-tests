@@ -21,7 +21,8 @@ from stacklight_tests.toolchain import api
 
 @test(groups=["ldap"])
 class TestToolchainLDAP(api.ToolchainApi):
-    """Class testing the LMA Toolchain plugins with LDAP for authentication."""
+    """Class testing the LMA Toolchain plugins with LDAP(S) for authentication.
+    """
 
     @test(depends_on_groups=['prepare_slaves_3'],
           groups=["ldap", "deploy_toolchain_with_ldap", "toolchain", "deploy"])
@@ -75,6 +76,36 @@ class TestToolchainLDAP(api.ToolchainApi):
         self._create_ldap_toolchain(authz=True)
 
         self.env.make_snapshot("deploy_toolchain_with_ldap_authz",
+                               is_make=True)
+
+    @test(depends_on_groups=['prepare_slaves_3'],
+          groups=["ldap", "deploy_toolchain_with_ldaps_authz", "toolchain",
+                  "deploy"])
+    @log_snapshot_after_test
+    def deploy_toolchain_with_ldaps_authz(self):
+        """Install the LMA Toolchain plugins with LDAPS integration for
+        authentication and authorization
+
+        Scenario:
+            1. Upload the LMA Toolchain plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Enable and configure LDAPS for plugin authentication and
+               authorization
+            5. Deploy the cluster
+            6. Upload install_slapd.sh script on controller node
+            7. On controller node open the firewall for ports 389 and 636
+            8. Install and configure the LDAPS server
+            9. Check that LMA Toolchain plugins are running
+            10. Check plugins are available with LDAPS for authentication and
+               authorization
+
+        Duration 120m
+        """
+
+        self._create_ldap_toolchain(authz=True, protocol='ldaps')
+
+        self.env.make_snapshot("deploy_toolchain_with_ldaps_authz",
                                is_make=True)
 
     def _create_ldap_toolchain(self, authz=False, protocol='ldap'):
