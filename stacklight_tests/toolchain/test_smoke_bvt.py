@@ -13,6 +13,7 @@
 #    under the License.
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from fuelweb_test import settings
 from proboscis import test
 
 from stacklight_tests.toolchain import api
