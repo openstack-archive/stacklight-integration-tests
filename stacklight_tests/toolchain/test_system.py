@@ -174,7 +174,7 @@ class TestNodesToolchain(api.ToolchainApi):
 
         self.activate_plugins()
 
-        self.helpers.deploy_cluster(self.base_nodes)
+        self.helpers.deploy_cluster(self.settings.base_nodes)
 
         self.check_plugins_online()
 
