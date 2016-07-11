@@ -119,7 +119,7 @@ class TestNodesToolchain(api.ToolchainApi):
         """
         self.env.revert_snapshot("deploy_ha_toolchain")
 
-        manipulated_node = {'slave-07': self.settings.role_name}
+        manipulated_node = {'slave-07': self.settings.stacklight_roles}
         manipulated_node_hostname = self.helpers.get_hostname_by_node_name(
             manipulated_node.keys()[0])
 
