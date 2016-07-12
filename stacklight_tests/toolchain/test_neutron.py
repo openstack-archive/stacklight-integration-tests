@@ -25,6 +25,36 @@ class TestToolchainNeutron(api.ToolchainApi):
     configurations.
     """
 
+    def _deploy_with_neutron_configuration(self, caller, config=None,
+                                           advanced_options=(), is_ha=False):
+        self.check_run(caller)
+        base_snapshot_name = "ready_with_3_slaves"
+        nodes = self.settings.base_nodes
+        if is_ha:
+            base_snapshot_name = "ready_with_5_slaves"
+            nodes = self.settings.ha_controller_nodes
+        self.env.revert_snapshot(base_snapshot_name)
+
+        self.prepare_plugins()
+
+        self.helpers.create_cluster(
+            name=caller,
+            settings=config
+        )
+
+        self.activate_plugins()
+
+        for option in advanced_options:
+            self.helpers.update_neutron_advanced_configuration(*option)
+
+        self.helpers.deploy_cluster(nodes,
+                                    verify_network=True)
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
+
+        self.env.make_snapshot(caller, is_make=True)
+
     @test(depends_on_groups=["prepare_slaves_3"],
           groups=["deploy_toolchain_neutron_vxlan", "deploy",
                   "toolchain", "network_configuration"])
@@ -47,25 +77,136 @@ class TestToolchainNeutron(api.ToolchainApi):
         Duration 60m
         Snapshot deploy_toolchain_neutron_vxlan
         """
-        self.check_run("deploy_toolchain_neutron_vxlan")
-        self.env.revert_snapshot("ready_with_3_slaves")
-
-        self.prepare_plugins()
-
-        self.helpers.create_cluster(
-            name="deploy_toolchain_neutron_vxlan",
-            settings={
+        self._deploy_with_neutron_configuration(
+            "deploy_toolchain_neutron_vxlan",
+            config={
                 "net_provider": "neutron",
                 "net_segment_type": settings.NEUTRON_SEGMENT["tun"]
             }
         )
 
-        self.activate_plugins()
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["deploy_toolchain_neutron_vlan_dvr", "deploy",
+                  "toolchain", "network_configuration"])
+    @log_snapshot_after_test
+    def deploy_toolchain_neutron_vlan_dvr(self):
+        """Deploy a cluster with the LMA Toolchain plugins with
+        Neutron VLAN segmentation and DVR feature.
 
-        self.helpers.deploy_cluster(self.settings.base_nodes,
-                                    verify_network=True)
-        self.check_plugins_online()
+        Scenario:
+            1. Upload the LMA Toolchain plugins to the master node
+            2. Install the plugins
+            3. Create the cluster using VLAN segmentation
+            4. Set DVR option
+            5. Add 1 node with controller role
+            6. Add 1 node with compute and cinder roles
+            7. Add 1 node with plugin roles
+            8. Deploy the cluster
+            9. Check that LMA Toolchain plugins are running
+            10. Run OSTF
 
-        self.helpers.run_ostf()
+        Duration 60m
+        Snapshot deploy_toolchain_neutron_vlan_dvr
+        """
+        options = ('neutron_dvr', True),
+        self._deploy_with_neutron_configuration(
+            "deploy_toolchain_neutron_vlan_dvr", advanced_options=options)
 
-        self.env.make_snapshot("deploy_toolchain_neutron_vxlan", is_make=True)
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["deploy_toolchain_neutron_vlan_l3ha", "deploy",
+                  "toolchain", "network_configuration"])
+    @log_snapshot_after_test
+    def deploy_toolchain_neutron_vlan_l3ha(self):
+        """Deploy a cluster with the LMA Toolchain plugins with
+        Neutron VLAN segmentation and L3HA feature.
+
+        Scenario:
+            1. Upload the LMA Toolchain plugins to the master node
+            2. Install the plugins
+            3. Create the cluster using VLAN segmentation
+            4. Set L3HA option
+            5. Add 1 node with controller role
+            6. Add 1 node with compute and cinder roles
+            7. Add 1 node with plugin roles
+            8. Deploy the cluster
+            9. Check that LMA Toolchain plugins are running
+            10. Run OSTF
+
+        Duration 60m
+        Snapshot deploy_toolchain_neutron_vlan_l3ha
+        """
+        options = ('neutron_l3_ha', True),
+        self._deploy_with_neutron_configuration(
+            "deploy_toolchain_neutron_vlan_l3ha",
+            advanced_options=options, is_ha=True)
+
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["deploy_toolchain_neutron_vxlan_l2pop_dvr", "deploy",
+                  "toolchain", "network_configuration"])
+    @log_snapshot_after_test
+    def deploy_toolchain_neutron_vxlan_l2pop_dvr(self):
+        """Deploy a cluster with the LMA Toolchain plugins with
+        Neutron VxLAN segmentation and DVR feature.
+
+        Scenario:
+            1. Upload the LMA Toolchain plugins to the master node
+            2. Install the plugins
+            3. Create the cluster using VxLAN segmentation
+            4. Set L2pop and DVR options
+            5. Add 1 node with controller role
+            6. Add 1 node with compute and cinder roles
+            7. Add 1 node with plugin roles
+            8. Deploy the cluster
+            9. Check that LMA Toolchain plugins are running
+            10. Run OSTF
+
+        Duration 60m
+        Snapshot deploy_toolchain_neutron_vxlan_l2pop_dvr
+        """
+
+        options = (('neutron_l2_pop', True),
+                   ('neutron_dvr', True))
+
+        self._deploy_with_neutron_configuration(
+            "deploy_toolchain_neutron_vxlan_l2pop_dvr",
+            config={
+                "net_provider": "neutron",
+                "net_segment_type": settings.NEUTRON_SEGMENT["tun"]
+            },
+            advanced_options=options
+        )
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["deploy_toolchain_neutron_vxlan_l3ha", "deploy",
+                  "toolchain", "network_configuration"])
+    @log_snapshot_after_test
+    def deploy_toolchain_neutron_vxlan_l3ha(self):
+        """Deploy a cluster with the LMA Toolchain plugins with
+        Neutron VxLAN segmentation and L3HA feature.
+
+        Scenario:
+            1. Upload the LMA Toolchain plugins to the master node
+            2. Install the plugins
+            3. Create the cluster using VxLAN segmentation
+            4. Set L3HA option
+            5. Add 1 node with controller role
+            6. Add 1 node with compute and cinder roles
+            7. Add 1 node with plugin roles
+            8. Deploy the cluster
+            9. Check that LMA Toolchain plugins are running
+            10. Run OSTF
+
+        Duration 60m
+        Snapshot deploy_toolchain_neutron_vxlan_l3ha
+        """
+
+        options = ('neutron_l3_ha', True),
+
+        self._deploy_with_neutron_configuration(
+            "deploy_toolchain_neutron_vxlan_l3ha",
+            config={
+                "net_provider": "neutron",
+                "net_segment_type": settings.NEUTRON_SEGMENT["tun"]
+            },
+            advanced_options=options, is_ha=True
+        )
