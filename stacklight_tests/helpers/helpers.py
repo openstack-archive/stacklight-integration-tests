@@ -419,7 +419,7 @@ class PluginHelper(object):
                 remote.check_call(cmd)
 
     def fuel_create_repositories(self, nodes):
-        """Start task to setup repositories on provided nodes
+        """Start task to setup repositories on provided nodes.
 
         :param nodes: list of nodes to run task on them
         :type nodes: list
@@ -580,7 +580,7 @@ class PluginHelper(object):
 
     def check_pacemaker_resource(self, resource_name, role):
         """Check that the pacemaker resource is started on nodes with given
-        role
+        role.
         :param resource_name: the name of the pacemaker resource
         :type resource_name: str
         :param role: the role of node when pacemaker is running
@@ -606,3 +606,20 @@ class PluginHelper(object):
                         resource_name, pcm_nodes), config), None,
                 'Resource [{0}] is not properly configured'.format(
                     resource_name))
+
+    def update_neutron_advanced_configuration(self, option, value):
+        """Method updates current cluster neutron advanced configuration option
+        with provided value.
+
+        :param option: option to set
+        :type option: str
+        :param value: value to set
+        :type value: any
+        :return: None
+        """
+        attributes = self.nailgun_client.get_cluster_attributes(
+            self.cluster_id)
+        nac_subdict = attributes['editable']['neutron_advanced_configuration']
+        nac_subdict[option]['value'] = value
+        self.nailgun_client.update_cluster_attributes(
+            self.cluster_id, attributes)

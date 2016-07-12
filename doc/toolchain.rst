@@ -36,3 +36,10 @@ Network templates
 
 .. automodule:: stacklight_tests.toolchain.test_network_templates
    :members:
+
+
+Neutron configuration
+=====================
+
+.. automodule:: stacklight_tests.toolchain.test_neutron
+   :members:

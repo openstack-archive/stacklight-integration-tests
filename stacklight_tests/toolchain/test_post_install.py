@@ -72,9 +72,9 @@ class TestToolchainPostInstallation(api.ToolchainApi):
             4. Add 3 nodes with the plugin roles
             5. Deploy the cluster
             6. Redeploy the nodes that existed before the last deploy (MOS 8
-            only)
-            6. Check that LMA Toolchain plugins are running
-            7. Run OSTF
+               only)
+            7. Check that LMA Toolchain plugins are running
+            8. Run OSTF
 
         Duration 60m
         Snapshot deploy_toolchain_in_existing_environment
