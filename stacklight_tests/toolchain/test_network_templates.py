@@ -16,7 +16,7 @@ import copy
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from fuelweb_test import logger
-from fuelweb_test.settings import NEUTRON_SEGMENT
+from fuelweb_test import settings
 from proboscis import asserts
 from proboscis import test
 
@@ -62,7 +62,7 @@ class TestToolchainNetworkTemplates(api.ToolchainApi):
             name="deploy_toolchain_with_network_template",
             settings={
                 "net_provider": "neutron",
-                "net_segment_type": NEUTRON_SEGMENT["tun"]
+                "net_segment_type": settings.NEUTRON_SEGMENT["tun"]
             }
         )
 
