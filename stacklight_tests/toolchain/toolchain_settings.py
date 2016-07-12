@@ -33,6 +33,14 @@ base_nodes = {
     'slave-03': stacklight_roles
 }
 
+os_semi_ha_nodes = {
+    'slave-01': ['controller'],
+    'slave-02': ['controller'],
+    'slave-03': ['controller'],
+    'slave-04': ['compute', 'cinder'],
+    'slave-05': stacklight_roles,
+}
+
 full_ha_nodes = {
     'slave-01': ['controller'],
     'slave-02': ['controller'],
