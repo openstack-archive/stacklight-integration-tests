@@ -115,8 +115,11 @@ adv_net_template:
         roles:
           monitoring: br-monitoring
           elasticsearch: br-monitoring
+          kibana: br-monitoring
           influxdb_vip: br-monitoring
+          grafana: br-monitoring
           infrastructure_alerting: br-monitoring
+          infrastructure_alerting_ui: br-monitoring
         transformations:
         - action: add-br
           name: br-monitoring
