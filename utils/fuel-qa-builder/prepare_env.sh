@@ -8,7 +8,7 @@ set -e
 # Initialize the variables
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 VENV_PATH=${VENV_PATH:-"${BASE_DIR}"/venv-stacklight-tests}
-FUELQA_GITREF=${FUELQA_GITREF:-stable/8.0}
+FUELQA_GITREF=${FUELQA_GITREF:-stable/mitaka}
 
 # Create the virtual environment if it doesn't exist yet
 if [[ ! -f "$VENV_PATH"/bin/activate ]]; then
