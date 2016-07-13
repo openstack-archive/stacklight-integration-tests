@@ -273,7 +273,7 @@ class ToolchainApi(object):
 
         for test_name in test_classes:
             self.helpers.run_single_ostf(
-                test_sets=['smoke'], test_name=test_name)
+                test_sets=['tests_platform'], test_name=test_name)
         output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification", query_filter="Logger:heat", size=500)
         notification_list = list(set(
