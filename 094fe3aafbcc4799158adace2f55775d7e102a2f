@@ -1,0 +1,8 @@
+Code-Review+2: Simon Pasquier <spasquier@mirantis.com>
+Workflow+1: Vitaly Gusev <vgusev@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Wed, 13 Jul 2016 13:27:15 +0000
+Reviewed-on: https://review.openstack.org/340848
+Project: openstack/stacklight-integration-tests
+Branch: refs/heads/master
