@@ -580,11 +580,27 @@ class PluginHelper(object):
                     remote_ops.manage_initctl_service(remote, service)
 
     @staticmethod
-    def check_notifications(got_list, expected_list):
-        for event_type in expected_list:
-            asserts.assert_true(
-                event_type in got_list, "{} event type not found in {}".format(
-                    event_type, got_list))
+    def check_notifications(output, notification_list, timeout=300,
+                            interval=30):
+        def _verify_notifications(got_list, expected_list):
+            for event_type in expected_list:
+                asserts.assert_true(
+                    event_type in got_list,
+                    "{} event type not found in {}".format(
+                        event_type, got_list))
+
+        actual_list = list(set(
+            [hit["_source"]["event_type"] for hit in output["hits"]["hits"]]))
+        start = time.time()
+        while time.time() - start < timeout:
+            try:
+                _verify_notifications(actual_list, notification_list)
+                return
+            except AssertionError:
+                logger.debug("Some notifications was not received. Sleeping "
+                             "for {} seconds and rechecking".format(interval))
+                time.sleep(interval)
+        raise TimeoutException("Timed out waiting to get all notifications")
 
     @staticmethod
     def wait_for_resource_status(resource_client, resource, expected_status,
