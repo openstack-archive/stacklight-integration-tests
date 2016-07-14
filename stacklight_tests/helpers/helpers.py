@@ -580,13 +580,6 @@ class PluginHelper(object):
                     remote_ops.manage_initctl_service(remote, service)
 
     @staticmethod
-    def check_notifications(got_list, expected_list):
-        for event_type in expected_list:
-            asserts.assert_true(
-                event_type in got_list, "{} event type not found in {}".format(
-                    event_type, got_list))
-
-    @staticmethod
     def wait_for_resource_status(resource_client, resource, expected_status,
                                  timeout=180, interval=30):
         start = time.time()
