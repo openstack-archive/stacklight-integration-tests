@@ -105,7 +105,7 @@ class TestFunctionalToolchain(api.ToolchainApi):
 
         self.check_nova_logs()
 
-    @test(depends_on_groups=["deploy_ha_toolchain"],
+    @test(depends_on_groups=["deploy_toolchain"],
           groups=["check_nova_notifications_toolchain", "toolchain",
                   "functional", "query_elasticsearch"])
     @log_snapshot_after_test
@@ -113,7 +113,7 @@ class TestFunctionalToolchain(api.ToolchainApi):
         """Check that Nova notifications are present in Elasticsearch
 
         Scenario:
-            1. Revert snapshot with 9 deployed nodes in HA configuration
+            1. Revert snapshot with 3 deployed nodes
             2. Launch, update, rebuild, resize, power-off, power-on, snapshot,
                suspend, shutdown, and delete an instance
             3. Check that Nova notifications are present in current
@@ -121,7 +121,7 @@ class TestFunctionalToolchain(api.ToolchainApi):
 
         Duration 25m
         """
-        self.env.revert_snapshot("deploy_ha_toolchain")
+        self.env.revert_snapshot("deploy_toolchain")
 
         self.check_plugins_online()
 
