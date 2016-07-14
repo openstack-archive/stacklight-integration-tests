@@ -200,18 +200,11 @@ class ToolchainApi(object):
         output_for_instance_id = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification",
             query_filter='instance_id:"{}"'.format(instance_id), size=500)
-        instance_id_notifications = list(set(
-            [hit["_source"]["event_type"]
-             for hit in output_for_instance_id["hits"]["hits"]]))
-        self.helpers.check_notifications(instance_id_notifications,
-                                         instance_event_types)
+        self.helpers.check_notifications(
+            output_for_instance_id, instance_event_types)
         output_for_logger = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification", query_filter="Logger:nova", size=500)
-        logger_notifications = list(set(
-            [hit["_source"]["event_type"]
-             for hit in output_for_logger["hits"]["hits"]]))
-        self.helpers.check_notifications(logger_notifications,
-                                         nova_event_types)
+        self.helpers.check_notifications(output_for_logger, nova_event_types)
 
     def check_glance_notifications(self):
         glance_event_types = ["image.create", "image.prepare", "image.upload",
@@ -222,10 +215,7 @@ class ToolchainApi(object):
                       'GlanceSmokeTests.test_create_and_delete_image_v2')
         output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification", query_filter="Logger:glance", size=500)
-        notification_list = list(set([hit["_source"]["event_type"]
-                                      for hit in output["hits"]["hits"]]))
-        self.helpers.check_notifications(notification_list,
-                                         glance_event_types)
+        self.helpers.check_notifications(output, glance_event_types)
 
     def check_keystone_notifications(self):
         keystone_event_types = [
@@ -241,10 +231,7 @@ class ToolchainApi(object):
         output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification",
             query_filter="Logger:keystone", size=500)
-        notification_list = list(set(
-            [hit["_source"]["event_type"] for hit in output["hits"]["hits"]]))
-        self.helpers.check_notifications(notification_list,
-                                         keystone_event_types)
+        self.helpers.check_notifications(output, keystone_event_types)
 
     def check_heat_notifications(self):
         heat_event_types = [
@@ -276,9 +263,7 @@ class ToolchainApi(object):
                 test_sets=['tests_platform'], test_name=test_name)
         output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification", query_filter="Logger:heat", size=500)
-        notification_list = list(set(
-            [hit["_source"]["event_type"] for hit in output["hits"]["hits"]]))
-        self.helpers.check_notifications(notification_list, heat_event_types)
+        self.helpers.check_notifications(output, heat_event_types)
 
     def check_neutron_notifications(self):
         neutron_event_types = [
@@ -307,10 +292,7 @@ class ToolchainApi(object):
         output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification",
             query_filter="Logger:neutron", size=500)
-        notification_list = list(set(
-            [hit["_source"]["event_type"] for hit in output["hits"]["hits"]]))
-        self.helpers.check_notifications(notification_list,
-                                         neutron_event_types)
+        self.helpers.check_notifications(output, neutron_event_types)
 
     def check_cinder_notifications(self):
         cinder_event_types = ["volume.update.start", "volume.update.end"]
@@ -318,7 +300,4 @@ class ToolchainApi(object):
         output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
             index_type="notification",
             query_filter='volume_id:"{}"'.format(volume_id), size=500)
-        notification_list = list(set([hit["_source"]["event_type"]
-                                      for hit in output["hits"]["hits"]]))
-        self.helpers.check_notifications(notification_list,
-                                         cinder_event_types)
+        self.helpers.check_notifications(output, cinder_event_types)
