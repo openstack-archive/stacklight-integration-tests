@@ -31,12 +31,23 @@ Detached plugins
 .. automodule:: stacklight_tests.toolchain.test_detached_plugins
    :members:
 
+HTTPS
+=====
+
+.. automodule:: stacklight_tests.toolchain.test_https
+   :members:
+
+Reduced footprint
+=================
+
+.. automodule:: stacklight_tests.toolchain.test_reduced_footprint
+   :members:
+
 Network templates
 =================
 
 .. automodule:: stacklight_tests.toolchain.test_network_templates
    :members:
-
 
 Neutron configuration
 =====================
