@@ -72,7 +72,6 @@ adv_net_template:
           name: <% if4 %>
       public:
         endpoints:
-        - br-mesh
         - br-ex
         roles:
           ceph/radosgw: br-ex
@@ -164,20 +163,17 @@ adv_net_template:
       - admin
       - monitoring
       - mgmt
-      - public
       - private
       - storage
       influxdb_grafana:
       - admin
       - monitoring
       - mgmt
-      - public
       - private
       - storage
       infrastructure_alerting:
       - admin
       - monitoring
       - mgmt
-      - public
       - private
       - storage
