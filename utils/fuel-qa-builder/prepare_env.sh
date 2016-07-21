@@ -8,7 +8,26 @@ set -e
 # Initialize the variables
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 VENV_PATH=${VENV_PATH:-"${BASE_DIR}"/venv-stacklight-tests}
-FUELQA_GITREF=${FUELQA_GITREF:-stable/mitaka}
+if [ -z "${FUELQA_GITREF}" ]; then
+    if [ -z "${ISO_PATH}" ]; then
+        echo "ISO_PATH and FUELQA_GITREF are missing. Please specify at least one."
+        exit 1
+    fi
+    # Pick up the correct fuel-qa branch depending on the ISO version
+    FUEL_VERSION=$(basename "${ISO_PATH}" | egrep -o '[0-9]+\.[0-9]+')
+    case "$FUEL_VERSION" in
+    8.0)
+        FUELQA_GITREF="stable/8.0"
+        ;;
+    9.0)
+        FUELQA_GITREF="stable/mitaka"
+        ;;
+    *)
+        echo "Don't know which fuel-qa branch to use for ${ISO_PATH}"
+        echo "Please specify it explicitly with the FUELQA_GITREF variable"
+        exit 1
+    esac
+fi
 
 # Create the virtual environment if it doesn't exist yet
 if [[ ! -f "$VENV_PATH"/bin/activate ]]; then
