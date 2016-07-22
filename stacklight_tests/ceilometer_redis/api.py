@@ -14,6 +14,7 @@
 
 import ceilometerclient.v2.client
 
+from six.moves import configparser
 from stacklight_tests import base_test
 from stacklight_tests.ceilometer_redis import plugin_settings
 from stacklight_tests.helpers import helpers
@@ -93,3 +94,16 @@ class CeilometerRedisPluginApi(base_test.PluginApi):
     def check_uninstall_failure(self):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
+
+    def disable_coordination(self):
+        ceilometer_conf = '/etc/ceilometer/ceilometer.conf'
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])
+        for controller in controllers:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                with remote.open(ceilometer_conf) as f:
+                    parser = configparser.RawConfigParser()
+                    parser.readfp(f)
+                parser.remove_option('coordination', 'backend_url')
+                with remote.open(ceilometer_conf, 'w') as f:
+                    parser.write(f)
