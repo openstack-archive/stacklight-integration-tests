@@ -14,6 +14,7 @@
 
 import os
 import re
+import tempfile
 import time
 import urllib2
 
@@ -652,3 +653,13 @@ class PluginHelper(object):
         nac_subdict[option]['value'] = value
         self.nailgun_client.update_cluster_attributes(
             self.cluster_id, attributes)
+    def create_image(self):
+
+        with tempfile.TemporaryFile() as fp:
+            fp.write('Test')
+            fp.seek(0)
+            image = self.os_conn.create_image(name='Redis',
+                                              container_format='bare',
+                                              disk_format='qcow2',
+                                              data=fp)
+        return image
