@@ -27,16 +27,16 @@ class CeilometerRedisPluginApi(base_test.PluginApi):
     @property
     def ceilometer(self):
         if self._ceilometer is None:
-            keystone = self.helpers.os_conn.keystone
-            try:
-                endpoint = keystone.service_catalog.url_for(
-                    service_type='metering',
-                    endpoint_type='internalURL')
-            except helpers.NotFound("Cannot initialize ceilometer client"):
-                return None
+            keystone_access = self.helpers.os_conn.keystone_access
+            endpoint = keystone_access.service_catalog.url_for(
+                service_type='metering',
+                service_name='ceilometer',
+                interface='internal')
+            if not endpoint:
+                raise helpers.NotFound("Cannot find ceilometer endpoint")
 
             self._ceilometer = ceilometerclient.v2.Client(
-                endpoint=endpoint, token=lambda: keystone.auth_token)
+                endpoint=endpoint, token=lambda: keystone_access.auth_token)
         return self._ceilometer
 
     def get_plugin_vip(self):
