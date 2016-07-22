@@ -17,7 +17,7 @@ def get_requirements_list(requirements):
 
 setup(
     name='fuelweb_test',
-    version=9.0,
+    version=1.0,
     description='Fuel-qa fuelweb package',
 
     url='http://www.openstack.org/',
