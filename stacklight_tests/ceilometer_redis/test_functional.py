@@ -13,7 +13,6 @@
 #    under the License.
 
 import datetime
-import tempfile
 import time
 
 from proboscis import asserts
@@ -96,19 +95,53 @@ class TestFunctionalCeilometerRedisPlugin(api.CeilometerRedisPluginApi):
         """Check that for one polling interval only one 'image' sample exists.
         """
 
-        with tempfile.TemporaryFile() as fp:
-            fp.write('Test')
-            fp.seek(0)
-            image = self.helpers.os_conn.create_image(name='Redis',
-                                                      container_format='bare',
-                                                      disk_format='qcow2',
-                                                      data=fp)
+        image = self.helpers.create_image()
         time.sleep(2 * self.settings.polling_interval)
         f = datetime.datetime.now() - datetime.timedelta(seconds=600)
         query = [{'field': 'timestamp', 'op': 'ge', 'value': f.isoformat()},
                  {'field': 'resource_id', 'op': 'eq', 'value': image.id}]
-        sample_count = self.ceilometer.statistics.list(
-            q=query, meter_name='image')[0].count
-        msg = ("Expected 1 image sample for one "
-               "polling period , got : {0} .").format(sample_count)
-        asserts.assert_true(sample_count == 1, msg)
+        self.sample_count(query, expected_count=1)
+
+    @test(depends_on_groups=["deploy_ceilometer_redis"],
+          groups=["check_samples_with_one_agent_ceilometer_redis",
+                  "ceilometer_redis",
+                  "functional"])
+    @log_snapshot_after_test
+    def check_samples_with_one_agent_ceilometer_redis(self):
+        """Check samples after ban two of three ceilometer-agent-central.
+                """
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])
+        for controller in controllers[:2]:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                remote.execute('pcs resource ban p_ceilometer-agent-central '
+                               '$(hostname) --wait=100')
+                result = remote.execute(' ps aux | grep -v grep | grep'
+                                        ' -c ceilometer-polling')['stdout'][0]
+            msg = "Agent central wasn't stopped"
+            asserts.assert_true(int(result) == 0, msg)
+        self.check_samples_ceilometer_redis()
+
+    @test(depends_on_groups=["deploy_ceilometer_redis"],
+          groups=["check_central_disabled_coordination_ceilometer_redis",
+                  "ceilometer_redis",
+                  "functional"])
+    @log_snapshot_after_test
+    def check_central_disabled_coordination_ceilometer_redis(self):
+        """Check that after disable coordination we have 3
+        image sample for the one polling period.
+        """
+
+        self.disable_coordination()
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])[0]
+        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+            self.remote_ops.manage_pacemaker_service(
+                remote, 'p_ceilometer-agent-central', operation='restart')
+        image = self.helpers.create_image()
+        time.sleep(2 * self.settings.polling_interval)
+        f = datetime.datetime.now() - datetime.timedelta(seconds=600)
+        query = [{'field': 'timestamp', 'op': 'ge', 'value': f.isoformat()},
+                 {'field': 'resource_id', 'op': 'eq', 'value': image.id}]
+        self.sample_count(query, expected_count=3)
