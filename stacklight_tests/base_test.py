@@ -85,12 +85,6 @@ class PluginApi(object):
         pass
 
     @abc.abstractmethod
-    def get_plugin_vip(self):
-        """Get the VIP address associated to the plugin (if any).
-        """
-        pass
-
-    @abc.abstractmethod
     def check_plugin_online(self):
         """Check that the plugin works properly.
         """
@@ -112,14 +106,16 @@ class PluginApi(object):
             check_availability, timeout=timeout, timeout_msg=msg)
 
     def check_plugin_failover(self):
-        """Check that failover for the plugin works.
+        """Shutdown the node running the VIP and check that it fails over
+        properly.
         """
-        vip_name = self.helpers.full_vip_name(self.settings.vip_name)
+        vip_resource = self.helpers.get_vip_resource_name(
+            self.settings.failover_vip)
         target_node = self.helpers.get_node_with_vip(
-            self.settings.role_name, vip_name)
+            self.settings.role_name, vip_resource)
         self.helpers.power_off_node(target_node)
         self.helpers.wait_for_vip_migration(
-            target_node, self.settings.role_name, vip_name)
+            target_node, self.settings.role_name, vip_resource)
 
     def get_http_protocol(self, tls_parameter='tls_enabled'):
         """Return the HTTP protocol configured for the plugin (http or https).

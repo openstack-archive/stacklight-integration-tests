@@ -122,9 +122,9 @@ class TestToolchainDedicatedEnvironment(api.ToolchainApi):
         logger.info("Existing cluster id: {}".format(self.helpers.cluster_id))
 
         # Get the IP addresses for the existing environment
-        elasticsearch_ip = self.ELASTICSEARCH_KIBANA.get_plugin_vip()
+        elasticsearch_ip = self.ELASTICSEARCH_KIBANA.get_elasticsearch_vip()
         logger.info("Elasticsearch VIP: {}".format(elasticsearch_ip))
-        influxdb_ip = self.INFLUXDB_GRAFANA.get_plugin_vip()
+        influxdb_ip = self.INFLUXDB_GRAFANA.get_influxdb_vip()
         logger.info("InfluxDB VIP: {}".format(influxdb_ip))
 
         self.helpers.create_cluster(

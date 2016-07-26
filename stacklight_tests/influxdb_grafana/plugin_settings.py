@@ -18,7 +18,7 @@ from stacklight_tests import settings
 
 name = 'influxdb_grafana'
 role_name = ['influxdb_grafana']
-vip_name = 'influxdb'
+failover_vip = 'influxdb'
 plugin_path = settings.INFLUXDB_GRAFANA_PLUGIN_PATH
 version = helpers.get_plugin_version(plugin_path)
 

@@ -39,9 +39,6 @@ class CeilometerRedisPluginApi(base_test.PluginApi):
                 endpoint=endpoint, token=lambda: keystone_access.auth_token)
         return self._ceilometer
 
-    def get_plugin_vip(self):
-        pass
-
     def get_plugin_settings(self):
         return plugin_settings
 

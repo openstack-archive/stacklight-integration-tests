@@ -39,7 +39,7 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                 self._nagios_port = 443
             # TODO(pasquier-s): remove this code once all plugins use the
             # standard ports
-            if self.checkers.check_port(self.get_plugin_vip(), 8001):
+            if self.checkers.check_port(self.get_nagios_vip(), 8001):
                 self._nagios_port = 8001
         return self._nagios_port
 
@@ -61,12 +61,8 @@ class InfraAlertingPluginApi(base_test.PluginApi):
         self.helpers.activate_plugin(
             self.settings.name, self.settings.version, options)
 
-    def get_plugin_vip(self):
-        try:
-            return self.helpers.get_plugin_vip(self.settings.vip_name)
-        except Exception:
-            return self.helpers.get_plugin_vip(
-                'infrastructure_alerting_mgmt_vip')
+    def get_nagios_vip(self):
+        return self.helpers.get_vip_address('infrastructure_alerting_ui')
 
     def check_plugin_online(self):
         nagios_url = self.get_nagios_url()
@@ -87,12 +83,12 @@ class InfraAlertingPluginApi(base_test.PluginApi):
         return "{0}://{1}:{2}@{3}:{4}".format(self.nagios_protocol,
                                               self.settings.nagios_user,
                                               self.settings.nagios_password,
-                                              self.get_plugin_vip(),
+                                              self.get_nagios_vip(),
                                               self.nagios_port)
 
     def get_nagios_url(self):
         return "{0}://{1}:{2}".format(self.nagios_protocol,
-                                      self.get_plugin_vip(), self.nagios_port)
+                                      self.get_nagios_vip(), self.nagios_port)
 
     def open_nagios_page(self, link_text, anchor):
         driver = self.ui_tester.get_driver(self.get_authenticated_nagios_url(),

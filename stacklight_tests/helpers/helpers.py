@@ -196,8 +196,14 @@ class PluginHelper(object):
             "editable": {name: attributes}
         })
 
-    def get_plugin_vip(self, vip_name):
-        """Get plugin IP."""
+    def get_vip_address(self, vip_name):
+        """Get the virtual IP address.
+
+        :param vip_name: name of the VIP.
+        :type name: str
+        :returns: the VIP address in dotted-decimal notation
+        :rtype: str
+        """
         networks = self.nailgun_client.get_networks(self.cluster_id)
         vip = networks.get('vips').get(vip_name, {}).get('ipaddr', None)
         asserts.assert_is_not_none(
@@ -315,7 +321,9 @@ class PluginHelper(object):
                 return node
 
     @staticmethod
-    def full_vip_name(vip_name):
+    def get_vip_resource_name(vip_name):
+        """Return the name of the VIP resource.
+        """
         return "".join(["vip__", vip_name])
 
     def get_node_with_vip(self, role_name, vip, exclude_node=None):

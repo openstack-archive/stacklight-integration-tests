@@ -31,9 +31,6 @@ class LMACollectorPluginApi(base_test.PluginApi):
         self.helpers.activate_plugin(
             self.settings.name, self.settings.version, options)
 
-    def get_plugin_vip(self):
-        pass
-
     def verify_services(self):
         """Check that the correct amount of collector processes are running.
 

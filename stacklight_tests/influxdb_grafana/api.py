@@ -37,7 +37,7 @@ class InfluxdbPluginApi(base_test.PluginApi):
                 self._grafana_port = 443
             # TODO(pasquier-s): remove this code once all plugins use the
             # standard ports
-            if self.checkers.check_port(self.get_plugin_vip(), 8000):
+            if self.checkers.check_port(self.get_influxdb_vip(), 8000):
                 self._grafana_port = 8000
         return self._grafana_port
 
@@ -59,16 +59,24 @@ class InfluxdbPluginApi(base_test.PluginApi):
         self.helpers.activate_plugin(
             self.settings.name, self.settings.version, options)
 
-    def get_plugin_vip(self):
-        return self.helpers.get_plugin_vip(self.settings.vip_name)
+    def get_influxdb_vip(self):
+        return self.helpers.get_vip_address('influxdb')
+
+    def get_grafana_vip(self):
+        if self.settings.version.startswith("0."):
+            # 0.x versions of the plugin uses the same VIP for InfluxDB and
+            # Grafana
+            return self.get_influxdb_vip()
+        else:
+            return self.helpers.get_vip_address('grafana')
 
     def get_grafana_url(self, path=''):
         return "{0}://{1}:{2}/{3}".format(self.grafana_protocol,
-                                          self.get_plugin_vip(),
+                                          self.get_grafana_vip(),
                                           self.grafana_port, path)
 
     def get_influxdb_url(self, path=''):
-        return "http://{0}:8086/{1}".format(self.get_plugin_vip(), path)
+        return "http://{0}:8086/{1}".format(self.get_influxdb_vip(), path)
 
     def do_influxdb_query(self,
                           query,

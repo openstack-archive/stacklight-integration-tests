@@ -31,7 +31,7 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def es(self):
         if self._es_client is None:
             self._es_client = elasticsearch.Elasticsearch(
-                [{'host': self.get_plugin_vip(), 'port': 9200}])
+                [{'host': self.get_elasticsearch_vip(), 'port': 9200}])
         return self._es_client
 
     @property
@@ -61,15 +61,23 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         self.helpers.activate_plugin(
             self.settings.name, self.settings.version, options)
 
-    def get_plugin_vip(self):
-        return self.helpers.get_plugin_vip(self.settings.vip_name)
+    def get_elasticsearch_vip(self):
+        return self.helpers.get_vip_address('es_vip_mgmt')
 
     def get_elasticsearch_url(self, path=''):
-        return "http://{}:9200/{}".format(self.get_plugin_vip(), path)
+        return "http://{}:9200/{}".format(self.get_elasticsearch_vip(), path)
+
+    def get_kibana_vip(self):
+        if self.settings.version.startswith("0."):
+            # 0.x versions of the plugin uses the same VIP for Elasticsearch
+            # and Kibana
+            return self.get_elasticsearch_vip()
+        else:
+            return self.helpers.get_vip_address('kibana')
 
     def get_kibana_url(self):
         return "{0}://{1}:{2}/".format(
-            self.kibana_protocol, self.get_plugin_vip(), self.kibana_port)
+            self.kibana_protocol, self.get_kibana_vip(), self.kibana_port)
 
     def check_plugin_online(self):
         elasticsearch_url = self.get_elasticsearch_url()
