@@ -47,19 +47,19 @@ class TestNodesCeilometerRedisPlugin(api.CeilometerRedisPluginApi):
         target_node = {'slave-02': ['controller', 'mongo']}
 
         # Remove a controller
-        self.helpers.remove_node_from_cluster(target_node)
+        self.helpers.remove_nodes_from_cluster(target_node)
 
         self.check_plugin_online()
 
         # After removing a controller, one OSTF test should fail
-        self.run_ostf(should_fail=1)
+        self.run_ostf()
 
         # Add a controller
         self.helpers.add_nodes_to_cluster(target_node)
 
         self.check_plugin_online()
 
-        self.run_ostf(should_fail=1)
+        self.run_ostf()
 
     @test(depends_on_groups=["deploy_ceilometer_redis"],
           groups=["check_scaling_ceilometer_redis", "scaling",
@@ -86,19 +86,19 @@ class TestNodesCeilometerRedisPlugin(api.CeilometerRedisPluginApi):
         target_node = {'slave-05': ['compute', 'cinder']}
 
         # Remove a compute
-        self.helpers.remove_node_from_cluster(target_node)
+        self.helpers.remove_nodes_from_cluster(target_node)
 
         self.check_plugin_online()
 
         # After removing a compute, one OSTF test should fail
-        self.run_ostf(should_fail=1)
+        self.run_ostf()
 
         # Add a compute
         self.helpers.add_nodes_to_cluster(target_node)
 
         self.check_plugin_online()
 
-        self.run_ostf(should_fail=1)
+        self.run_ostf()
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["ceilometer_redis_createmirror_deploy_plugin",
