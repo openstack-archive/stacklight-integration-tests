@@ -27,3 +27,4 @@ base_nodes = {
     'slave-05': ['compute', 'cinder']
 }
 polling_interval = 600
+names = ['name1', 'name2', 'name3']
