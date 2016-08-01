@@ -124,3 +124,22 @@ class CeilometerRedisPluginApi(base_test.PluginApi):
                "polling period , got : {1} .").format(expected_count,
                                                       actual_count)
         asserts.assert_true(expected_count == actual_count, msg)
+
+    def check_alarms_log(self):
+        count = 0
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])
+        for controller in controllers:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                result = remote.execute("cat /var/log/aodh/aodh-evaluator.log "
+                                        "|grep initiating | tail -n1 |"
+                                        " awk '{ print $11 }'")['stdout'][0]
+            count += int(result)
+            msg = 'Coordination failed. 9 is incorrect result.'
+            asserts.assert_true(int(count) != 9, msg)
+
+    def create_alarms(self):
+        names = ['name1', 'name2', 'name3']
+        for name in names:
+            self.ceilometer.alarms.create(meter_name='image', threshold=1,
+                                          name=name)
