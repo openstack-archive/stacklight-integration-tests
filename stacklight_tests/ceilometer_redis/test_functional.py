@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import time
 
 from proboscis import asserts
 from proboscis import test
@@ -127,3 +128,46 @@ class TestFunctionalCeilometerRedisPlugin(api.CeilometerRedisPluginApi):
         self.env.revert_snapshot("deploy_ceilometer_redis")
         self.disable_coordination()
         self.check_sample_count(expected_count=3)
+
+    @test(depends_on_groups=["deploy_ceilometer_redis"],
+          groups=["check_alarms_ceilometer_redis",
+                  "ceilometer_redis",
+                  "functional"])
+    @log_snapshot_after_test
+    def check_alarms_ceilometer_redis(self):
+        """Check that for one evaluation interval, alarm evaluators evaluated
+        is joint set of alarms.
+        """
+        self.env.revert_snapshot("deploy_ceilometer_redis")
+        self.check_alarms_log()
+
+    @test(depends_on_groups=["deploy_ceilometer_redis"],
+          groups=["check_alarms_disabled_ceilometer_redis",
+                  "ceilometer_redis",
+                  "functional"])
+    @log_snapshot_after_test
+    def check_alarms_disabled_ceilometer_redis(self):
+        """Check environment work after disable one of aodh-evaluator services.
+        """
+        self.env.revert_snapshot("deploy_ceilometer_redis")
+        self.check_alarms_log()
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])[0]
+        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+            remote.execute("pcs resource ban p_aodh-evaluator $(hostname) "
+                           "--wait=100")
+            result = remote.execute("ps aux | grep -v grep | "
+                                    "grep -c aodh-evaluator")['stdout'][0]
+        msg = "Aodh-evaluator wasn't stopped"
+        asserts.assert_true(int(result) == 0, msg)
+        count = 0
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])
+        for controller in controllers:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                result = remote.execute("cat /var/log/aodh/aodh-evaluator.log "
+                                        "|grep initiating | tail -n1 |"
+                                        " awk '{ print $11 }'")['stdout'][0]
+            count += int(result)
+            msg = 'Coordination failed. 9 is incorrect result.'
+            asserts.assert_true(int(count) != 9, msg)
