@@ -44,6 +44,21 @@ class CeilometerRedisPluginApi(base_test.PluginApi):
                 endpoint=endpoint, token=lambda: keystone_access.auth_token)
         return self._ceilometer
 
+    @property
+    def aodh(self):
+        if self._ceilometer is None:
+            keystone_access = self.helpers.os_conn.keystone_access
+            aodh_endpoint = keystone_access.service_catalog.url_for(
+                service_type='alarming',
+                service_name='aodh',
+                interface='internal')
+            if not aodh_endpoint:
+                raise helpers.NotFound("Cannot find aodh endpoint")
+            self._ceilometer = ceilometerclient.v2.Client(
+                session=self.helpers.os_conn.keystone_session,
+                aodh_endpoint=aodh_endpoint)
+        return self._ceilometer
+
     def get_plugin_settings(self):
         return plugin_settings
 
@@ -124,3 +139,24 @@ class CeilometerRedisPluginApi(base_test.PluginApi):
                "polling period , got : {1} .").format(expected_count,
                                                       actual_count)
         asserts.assert_true(expected_count == actual_count, msg)
+
+    def check_alarms_in_logs(self, res):
+        count = 0
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])
+        for controller in controllers:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                result = remote.execute("cat /var/log/aodh/aodh-evaluator.log "
+                                        "|grep initiating | tail -n1 |"
+                                        " awk '{ print $11 }'")['stdout'][0]
+            count += int(result)
+            msg = 'Coordination failed. 9 is incorrect result.'
+            asserts.assert_is_not(int(count), res, msg)
+
+    def create_alarms(self, count):
+        for i in range(count):
+            self.aodh.alarms.create(meter_name='image', threshold=1,
+                                    name="test_alarm_{}".format(i))
+
+    def get_plugin_vip(self):
+        pass
