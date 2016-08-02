@@ -115,3 +115,63 @@ class TestToolchainNetworkTemplates(api.ToolchainApi):
 
         self.env.make_snapshot("deploy_toolchain_with_network_template",
                                is_make=True)
+
+    @test(depends_on_groups=["prepare_slaves_3"],
+          groups=["deploy_toolchain_with_public_dashboards", "deploy",
+                  "toolchain", "network_templates"])
+    @log_snapshot_after_test
+    def deploy_toolchain_with_public_dashboards(self):
+        """Deploy a cluster with the LMA Toolchain plugins using the public
+        network for the dashboards.
+
+        Scenario:
+            1. Upload the LMA Toolchain plugins to the master node
+            2. Install the plugins
+            3. Create the cluster using VxLAN segmentation
+            4. Add 1 node with controller role
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with plugin roles
+            7. Upload the custom network template
+            8. Deploy the cluster
+            9. Check that LMA Toolchain plugins are running
+            10. Run OSTF
+
+        Duration 60m
+        Snapshot deploy_toolchain_with_public_dashboards
+        """
+        self.check_run("deploy_toolchain_with_public_dashboards")
+        self.env.revert_snapshot("ready_with_3_slaves")
+
+        self.prepare_plugins()
+
+        self.helpers.create_cluster(
+            name="deploy_toolchain_with_public_dashboards",
+            settings={
+                "net_provider": "neutron",
+                "net_segment_type": settings.NEUTRON_SEGMENT["tun"]
+            }
+        )
+
+        self.activate_plugins()
+
+        nailgun_client = self.helpers.nailgun_client
+        network_template = self.get_network_template("public_dashboards")
+        nailgun_client.upload_network_template(
+            cluster_id=self.helpers.cluster_id,
+            network_template=network_template)
+        logger.info("Network template: {0}".format(network_template))
+
+        networks = nailgun_client.get_network_groups()
+        logger.info("Network groups before update: {0}".format(networks))
+
+        # Don't update the interfaces when using network templates
+        self.helpers.deploy_cluster(self.settings.base_nodes,
+                                    verify_network=True,
+                                    update_interfaces=False)
+
+        self.check_plugins_online()
+
+        self.helpers.run_ostf()
+
+        self.env.make_snapshot("deploy_toolchain_with_public_dashboards",
+                               is_make=True)
