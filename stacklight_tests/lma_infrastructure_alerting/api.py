@@ -37,10 +37,6 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                 self._nagios_port = 80
             else:
                 self._nagios_port = 443
-            # TODO(pasquier-s): remove this code once all plugins use the
-            # standard ports
-            if self.checkers.check_port(self.get_nagios_vip(), 8001):
-                self._nagios_port = 8001
         return self._nagios_port
 
     @property

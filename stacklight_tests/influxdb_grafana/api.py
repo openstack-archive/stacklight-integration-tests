@@ -35,10 +35,6 @@ class InfluxdbPluginApi(base_test.PluginApi):
                 self._grafana_port = 80
             else:
                 self._grafana_port = 443
-            # TODO(pasquier-s): remove this code once all plugins use the
-            # standard ports
-            if self.checkers.check_port(self.get_influxdb_vip(), 8000):
-                self._grafana_port = 8000
         return self._grafana_port
 
     @property
