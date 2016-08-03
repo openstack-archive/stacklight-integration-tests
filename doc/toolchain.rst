@@ -34,7 +34,7 @@ Detached plugins
 HTTPS
 =====
 
-.. automodule:: stacklight_tests.toolchain.test_https
+.. automodule:: stacklight_tests.toolchain.test_https_plugins
    :members:
 
 Reduced footprint
