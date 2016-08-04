@@ -71,6 +71,9 @@ fi
 # Install the project's dependencies
 pip install -r"${BASE_DIR}/../../requirements.txt"
 
+# List the Python packages (this can be useful for troubleshooting)
+pip freeze
+
 echo
 echo
 echo "The setup is now complete."
