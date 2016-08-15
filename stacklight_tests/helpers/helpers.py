@@ -237,7 +237,8 @@ class PluginHelper(object):
         return self._cluster_id
 
     def deploy_cluster(self, nodes_roles, verify_network=False,
-                       update_interfaces=True, check_services=True):
+                       update_interfaces=True, check_services=True,
+                       timeout=7800):
         """Assign roles to nodes and deploy the cluster.
 
         :param nodes_roles: nodes to roles mapping.
@@ -258,7 +259,8 @@ class PluginHelper(object):
         if verify_network:
             self.fuel_web.verify_network(self.cluster_id)
         self.fuel_web.deploy_cluster_wait(self.cluster_id,
-                                          check_services=check_services)
+                                          check_services=check_services,
+                                          timeout=timeout)
 
     def run_ostf(self, *args, **kwargs):
         """Run the OpenStack health checks."""
@@ -576,7 +578,7 @@ class PluginHelper(object):
                 for service in ha_services:
                     remote_ops.manage_pacemaker_service(remote, service)
                 for service in non_ha_services:
-                    remote_ops.manage_initctl_service(remote, service)
+                    remote_ops.manage_service(remote, service)
 
         logger.info("Restarting services on computes")
         compute_services = (
@@ -586,7 +588,7 @@ class PluginHelper(object):
         for compute in computes:
             with self.fuel_web.get_ssh_for_nailgun_node(compute) as remote:
                 for service in compute_services:
-                    remote_ops.manage_initctl_service(remote, service)
+                    remote_ops.manage_service(remote, service)
 
     @staticmethod
     def check_notifications(got_list, expected_list):
