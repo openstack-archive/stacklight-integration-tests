@@ -1,0 +1,11 @@
+Code-Review+1: Igor Degtiarov <idegtiarov@mirantis.com>
+Code-Review+1: Alex Szarka <szarka@inf.u-szeged.hu>
+Code-Review+2: Simon Pasquier <spasquier@mirantis.com>
+Code-Review+2: Vitaly Gusev <vgusev@mirantis.com>
+Workflow+1: Vitaly Gusev <vgusev@mirantis.com>
+Verified+2: Jenkins
+Submitted-by: Jenkins
+Submitted-at: Thu, 18 Aug 2016 14:12:28 +0000
+Reviewed-on: https://review.openstack.org/350430
+Project: openstack/stacklight-integration-tests
+Branch: refs/heads/master
