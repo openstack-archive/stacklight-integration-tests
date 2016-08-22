@@ -52,7 +52,7 @@ class KafkaPluginApi(base_test.PluginApi):
                 logger.info("Check that {} (port {}) on node {} (IP: {}) is up"
                             .format(port['name'], port['number'],
                                     node['name'], node['ip']))
-                msg = "Port {} ({}) is {} on node {}".format(port['name'],
+                msg = "Port {} ({}) is unreachable on node {}".format(port['name'],
                                                              port['number'],
                                                              node['name'])
                 asserts.assert_true(result, msg)
