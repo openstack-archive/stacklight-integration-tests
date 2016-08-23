@@ -511,11 +511,15 @@ class PluginHelper(object):
         self.fuel_web.assert_task_success(result, timeout=timeout)
 
     def apply_maintenance_update(self):
-        """Method applies maintenance updates on whole cluster."""
-        logger.info("Applying maintenance updates on master node")
+        """Apply the latest maintenance update.
+
+        This downloads the maintenance update script, executes it on the Fuel
+        master node and applies the updates to the running environment if one
+        is deployed.
+        """
+        logger.info("Applying maintenance updates on the master node")
         self.env.admin_install_updates()
 
-        logger.info("Applying maintenance updates on slaves")
         slaves_mu_script_url = (
             "https://github.com/Mirantis/tools-sustaining/"
             "raw/master/scripts/mos_apply_mu.py")
@@ -540,15 +544,18 @@ class PluginHelper(object):
                 )
             )
 
+        if self.cluster_id is None:
+            # No environment to patch
+            return
+
+        logger.info(
+            "Applying maintenance updates on env {}".format(self.cluster_id))
         controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
             self.cluster_id, roles=['controller', ])
 
         computes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
             self.cluster_id, roles=['compute', ])
 
-        logger.info("Restarting all OpenStack services")
-
-        logger.info("Restarting services on controllers")
         ha_services = (
             "p_heat-engine",
             "p_neutron-plugin-openvswitch-agent",
@@ -570,6 +577,7 @@ class PluginHelper(object):
             "nova-novncproxy",
             "neutron-server",
         )
+        logger.info("Restarting OpenStack services on the controller(s)")
         for controller in controllers:
             with self.fuel_web.get_ssh_for_nailgun_node(
                     controller) as remote:
@@ -578,7 +586,7 @@ class PluginHelper(object):
                 for service in non_ha_services:
                     remote_ops.manage_initctl_service(remote, service)
 
-        logger.info("Restarting services on computes")
+        logger.info("Restarting OpenStack services on the compute(s)")
         compute_services = (
             "neutron-plugin-openvswitch-agent",
             "nova-compute",
