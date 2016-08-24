@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+from fuelweb_test import logger
 
 
 def get_all_bridged_interfaces_for_node(remote, excluded_criteria=None):
@@ -108,3 +109,36 @@ def manage_initctl_service(remote, name, operation="restart"):
     """
     remote.check_call("initctl {operation} {service}".format(
         operation=operation, service=name))
+
+
+def fill_up_filesystem(remote, fs, percent, file_name):
+    """Fill filesystem on node.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param fs: name of the filesystem to fill up
+        :type fs: str
+        :param percent: amount of space to be filled in percent.
+        :type percent: int
+        :param file_name: name of the created file
+        :type file_name: str
+
+    """
+    logger.info("Filling up {} filesystem to {} percent".format(fs, percent))
+    cmd = (
+        "fallocate -l $(df | grep {} | awk '{{ printf(\"%.0f\\n\", "
+        "1024 * ((($3 + $4) * {} / 100) - $3))}}') {}".format(
+            fs, percent, file_name))
+    remote.check_call(cmd)
+
+
+def clean_filesystem(remote, filename):
+    """Clean space filled by fill_up_filesystem function
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param filename: name of the file to delete
+        :type filename: str
+    """
+    logger.info("Removing {} file".format(filename))
+    remote.check_call("rm -f {}".format(filename))
