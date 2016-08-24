@@ -15,6 +15,7 @@
 import os
 import time
 
+from devops.helpers import helpers as devops_helpers
 from fuelweb_test import logger
 from fuelweb_test.tests import base_test_case
 from proboscis import asserts
@@ -322,3 +323,21 @@ class ToolchainApi(object):
                                       for hit in output["hits"]["hits"]]))
         self.helpers.check_notifications(notification_list,
                                          cinder_event_types)
+
+    def check_alarms(self, alarm_type, source, hostname, value,
+                     time_interval="now() - 5m"):
+        query = (
+            "select last(value) from {} where time >= {} and source = '{}' "
+            "and hostname = '{}' value = {}".format(
+                "{}_status".format(alarm_type), time_interval, source,
+                hostname, value))
+
+        def check_result():
+            result = self.INFLUXDB_GRAFANA.do_influxdb_query(
+                query=query).json()["results"][0]
+            return len(result)
+
+        msg = "Alarm with source {} and value {} was not triggered".format(
+            source, value)
+        devops_helpers.wait(check_result, timeout=60 * 5,
+                            interval=10, timeout_msg=msg)

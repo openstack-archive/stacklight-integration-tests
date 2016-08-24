@@ -108,3 +108,34 @@ def manage_initctl_service(remote, name, operation="restart"):
     """
     remote.check_call("initctl {operation} {service}".format(
         operation=operation, service=name))
+
+
+def fill_up_filesystem(remote, fs, percent, file_name):
+    """Fill filesystem on node.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param fs: name of the filesystem to fill up
+        :type fs: str
+        :param percent: amount of space to be filled in percent.
+        :type percent: int
+        :param file_name: name of the created file
+        :type file_name: str
+
+    """
+    cmd = (
+        "fallocate -l $(df | grep {} | awk '{{ printf(\"%.0f\\n\", "
+        "1024 * ((($3 + $4) * {} / 100) - $3))}}') {}".format(
+            fs, percent, file_name))
+    remote.check_call(cmd)
+
+
+def clean_filesystem(remote, file_name):
+    """Clean space filled by fill_up_filesystem function
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param file_name: name of the file to delete
+        :type file_name: str
+    """
+    remote.check_call("rm -f {}".format(file_name))
