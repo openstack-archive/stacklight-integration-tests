@@ -23,7 +23,7 @@ setup(
     url='http://www.openstack.org/',
     author='OpenStack',
     author_email='openstack-dev@lists.openstack.org',
-    packages=['fuelweb_test', 'gates_tests'],
+    packages=['fuelweb_test', 'gates_tests', 'core'],
     include_package_data=True,
     classifiers=[
         'Environment :: Linux',

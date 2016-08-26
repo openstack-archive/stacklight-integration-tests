@@ -1,5 +1,6 @@
 recursive-include fuelweb_test *
 recursive-include gates_tests *
+recursive-include core *
 
 include README.md
 include fuelweb_test/requirements.txt
