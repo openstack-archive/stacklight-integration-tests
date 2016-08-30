@@ -75,3 +75,71 @@ class TestToolchainAlarms(api.ToolchainApi):
         self._check_filesystem_alarms(
             controller, "/dev/mapper/mysql-root", "mysql-fs",
             "/var/lib/mysql/test/bigfile")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_root_fs_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_root_fs_alarms(self):
+        """Check that root-fs-warning and root-fs-critical alarms work as
+        expected.
+
+        Scenario:
+            1. Fill up root filesystem to 91 percent.
+            2. Check the last value of the warning alarm in InfluxDB.
+            3. Clean the filesystem.
+            4. Fill up root filesystem to 96 percent.
+            5. Check the last value of the critical alarm in InfluxDB.
+            6. Clean the filesystem.
+
+        Duration 10m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])[0]
+        self._check_filesystem_alarms(controller, "/$", "root-fs", "/bigfile")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_log_fs_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_log_fs_alarms(self):
+        """Check that log-fs-warning and log-fs-critical alarms work as
+        expected.
+
+        Scenario:
+            1. Fill up /var/log filesystem to 91 percent.
+            2. Check the last value of the warning alarm in InfluxDB.
+            3. Clean the filesystem.
+            4. Fill up /var/log filesystem to 96 percent.
+            5. Check the last value of the critical alarm in InfluxDB.
+            6. Clean the filesystem.
+
+        Duration 10m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])[0]
+        self._check_filesystem_alarms(
+            controller, "/var/log", "log-fs", "/var/log/bigfile")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_nova_fs_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_nova_fs_alarms(self):
+        """Check that nova-fs-warning and nova-fs-critical alarms work as
+        expected.
+
+        Scenario:
+            1. Fill up /var/lib/nova filesystem to 91 percent.
+            2. Check the last value of the warning alarm in InfluxDB.
+            3. Clean the filesystem.
+            4. Fill up /var/lib/nova filesystem to 96 percent.
+            5. Check the last value of the critical alarm in InfluxDB.
+            6. Clean the filesystem.
+
+        Duration 10m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["compute"])[0]
+        self._check_filesystem_alarms(
+            controller, "/var/lib/nova", "nova-fs", "/var/lib/nova/bigfile")
