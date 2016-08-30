@@ -15,7 +15,7 @@
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import test
 
-from stacklight_tests.kafka import api
+from stacklight_tests.kafka_plugin import api
 
 
 @test(groups=["plugins"])
@@ -24,7 +24,7 @@ class TestNodesKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=["deploy_kafka"],
           groups=["check_scaling_kafka", "scaling",
-                  "kafka", "system",
+                  "kafka_plugin", "system",
                   "add_remove_controller_kafka"])
     @log_snapshot_after_test
     def add_remove_controller_kafka(self):
@@ -63,7 +63,7 @@ class TestNodesKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=["deploy_kafka"],
           groups=["check_scaling_kafka", "scaling",
-                  "kafka", "system",
+                  "kafka_plugin", "system",
                   "add_remove_compute_kafka"])
     @log_snapshot_after_test
     def add_remove_compute_kafka(self):

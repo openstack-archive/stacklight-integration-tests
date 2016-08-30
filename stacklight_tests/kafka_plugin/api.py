@@ -17,7 +17,7 @@ from proboscis import asserts
 from stacklight_tests import base_test
 
 
-from stacklight_tests.kafka import plugin_settings
+from stacklight_tests.kafka_plugin import plugin_settings
 
 
 class KafkaPluginApi(base_test.PluginApi):
