@@ -15,7 +15,7 @@
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import test
 
-from stacklight_tests.kafka import api
+from stacklight_tests.kafka_plugin import api
 
 
 @test(groups=["plugins"])
@@ -24,7 +24,7 @@ class TestKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=['prepare_slaves_5'],
           groups=["install_kafka", "install",
-                  "kafka", "smoke"])
+                  "kafka_plugin", "smoke"])
     @log_snapshot_after_test
     def install_kafka(self):
         """Install Kafka plugin and check it exists
@@ -47,7 +47,7 @@ class TestKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["deploy_kafka", "deploy",
-                  "kafka", "smoke"])
+                  "kafka_plugin", "smoke"])
     @log_snapshot_after_test
     def deploy_kafka(self):
         """Deploy a cluster with the Kafka plugin
@@ -56,7 +56,7 @@ class TestKafkaPlugin(api.KafkaPluginApi):
             1. Upload the Kafka plugin to the master node
             2. Install the plugin
             3. Create the cluster
-            4. Add 3 nodes with controller and kafka roles
+            4. Add 3 nodes with controller and kafka_plugin roles
             5. Add 1 node with compute and cinder roles
             7. Deploy the cluster
             8. Check that Kafka is running
@@ -90,10 +90,10 @@ class TestKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["uninstall_kafka", "uninstall",
-                  "kafka", "smoke"])
+                  "kafka_plugin", "smoke"])
     @log_snapshot_after_test
     def uninstall_kafka(self):
-        """Uninstall the kafka plugin
+        """Uninstall the kafka_plugin plugin
 
         Scenario:
             1.  Install the plugin.
@@ -109,7 +109,7 @@ class TestKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=[deploy_kafka],
           groups=["uninstall_deployed_kafka", "uninstall",
-                  "kafka", "smoke"])
+                  "kafka_plugin", "smoke"])
     @log_snapshot_after_test
     def uninstall_deployed_kafka(self):
         """Uninstall the Kafka plugin with a deployed

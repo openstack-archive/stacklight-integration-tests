@@ -16,8 +16,8 @@ from stacklight_tests.helpers import helpers
 from stacklight_tests import settings
 
 
-name = 'kafka'
-role_name = 'kafka'
+name = 'kafka_plugin'
+role_name = 'kafka_plugin'
 plugin_path = settings.KAFKA_PLUGIN_PATH
 version = helpers.get_plugin_version(plugin_path)
 

@@ -17,7 +17,7 @@ from proboscis import asserts
 from stacklight_tests import base_test
 
 
-from stacklight_tests.kafka import plugin_settings
+from stacklight_tests.kafka_plugin import plugin_settings
 
 
 class KafkaPluginApi(base_test.PluginApi):
@@ -39,7 +39,7 @@ class KafkaPluginApi(base_test.PluginApi):
     def check_plugin_online(self):
         nodes = []
         for node in self.helpers.get_all_ready_nodes():
-            if "kafka" in node["roles"]:
+            if "kafka_plugin" in node["roles"]:
                 nodes.append({"name": node["name"], "ip": node["ip"]})
 
         for port in [
