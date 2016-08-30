@@ -341,3 +341,23 @@ class ToolchainApi(object):
             source, value)
         devops_helpers.wait(check_result, timeout=60 * 5,
                             interval=10, timeout_msg=msg)
+
+    def get_rabbitmq_memory_usage(self, interval="now() - 5m"):
+        query = ("select last(value) from rabbitmq_used_memory "
+                 "where time >= {interval}".format(interval=interval))
+        result = self.INFLUXDB_GRAFANA.do_influxdb_query(query=query).json()
+        return result["results"][0]["series"][0]["values"][0][1]
+
+    def try_set_memory_limit(self, controller, limit, timeout=5 * 60):
+        def check_result():
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                exec_res = remote.execute(
+                    "rabbitmqctl set_vm_memory_high_watermark {}".format(
+                        limit))
+                if exec_res['exit_code'] == 0:
+                    return True
+                else:
+                    return False
+        msg = "Failed to set vm_memory_high_watermark to {}".format(limit)
+        devops_helpers.wait(check_result, timeout=timeout,
+                            interval=10, timeout_msg=msg)
