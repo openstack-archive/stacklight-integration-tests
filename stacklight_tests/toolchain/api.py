@@ -324,20 +324,45 @@ class ToolchainApi(object):
         self.helpers.check_notifications(notification_list,
                                          cinder_event_types)
 
-    def check_alarms(self, alarm_type, source, hostname, value,
+    def check_alarms(self, alarm_type, filter_value, source, hostname, value,
                      time_interval="now() - 5m"):
+        filter_by = "node_role"
+        if alarm_type == "service":
+            filter_by = "service"
         query = (
-            "select last(value) from {} where time >= {} and source = '{}' "
-            "and hostname = '{}' and value = {}".format(
-                "{}_status".format(alarm_type), time_interval, source,
-                hostname, value))
+            "select last(value) from {select_from} where time >= {time}"
+            " and source = '{source}' and {filter} and hostname = '{hostname}'"
+            " and value = {value}".format(
+                select_from="{}_status".format(alarm_type), time=time_interval,
+                source=source, hostname=hostname, value=value,
+                filter="{} = '{}'".format(filter_by, filter_value)))
 
         def check_result():
             result = self.INFLUXDB_GRAFANA.do_influxdb_query(
                 query=query).json()["results"][0]
             return len(result)
 
-        msg = "Alarm with source {} and value {} was not triggered".format(
-            source, value)
+        msg = ("Alarm with source {} and {} {} and value {} was"
+               " not triggered".format(source, filter_by, filter_value, value))
         devops_helpers.wait(check_result, timeout=60 * 5,
+                            interval=10, timeout_msg=msg)
+
+    def get_rabbitmq_memory_usage(self, interval="now() - 5m"):
+        query = ("select last(value) from rabbitmq_used_memory "
+                 "where time >= {interval}".format(interval=interval))
+        result = self.INFLUXDB_GRAFANA.do_influxdb_query(query=query).json()
+        return result["results"][0]["series"][0]["values"][0][1]
+
+    def set_rabbitmq_memory_watermark(self, controller, limit, timeout=5 * 60):
+        def check_result():
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                exec_res = remote.execute(
+                    "rabbitmqctl set_vm_memory_high_watermark {}".format(
+                        limit))
+                if exec_res['exit_code'] == 0:
+                    return True
+                else:
+                    return False
+        msg = "Failed to set vm_memory_high_watermark to {}".format(limit)
+        devops_helpers.wait(check_result, timeout=timeout,
                             interval=10, timeout_msg=msg)
