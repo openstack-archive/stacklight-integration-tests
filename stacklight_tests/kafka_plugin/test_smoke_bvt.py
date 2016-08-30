@@ -15,7 +15,7 @@
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import test
 
-from stacklight_tests.kafka import api
+from stacklight_tests.kafka_plugin import api
 
 
 @test(groups=["plugins"])
@@ -24,7 +24,7 @@ class TestKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=['prepare_slaves_5'],
           groups=["install_kafka", "install",
-                  "kafka", "smoke"])
+                  "kafka_plugin", "smoke"])
     @log_snapshot_after_test
     def install_kafka(self):
         """Install Kafka plugin and check it exists
@@ -47,7 +47,7 @@ class TestKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["deploy_kafka", "deploy",
-                  "kafka", "smoke"])
+                  "kafka_plugin", "smoke"])
     @log_snapshot_after_test
     def deploy_kafka(self):
         """Deploy a cluster with the Kafka plugin
@@ -90,7 +90,7 @@ class TestKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["uninstall_kafka", "uninstall",
-                  "kafka", "smoke"])
+                  "kafka_plugin", "smoke"])
     @log_snapshot_after_test
     def uninstall_kafka(self):
         """Uninstall the kafka plugin
@@ -109,7 +109,7 @@ class TestKafkaPlugin(api.KafkaPluginApi):
 
     @test(depends_on_groups=[deploy_kafka],
           groups=["uninstall_deployed_kafka", "uninstall",
-                  "kafka", "smoke"])
+                  "kafka_plugin", "smoke"])
     @log_snapshot_after_test
     def uninstall_deployed_kafka(self):
         """Uninstall the Kafka plugin with a deployed
