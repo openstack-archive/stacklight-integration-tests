@@ -324,20 +324,31 @@ class ToolchainApi(object):
         self.helpers.check_notifications(notification_list,
                                          cinder_event_types)
 
-    def check_alarms(self, alarm_type, source, hostname, value,
+    def check_alarms(self, alarm_type, entity, source, hostname, value,
                      time_interval="now() - 5m"):
+        if alarm_type == 'node':
+            serie_name = 'node_status'
+            entity_name = 'node_role'
+        else:
+            serie_name = 'service_status'
+            entity_name = 'service'
         query = (
-            "select last(value) from {} where time >= {} and source = '{}' "
-            "and hostname = '{}' and value = {}".format(
-                "{}_status".format(alarm_type), time_interval, source,
-                hostname, value))
+            "select last(value) from {serie} where time >= {interval} and "
+            "{entity_name} = '{entity_value}' and source = '{source}' and "
+            "value = {value}".format(
+                serie=serie_name, interval=time_interval,
+                entity_name=entity_name, entity_value=entity, source=source,
+                value=value))
+        if hostname is not None:
+            query += " and hostname={}".format(hostname)
+        logger.info("check_alarms query: '{}'".format(query))
 
         def check_result():
             result = self.INFLUXDB_GRAFANA.do_influxdb_query(
                 query=query).json()["results"][0]
             return len(result)
 
-        msg = "Alarm with source {} and value {} was not triggered".format(
-            source, value)
+        msg = "Alarm with type: {}, entity: {}, source: {}, hostname: {} "
+        "didn't match value={}".format(alarm_type, entity, source, value)
         devops_helpers.wait(check_result, timeout=60 * 5,
                             interval=10, timeout_msg=msg)
