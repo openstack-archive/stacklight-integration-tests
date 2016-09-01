@@ -20,9 +20,13 @@ from stacklight_tests.toolchain import api
 
 OKAY_STATUS = 0
 WARNING_STATUS = 1
+UNKNOWN_STATUS = 2
 CRITICAL_STATUS = 3
+DOWN_STATUS = 4
+
 WARNING_PERCENT = 91
 CRITICAL_PERCENT = 96
+
 RABBITMQ_DISK_WARNING_PERCENT = 99.99
 RABBITMQ_DISK_CRITICAL_PERCENT = 100
 RABBITMQ_MEMORY_WARNING_VALUE = 1.01
@@ -172,3 +176,47 @@ class TestToolchainAlarms(api.ToolchainApi):
                                             RABBITMQ_MEMORY_WARNING_VALUE)
         self._check_rabbit_mq_memory_alarms(controller, CRITICAL_STATUS,
                                             RABBITMQ_MEMORY_CRITICAL_VALUE)
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["check_rabbitmq_pacemaker_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_rabbitmq_pacemaker_alarms(self):
+        """Check that rabbitmq-pacemaker-* alarms work as expected.
+
+        Scenario:
+            1. Stop one RabbitMQ instance.
+            2. Check that the status of the RabbitMQ cluster is warning.
+            3. Stop a second RabbitMQ instance.
+            4. Check that the status of the RabbitMQ cluster is critical.
+            5. Stop a third RabbitMQ instance.
+            6. Check that the status of the RabbitMQ cluster is down.
+            7. Restart all RabbitMQ instances.
+            8. Check that the status of the RabbitMQ cluster is okay.
+
+        Duration 10m
+        """
+        def ban_and_check_status(node, status):
+            with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
+                self.remote_ops.ban_resource(remote,
+                                             'master_p_rabbitmq-server',
+                                             wait=120)
+            self.check_alarms('service', 'rabbitmq-cluster', 'pacemaker',
+                              None, status)
+
+        self.env.revert_snapshot("deploy_ha_toolchain")
+
+        self.check_alarms('service', 'rabbitmq-cluster', 'pacemaker',
+                          None, OKAY_STATUS)
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+
+        ban_and_check_status(controllers[0], WARNING_STATUS)
+        ban_and_check_status(controllers[1], CRITICAL_STATUS)
+        ban_and_check_status(controllers[2], DOWN_STATUS)
+
+        self.remote_ops.clear_resource(controllers[0],
+                                       'master_p_rabbitmq-server',
+                                       wait=240)
+        self.check_alarms('service', 'rabbitmq-cluster', 'pacemaker',
+                          None, OKAY_STATUS)
