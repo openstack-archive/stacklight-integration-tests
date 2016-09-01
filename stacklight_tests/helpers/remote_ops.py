@@ -83,6 +83,38 @@ def get_pids_of_process(remote, name):
     return result['stdout'][0].strip().split()
 
 
+def ban_resource(remote, resource, wait=None):
+    """Ban a resource from the current node.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param resource: resource name.
+        :type name: str
+        :param wait: number of seconds to wait for the operation to complete.
+        :type operation: int
+    """
+    cmd = "pcs resource ban {}".format(resource)
+    if wait is not None:
+        cmd = "{} --wait={}".format(cmd, wait)
+    remote.check_call(cmd)
+
+
+def clear_resource(remote, resource, wait=None):
+    """Clear a resource.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param resource: resource name.
+        :type name: str
+        :param wait: number of seconds to wait for the operation to complete.
+        :type operation: int
+    """
+    cmd = "pcs resource clear {}".format(resource)
+    if wait is not None:
+        cmd = "{} --wait={}".format(cmd, wait)
+    remote.check_call(cmd)
+
+
 def manage_pacemaker_service(remote, name, operation="restart"):
     """Operate HA service on remote node.
 
