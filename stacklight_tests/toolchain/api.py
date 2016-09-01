@@ -329,21 +329,28 @@ class ToolchainApi(object):
         filter_by = "node_role"
         if alarm_type == "service":
             filter_by = "service"
-        query = (
-            "select last(value) from {select_from} where time >= {time}"
-            " and source = '{source}' and {filter} and hostname = '{hostname}'"
-            " and value = {value}".format(
-                select_from="{}_status".format(alarm_type), time=time_interval,
-                source=source, hostname=hostname, value=value,
-                filter="{} = '{}'".format(filter_by, filter_value)))
+        filters = [
+            "time >= {}".format(time_interval),
+            "source = '{}'".format(source),
+            "{} = '{}'".format(filter_by, filter_value),
+            "value = {}".format(value)
+        ]
+        if hostname is not None:
+            filters.append("hostname = '{}'".format(hostname))
+
+        query = "select last(value) from {select_from} where {filters}".format(
+                select_from="{}_status".format(alarm_type),
+                filters=" and ".join(filters))
+        logger.info("InfluxDB query: {}".format(query))
 
         def check_result():
             result = self.INFLUXDB_GRAFANA.do_influxdb_query(
                 query=query).json()["results"][0]
             return len(result)
 
-        msg = ("Alarm with source {} and {} {} and value {} was"
-               " not triggered".format(source, filter_by, filter_value, value))
+        msg = ("Alarm of type: {}: entity: {}, source:{}, hostname: {}, "
+               "value: {} wasn't triggered".format(alarm_type, filter_value,
+                                                   source, hostname, value))
         devops_helpers.wait(check_result, timeout=60 * 5,
                             interval=10, timeout_msg=msg)
 
