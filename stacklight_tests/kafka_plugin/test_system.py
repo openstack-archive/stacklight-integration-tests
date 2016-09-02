@@ -15,7 +15,7 @@
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import test
 
-from stacklight_tests.kafka import api
+from stacklight_tests.kafka_plugin import api
 
 
 @test(groups=["plugins"])
