@@ -353,19 +353,32 @@ class PluginHelper(object):
                 role_name, vip, exclude_node=old_master),
             timeout=timeout, timeout_msg=msg)
 
+    def power_off_nodes(self, nodes):
+        """Power off nodes.
+
+        :param nodes: Devops nodes.
+        :type nodes: list of devops node instance
+        """
+        for node in nodes:
+            logger.info('Destroy node %s', node.name)
+            node.destroy()
+        for node in nodes:
+            logger.info('Wait a %s node offline status', node.name)
+            msg = 'Node {0} has not become offline after hard shutdown'.format(
+                node.name)
+            helpers.wait(
+                lambda: not self.fuel_web.get_nailgun_node_by_devops_node(
+                    node)['online'],
+                timeout=60 * 10,
+                timeout_msg=msg)
+
     def power_off_node(self, node):
         """Power off a node.
 
         :param node: Devops node.
         :type node: devops node instance
         """
-        msg = 'Node {0} has not become offline after hard shutdown'.format(
-            node.name)
-        logger.info('Power off node %s', node.name)
-        node.destroy()
-        logger.info('Wait a %s node offline status', node.name)
-        helpers.wait(lambda: not self.fuel_web.get_nailgun_node_by_devops_node(
-            node)['online'], timeout=60 * 5, timeout_msg=msg)
+        self.power_off_nodes((node,))
 
     def emulate_whole_network_disaster(self, delay_before_recover=5 * 60,
                                        wait_become_online=True):
