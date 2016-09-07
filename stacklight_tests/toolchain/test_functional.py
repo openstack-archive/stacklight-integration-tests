@@ -300,8 +300,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
             lma_devops_node)
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
             controller_node = (
@@ -329,7 +329,7 @@ class TestFunctionalToolchain(api.ToolchainApi):
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["toolchain_critical_alert_service", "service_restart",
                   "toolchain", "functional"])
-    # @log_snapshot_after_test
+    @log_snapshot_after_test
     def toolchain_critical_alert_service(self):
         """Verify that the critical alerts for services show up in
         the Grafana and Nagios UI.
@@ -385,8 +385,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
             lma_devops_node)
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
             controller_nodes = (
@@ -483,8 +483,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
             self.helpers.cluster_id, ['controller'])
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
             self.change_verify_node_service_state(
@@ -560,8 +560,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
             self.helpers.cluster_id, ['controller'])
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
             self.change_verify_node_service_state(
