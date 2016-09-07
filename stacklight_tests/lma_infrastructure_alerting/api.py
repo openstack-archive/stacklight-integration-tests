@@ -11,16 +11,15 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import six.moves as sm
 
-from devops.helpers import helpers
+from devops.helpers.helpers import wait
 from fuelweb_test import logger
 from proboscis import asserts
-
 from selenium.common.exceptions import StaleElementReferenceException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+from six.moves import xrange as sm_xrange
 
 from stacklight_tests import base_test
 from stacklight_tests.lma_infrastructure_alerting import(
@@ -117,7 +116,7 @@ class InfraAlertingPluginApi(base_test.PluginApi):
     def node_is_present(self, driver, name):
         table = self.ui_tester.get_table(driver,
                                          "/html/body/div[2]/table/tbody")
-        for ind in sm.xrange(2, self.ui_tester.get_table_size(table) + 1):
+        for ind in sm_xrange(2, self.ui_tester.get_table_size(table) + 1):
             node_name = self.ui_tester.get_table_cell(
                 table, ind, 1).text.rstrip()
             if name == node_name:
@@ -197,6 +196,6 @@ class InfraAlertingPluginApi(base_test.PluginApi):
 
         msg = msg.format([key for key in service_state], node_names)
 
-        helpers.wait(lambda: self.check_service_state_on_nagios(
+        wait(lambda: self.check_service_state_on_nagios(
             driver, service_state, node_names), timeout=60 * 5,
             timeout_msg=msg)

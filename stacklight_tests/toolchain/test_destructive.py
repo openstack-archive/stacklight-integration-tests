@@ -84,3 +84,59 @@ class TestDestructiveToolchainPlugin(api.ToolchainApi):
         self.LMA_INFRASTRUCTURE_ALERTING.wait_plugin_online()
 
         self.helpers.run_ostf()
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["check_destroy_primary_controller", "toolchain",
+                  "destructive"])
+    @log_snapshot_after_test
+    def check_destroy_primary_controller(self):
+        """Verify that main services recover afeter main controller
+        is destroyed and started back again.
+
+        Scenario:
+            1. Revert the snapshot with 9 deployed nodes
+            2. Destroy primary controller
+            3. Wait until main services in nagios are in WARNING state
+            4. Start up main controller
+            5. Wait until main services in nagios are in OK state
+
+        Duration 20m
+        """
+        self.env.revert_snapshot("deploy_ha_toolchain")
+
+        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+
+        controllers = self.helpers.fuel_web.get_devops_nodes_by_nailgun_nodes(
+            nailgun_nodes)
+        primary_controller = self.fuel_web.get_nailgun_primary_node(
+            controllers[0])
+
+        services = {
+            'cinder',
+            'glance',
+            'heat',
+            'horizon',
+            'keystone',
+            'mysql',
+            'neutron',
+            'nova'
+        }
+
+        url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
+            primary_controller.destroy()
+
+            for service in services:
+                self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                    driver, {service: 'WARNING'})
+                self.INFLUXDB_GRAFANA.check_cluster_status(service,
+                                                           self.settings.WARN)
+            primary_controller.start()
+
+            for service in services:
+                self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+                    driver, {service: 'OK'})
+                self.INFLUXDB_GRAFANA.check_cluster_status(service,
+                                                           self.settings.OKAY)
