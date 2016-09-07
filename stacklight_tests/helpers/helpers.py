@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import os
 import re
 import tempfile
@@ -672,3 +673,24 @@ class PluginHelper(object):
                                               disk_format='qcow2',
                                               data=fp)
         return image
+
+    @contextlib.contextmanager
+    def make_logical_db_unavailable(self, db_name, on_nodes):
+        cmd = (
+            "mysql -AN -e "
+            "\"select concat("
+            "'rename table {db_name}.', table_name, ' "
+            "to {db_name}.' , {method}(table_name) , ';') "
+            "from information_schema.tables "
+            "where table_schema = '{db_name}';"
+            "\" | mysql")
+
+        for controller in on_nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                remote.execute(cmd.format(db_name=db_name, method="upper"))
+
+        yield
+
+        for controller in on_nodes:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                remote.execute(cmd.format(db_name=db_name, method="lower"))

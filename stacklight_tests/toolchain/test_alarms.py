@@ -94,6 +94,13 @@ class TestToolchainAlarms(api.ToolchainApi):
             self.check_alarms("service", "rabbitmq", "memory",
                               controller["hostname"], OKAY_STATUS)
 
+    def _check_http_logs_errors_alarms(self, provocation_fn, provocation_count,
+                                       metrics, status=WARNING_STATUS):
+        for _ in range(provocation_count):
+            provocation_fn()
+        for service, source in metrics.items():
+            self.check_alarms("service", service, source, None, status)
+
     @test(depends_on_groups=["deploy_toolchain"],
           groups=["check_mysql_fs_alarms", "toolchain", "alarms"])
     @log_snapshot_after_test
@@ -301,3 +308,179 @@ class TestToolchainAlarms(api.ToolchainApi):
             self.helpers.cluster_id, ["compute"])[0]
         self._check_filesystem_alarms(compute, "/var/lib/nova", "nova-fs",
                                       "/var/lib/nova/bigfile", "compute")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_nova_api_logs_errors_alarms",
+                  "http_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_nova_api_logs_errors_alarms(self):
+        """Check that nova-logs-error and nova-api-http-errors alarms work as
+        expected.
+
+        Scenario:
+            1. Rename all nova tables to UPPERCASE.
+            2. Run some nova-network list command repeatedly.
+            3. Check the last value of the nova-logs-error alarm in InfluxDB.
+            4. Check the last value of the nova-api-http-errors alarm
+               in InfluxDB.
+            5. Revert all nova tables names to lowercase.
+
+        Duration 10m
+        """
+        def get_servers_list():
+            try:
+                self.helpers.os_conn.get_servers()
+            except Exception:
+                pass
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+
+        with self.helpers.make_logical_db_unavailable("nova", controllers):
+            metrics = {"nova-logs": "error",
+                       "nova-api": "http_errors"}
+            self._check_http_logs_errors_alarms(get_servers_list, 100, metrics)
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_neutron_api_logs_errors_alarms",
+                  "http_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_neutron_api_logs_errors_alarms(self):
+        """Check that neutron-logs-error and neutron-api-http-errors
+        alarms work as expected.
+
+        Scenario:
+            1. Rename all neutron tables to UPPERCASE.
+            2. Run some neutron agents list command repeatedly.
+            3. Check the last value of the neutron-logs-error alarm
+               in InfluxDB.
+            4. Check the last value of the neutron-api-http-errors alarm
+               in InfluxDB.
+            5. Revert all neutron tables names to lowercase.
+
+        Duration 10m
+        """
+        def get_agents_list():
+            try:
+                self.helpers.os_conn.list_agents()
+            except Exception:
+                pass
+
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+
+        with self.helpers.make_logical_db_unavailable("neutron", controllers):
+            metrics = {"neutron-logs": "error",
+                       "neutron-api": "http_errors"}
+            self._check_http_logs_errors_alarms(get_agents_list, 100, metrics)
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_glance_api_logs_errors_alarms",
+                  "http_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_glance_api_logs_errors_alarms(self):
+        """Check that glance-logs-error and glance-api-http-errors alarms work as
+        expected.
+
+        Scenario:
+            1. Rename all glance tables to UPPERCASE.
+            2. Run some glance image list command repeatedly.
+            3. Check the last value of the glance-logs-error alarm in InfluxDB.
+            4. Check the last value of the glance-api-http-errors alarm
+               in InfluxDB.
+            5. Revert all glance tables names to lowercase.
+
+        Duration 10m
+        """
+        def get_images_list():
+            try:
+                # NOTE(rpromyshlennikov): List is needed here
+                # because glance image list is lazy method
+                return list(self.helpers.os_conn.get_image_list())
+            except Exception:
+                pass
+
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+
+        with self.helpers.make_logical_db_unavailable("glance", controllers):
+            metrics = {"glance-logs": "error",
+                       "glance-api": "http_errors"}
+            self._check_http_logs_errors_alarms(get_images_list, 100, metrics)
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_heat_api_logs_errors_alarms",
+                  "http_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_heat_api_logs_errors_alarms(self):
+        """Check that heat-logs-error and heat-api-http-errors alarms work as
+        expected.
+
+        Scenario:
+            1. Rename all heat tables to UPPERCASE.
+            2. Run some heat stack list command repeatedly.
+            3. Check the last value of the heat-logs-error alarm in InfluxDB.
+            4. Check the last value of the heat-api-http-errors alarm
+               in InfluxDB.
+            5. Revert all heat tables names to lowercase.
+
+        Duration 10m
+        """
+        def get_stacks_list():
+            try:
+                with self.fuel_web.get_ssh_for_nailgun_node(
+                        controllers[0]) as remote:
+                    return remote.execute(
+                        ". openrc && heat stack-list > /dev/null 2>&1")
+            except Exception:
+                pass
+
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+
+        with self.helpers.make_logical_db_unavailable("heat", controllers):
+            metrics = {"heat-logs": "error",
+                       "heat-api": "http_errors"}
+            self._check_http_logs_errors_alarms(get_stacks_list, 100, metrics)
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_cinder_api_logs_errors_alarms",
+                  "http_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_cinder_api_logs_errors_alarms(self):
+        """Check that cinder-logs-error and cinder-api-http-errors alarms work as
+        expected.
+
+        Scenario:
+            1. Rename all cinder tables to UPPERCASE.
+            2. Run some cinder stack list command repeatedly.
+            3. Check the last value of the cinder-logs-error alarm in InfluxDB.
+            4. Check the last value of the cinder-api-http-errors alarm
+               in InfluxDB.
+            5. Revert all cinder tables names to lowercase.
+
+        Duration 10m
+        """
+
+        def get_volumes_list():
+            try:
+                self.helpers.os_conn.cinder.volumes.list()
+            except Exception:
+                pass
+
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+
+        with self.helpers.make_logical_db_unavailable("cinder", controllers):
+            metrics = {"cinder-logs": "error",
+                       "cinder-api": "http_errors"}
+            self._check_http_logs_errors_alarms(get_volumes_list, 100, metrics)
