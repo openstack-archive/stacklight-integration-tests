@@ -616,7 +616,7 @@ class PluginHelper(object):
         version = self.nailgun_client.get_api_version()
         return version.get('release')
 
-    def check_pacemaker_resource(self, resource_name, role):
+    def check_pacemaker_resource(self, resource_name, role, is_ha=True):
         """Check that the pacemaker resource is started on nodes with given
         role.
         :param resource_name: the name of the pacemaker resource
@@ -625,23 +625,33 @@ class PluginHelper(object):
         :type role: str
         :returns: None
         """
-        cluster_id = self.cluster_id
         n_ctrls = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-            cluster_id, [role])
+            self.cluster_id, [role])
         d_ctrls = self.fuel_web.get_devops_nodes_by_nailgun_nodes(n_ctrls)
         pcm_nodes = ' '.join(self.fuel_web.get_pcm_nodes(
             d_ctrls[0].name, pure=True)['Online'])
         logger.info("pacemaker nodes are {0}".format(pcm_nodes))
         resource_nodes = self.fuel_web.get_pacemaker_resource_location(
-            d_ctrls[0].name, resource_name)
-        for resource_node in resource_nodes:
+            d_ctrls[0].name, "{}".format(resource_name))
+        if is_ha:
+            for resource_node in resource_nodes:
+                logger.info("Check resource [{0}] on node {1}".format(
+                    resource_name, resource_node.name))
+                config = self.fuel_web.get_pacemaker_config(resource_node.name)
+                asserts.assert_not_equal(
+                    re.search(
+                        "Clone Set: clone_{0} \[{0}\]\s+Started: \[ {1} \]".
+                        format(resource_name, pcm_nodes), config), None,
+                    'Resource [{0}] is not properly configured'.format(
+                        resource_name))
+        else:
+            asserts.assert_true(len(resource_nodes), 1)
+            config = self.fuel_web.get_pacemaker_config(resource_nodes[0].name)
             logger.info("Check resource [{0}] on node {1}".format(
-                resource_name, resource_node.name))
-            config = self.fuel_web.get_pacemaker_config(resource_node.name)
+                resource_name, resource_nodes[0].name))
             asserts.assert_not_equal(
-                re.search(
-                    "Clone Set: clone_{0} \[{0}\]\s+Started: \[ {1} \]".format(
-                        resource_name, pcm_nodes), config), None,
+                re.search("{0}\s+\(ocf::fuel:{1}\):\s+Started".format(
+                    resource_name, resource_name.split("_")[1]), config), None,
                 'Resource [{0}] is not properly configured'.format(
                     resource_name))
 
