@@ -301,3 +301,44 @@ class TestToolchainAlarms(api.ToolchainApi):
             self.helpers.cluster_id, ["compute"])[0]
         self._check_filesystem_alarms(compute, "/var/lib/nova", "nova-fs",
                                       "/var/lib/nova/bigfile", "compute")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_nova_api_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_nova_api_logs_errors_alarms(self):
+        """Check that nova-logs-error and nova-api-http-errors alarms work as
+        expected.
+
+        Scenario:
+            1. Stop all neutron-api services.
+            2. Run some nova-network list command repeatedly.
+            3. Check the last value of the nova-logs-error alarm in InfluxDB.
+            4. Check the last value of the nova-api-http-errors alarm
+               in InfluxDB.
+            5. Start all neutron-api services.
+
+        Duration 20m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])
+
+        for controller in controllers:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                self.remote_ops.manage_service(
+                    remote, "neutron-server", "stop")
+
+        for _ in range(1, 100):
+            try:
+                self.helpers.os_conn.get_nova_network_list()
+            except Exception:
+                pass
+
+        self.check_alarms("service", "nova-logs", "error",
+                          None, WARNING_STATUS)
+        self.check_alarms("service", "nova-api", "http_errors",
+                          None, WARNING_STATUS)
+        for controller in controllers:
+            with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+                self.remote_ops.manage_service(
+                    remote, "neutron-server", "start")
