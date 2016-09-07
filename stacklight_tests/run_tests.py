@@ -68,6 +68,7 @@ def import_tests():
     from stacklight_tests.toolchain import test_post_install  # noqa
     from stacklight_tests.toolchain import test_reduced_footprint  # noqa
     from stacklight_tests.toolchain import test_smoke_bvt  # noqa
+    from stacklight_tests.toolchain import test_smoke_telemetry_plugin  # noqa
     from stacklight_tests.toolchain import test_system  # noqa
 
 

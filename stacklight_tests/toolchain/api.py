@@ -66,6 +66,9 @@ class ToolchainApi(object):
         """Enable a plugin."""
         self._disabled_plugins.remove(plugin)
 
+    def add_plugin(self, plugin):
+        self._plugins.add(plugin)
+
     def call_plugin_method(self, plugin, f):
         """Call a method on a plugin but only if it's enabled."""
         if plugin in self.plugins:
