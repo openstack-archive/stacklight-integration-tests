@@ -69,7 +69,7 @@ def import_tests():
     from stacklight_tests.toolchain import test_reduced_footprint  # noqa
     from stacklight_tests.toolchain import test_smoke_bvt  # noqa
     from stacklight_tests.toolchain import test_system  # noqa
-
+    from stacklight_tests.zabbix import test_functional  # noqa
 
 def run_tests():
     from proboscis import TestProgram  # noqa
