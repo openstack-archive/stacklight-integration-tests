@@ -250,3 +250,13 @@ class ZabbixApi(base_test.PluginApi):
         remote.check_call(emc_trap.format(
             snmp_community='public', zabbix_vip=self.get_zabbix_mgmt_vip(),
             emc_host_ip=emc_host_ip, parameter1=3, parameter2=2004))
+
+    def wait_zabbix_vip_migration(self, old_node_fqdn, timeout=5 * 60):
+        def check_node():
+            if old_node_fqdn in self.get_node_with_zabbix_vip_fqdn():
+                return False
+            else:
+                return True
+        devops_helpers.wait(
+            check_node, timeout=timeout,
+            timeout_msg="Zabbix vip serice was not started on another node!")
