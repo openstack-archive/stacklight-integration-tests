@@ -18,7 +18,9 @@ from stacklight_tests import settings
 name = 'zabbix_monitoring'
 plugin_path = settings.ZABBIX_MONITORING_PLUGIN_PATH
 version = helpers.get_plugin_version(plugin_path)
-zabbix_vip = 'zbx_vip_mgmt'
+failover_vip = 'zbx_vip_mgmt'
+# NOTE(vgusev): This parameter is required for destructive scenario
+role_name = ["controller"]
 dependant_plugins = {
     'ZABBIX_MONITORING_EMC': {
         'name': 'zabbix_monitoring_emc',
