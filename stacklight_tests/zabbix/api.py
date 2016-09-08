@@ -114,9 +114,12 @@ class ZabbixApi(base_test.PluginApi):
             self.helpers.cluster_id)['vips']['zbx_vip_mgmt']['ipaddr']
 
     def check_plugin_online(self):
-        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-            self.helpers.cluster_id, ['controller'])[0]
-        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+        controllers = [
+            controller for controller in
+            self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+                self.helpers.cluster_id, ['controller'])
+            if controller["online"]]
+        with self.fuel_web.get_ssh_for_nailgun_node(controllers[0]) as remote:
             remote.check_call("dpkg --get-selections | grep zabbix")
             response = remote.execute("crm resource status "
                                       "p_zabbix-server")["stdout"][0]
@@ -155,17 +158,6 @@ class ZabbixApi(base_test.PluginApi):
         password = password or self.settings.zabbix_password
         zabbix_api = ZabbixAPI(url=url, user=user, password=password)
         return zabbix_api
-
-    def get_node_with_zabbix_vip_fqdn(self):
-        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-            self.helpers.cluster_id, ['controller'])[0]
-
-        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
-            result = remote.check_call(
-                "crm status | grep {} | awk '{{print $4}}'".format(
-                    self.helpers.get_vip_resource_name(
-                        self.settings.zabbix_vip)))
-        return result['stdout'][0].rstrip()
 
     def get_triggers(self, params=None):
         params = params or {
