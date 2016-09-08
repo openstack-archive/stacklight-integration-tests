@@ -141,19 +141,19 @@ class ZabbixApi(base_test.PluginApi):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
 
-    def get_zabbix_web(self, username='', password=''):
+    def get_zabbix_web(self, username='', password='', protocol=None):
         username = username or self.settings.zabbix_username
         password = password or self.settings.zabbix_password
+        protocol = protocol if protocol else self.protocol
 
         return ZabbixWeb(
-            self.get_zabbix_url(), username, password, self.protocol)
+            self.get_zabbix_url(), username, password, protocol)
 
-    def get_zabbix_api(self):
-        zabbix_api = ZabbixAPI(
-            url=self.get_zabbix_url(),
-            user=self.settings.zabbix_username,
-            password=self.settings.zabbix_password)
-        zabbix_api.session.verify = False
+    def get_zabbix_api(self, url='', user='', password=''):
+        url = url or self.get_zabbix_url()
+        user = user or self.settings.zabbix_username
+        password = password or self.settings.zabbix_password
+        zabbix_api = ZabbixAPI(url=url, user=user, password=password)
         return zabbix_api
 
     def get_node_with_zabbix_vip_fqdn(self):
