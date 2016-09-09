@@ -24,6 +24,7 @@ import yaml
 from stacklight_tests.elasticsearch_kibana import api as elasticsearch_api
 from stacklight_tests.helpers import checkers
 from stacklight_tests.helpers import helpers
+from stacklight_tests.helpers import load
 from stacklight_tests.helpers import remote_ops
 from stacklight_tests.helpers import ui_tester
 from stacklight_tests.influxdb_grafana import api as influx_api
@@ -42,6 +43,7 @@ class ToolchainApi(object):
         self.checkers = checkers
         self.remote_ops = remote_ops
         self.ui_tester = ui_tester
+        self.load_generator = load.LoadGenerator()
         self.ELASTICSEARCH_KIBANA = elasticsearch_api.ElasticsearchPluginApi()
         self.INFLUXDB_GRAFANA = influx_api.InfluxdbPluginApi()
         self.LMA_COLLECTOR = collector_api.LMACollectorPluginApi()
