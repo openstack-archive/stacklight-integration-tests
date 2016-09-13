@@ -12,7 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import time
+
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from fuelweb_test.helpers import os_actions
 from fuelweb_test import logger
 from proboscis import test
 
@@ -301,3 +304,63 @@ class TestToolchainAlarms(api.ToolchainApi):
             self.helpers.cluster_id, ["compute"])[0]
         self._check_filesystem_alarms(compute, "/var/lib/nova", "nova-fs",
                                       "/var/lib/nova/bigfile", "compute")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_vm_creation_alarm", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_vm_creation_alarm(self):
+        """Check that instance-creation-time-warning alarm works as
+        expected.
+
+        Scenario:
+            1. Edit /etc/hiera/override/alarming.yaml file.
+            2. Run puppet command to deploy the alarm:
+               "puppet apply --modulepath=/etc/fuel/plugins/lma_collector-1.0/"
+               "puppet/modules:/etc/puppet/modules "
+               "/etc/fuel/plugins/lma_collector-1.0/puppet/manifests/"
+               "configure_afd_filters.pp"
+            3. Create instance in horizon.
+            4. Check the last value of the warning alarm in InfluxDB.
+
+        Duration 10m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])[0]
+
+        puppet_cmd = (
+            "puppet apply --modulepath=/etc/fuel/plugins/lma_collector-1.0/"
+            "puppet/modules:/etc/puppet/modules "
+            "/etc/fuel/plugins/lma_collector-1.0/puppet/manifests/"
+            "configure_afd_filters.pp")
+        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+            output = remote.check_call(
+                "cat /etc/hiera/override/alarming.yaml")['stdout']
+            found = False
+            remote.check_call("echo > /etc/hiera/override/alarming.yaml")
+            for line in output:
+                if "- name: 'instance-creation-time-warning'" in line:
+                    found = True
+                if "threshold: " in line and found:
+                    whitespace = line.split("threshold:")[0]
+                    line = "{}threshold: {}\n".format(whitespace, 0)
+                if "window: " in line and found:
+                    whitespace = line.split("window:")[0]
+                    line = "{}window: {}\n".format(whitespace, 60)
+                    found = False
+                remote.check_call(
+                    "echo \"{}\" >> /etc/hiera/override/alarming.yaml".format(
+                        "\\\"".join(line.rstrip().split("\""))))
+            remote.check_call(puppet_cmd)
+        # NOTE(vushakov): It seems that puppet requires more time to update
+        # the alarm configuration. Without this wait next step will create an
+        # instance but no alarms will be generated.
+        time.sleep(180)
+
+        net_name = self.fuel_web.get_cluster_predefined_networks_name(
+            self.helpers.cluster_id)['private_net']
+        self.helpers.os_conn.create_instance(neutron_network=True, ram=1024,
+                                             disk=5, label=net_name)
+
+        self.check_alarms('service', 'nova-instances', 'creation-time',
+                          controller["hostname"], WARNING_STATUS)
