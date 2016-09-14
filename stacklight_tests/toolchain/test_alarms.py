@@ -545,3 +545,50 @@ class TestToolchainAlarms(api.ToolchainApi):
             metrics = {"keystone-admin-api": "http_errors"}
             self._check_http_logs_errors_alarms(
                 get_users_list("admin"), 100, metrics)
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_swift_api_errors_alarms",
+                  "http_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_swift_api_errors_alarms(self):
+        """Check that swift-api-http-error alarm work as expected.
+
+        Scenario:
+            1. Stop swift-account service on controller.
+            2. Run some swift stack list command repeatedly.
+            3. Check the last value of the swift-api-http-errors alarm
+               in InfluxDB.
+            4. Start swift-account service on controller.
+
+        Duration 15m
+        """
+
+        def get_objects_list():
+            try:
+                with self.fuel_web.get_ssh_for_nailgun_node(
+                        controllers[0]) as remote:
+                    return remote.execute(
+                        ". openrc "
+                        "&& export OS_AUTH_URL="
+                        "`(echo $OS_AUTH_URL | sed 's%:5000/%:5000/v2.0%')` "
+                        "&& swift list > /dev/null 2>&1")
+            except Exception:
+                pass
+
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+
+        with self.fuel_web.get_ssh_for_nailgun_node(
+                controllers[0]) as remote:
+            self.remote_ops.manage_service(
+                remote, "swift-account", "stop")
+
+        metrics = {"swift-api": "http_errors"}
+        self._check_http_logs_errors_alarms(get_objects_list, 10, metrics)
+
+        with self.fuel_web.get_ssh_for_nailgun_node(
+                controllers[0]) as remote:
+            self.remote_ops.manage_service(
+                remote, "swift-account", "start")
