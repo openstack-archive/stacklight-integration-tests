@@ -430,8 +430,8 @@ class TestNodesToolchain(api.ToolchainApi):
 
         Scenario:
             1.  Create new environment with plugins and enable Ceilometer,
-                Sahara, Murano and Ironic.
-            2.  Add 3 controllers+mongo, 3 compute+cinder+ironic,
+                Sahara and Murano.
+            2.  Add 3 controllers+mongo, 3 compute+cinder,
                 3 toolchain nodes and deploy the environment.
             3.  Check that plugins work.
             4.  Run OSTF.
@@ -444,7 +444,6 @@ class TestNodesToolchain(api.ToolchainApi):
         self.prepare_plugins()
 
         data = {
-            'ironic': True,
             'sahara': True,
             'murano': True,
             'ceilometer': True
@@ -459,9 +458,9 @@ class TestNodesToolchain(api.ToolchainApi):
             'slave-01': ['controller', 'mongo'],
             'slave-02': ['controller', 'mongo'],
             'slave-03': ['controller', 'mongo'],
-            'slave-04': ['compute', 'cinder', 'ironic'],
-            'slave-05': ['compute', 'cinder', 'ironic'],
-            'slave-06': ['compute', 'cinder', 'ironic'],
+            'slave-04': ['compute', 'cinder'],
+            'slave-05': ['compute', 'cinder'],
+            'slave-06': ['compute', 'cinder'],
             'slave-07': self.settings.stacklight_roles,
             'slave-08': self.settings.stacklight_roles,
             'slave-09': self.settings.stacklight_roles
