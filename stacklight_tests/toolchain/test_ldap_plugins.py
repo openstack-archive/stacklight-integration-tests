@@ -132,8 +132,8 @@ class TestToolchainLDAP(api.ToolchainApi):
                               self.settings.base_nodes, update_interfaces=True)
 
         plugins_ldap = {
-            "kibana": (self.ELASTICSEARCH_KIBANA, "(uid=%s)"),
-            "grafana": (self.INFLUXDB_GRAFANA, "(objectClass=*)"),
+            "kibana": (self.ELASTICSEARCH_KIBANA, "(objectClass=*)"),
+            "grafana": (self.INFLUXDB_GRAFANA, "(uid=%s)"),
             "nagios": (self.LMA_INFRASTRUCTURE_ALERTING, "(objectClass=*)")
         }
 
