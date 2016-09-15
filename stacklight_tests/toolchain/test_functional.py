@@ -300,8 +300,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
             lma_devops_node)
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
             controller_node = (
@@ -385,8 +385,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
             lma_devops_node)
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
             controller_nodes = (
@@ -483,8 +483,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
             self.helpers.cluster_id, ['controller'])
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
             self.change_verify_node_service_state(
@@ -560,8 +560,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
             self.helpers.cluster_id, ['controller'])
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
             self.change_verify_node_service_state(
