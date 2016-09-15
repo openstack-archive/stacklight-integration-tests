@@ -30,6 +30,7 @@ from stacklight_tests.influxdb_grafana import api as influx_api
 from stacklight_tests.lma_collector import api as collector_api
 from stacklight_tests.lma_infrastructure_alerting import (
     api as infrastructure_alerting_api)
+from stacklight_tests.openstack_telemetry import api as telemetry_api
 from stacklight_tests.toolchain import toolchain_settings
 
 
@@ -47,6 +48,7 @@ class ToolchainApi(object):
         self.LMA_COLLECTOR = collector_api.LMACollectorPluginApi()
         self.LMA_INFRASTRUCTURE_ALERTING = (
             infrastructure_alerting_api.InfraAlertingPluginApi())
+        self.OPENSTACK_TELEMETRY = telemetry_api.OpenstackTelemeteryPluginApi()
         self._plugins = {
             self.ELASTICSEARCH_KIBANA,
             self.INFLUXDB_GRAFANA,
