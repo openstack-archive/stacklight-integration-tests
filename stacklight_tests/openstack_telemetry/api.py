@@ -71,12 +71,31 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         self.helpers.activate_plugin(
             self.settings.name, self.settings.version, options)
 
+    def is_kafka_enabled(self):
+        if len(self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+                self.helpers.cluster_id, ["kafka"])):
+            return True
+        return False
+
     def check_plugin_online(self):
         non_ha_pcmk_resources = ['p_ceilometer-agent-central',
                                  'p_aodh-evaluator']
-        ha_pcmk_resources = ['telemetry-collector-heka']
         controller_services = ['ceilometer-agent-notification',
                                'ceilometer-api', 'aodh-api']
+        ha_pcmk_resources = ['telemetry-collector-heka']
+        if self.is_kafka_enabled():
+            controller_services.append('telemetry-collector-hindsight')
+            ha_pcmk_resources.extend(non_ha_pcmk_resources)
+        else:
+            logger.info("Check {} pacemaker resources".format(
+                non_ha_pcmk_resources))
+            for resource in non_ha_pcmk_resources:
+                self.helpers.check_pacemaker_resource(
+                    resource, "controller", is_ha=False)
+        logger.info(
+            "Check {} pacemaker resources".format(ha_pcmk_resources))
+        for resource in ha_pcmk_resources:
+            self.helpers.check_pacemaker_resource(resource, "controller")
         compute_services = ['ceilometer-polling']
         controller_ips = [
             controller['ip'] for controller in
@@ -86,14 +105,6 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
             compute['ip'] for compute in
             self.fuel_web.get_nailgun_cluster_nodes_by_roles(
                 self.helpers.cluster_id, ['compute'])]
-        logger.info("Check {} pacemaker resources".format(
-            non_ha_pcmk_resources))
-        for resource in non_ha_pcmk_resources:
-            self.helpers.check_pacemaker_resource(
-                resource, "controller", is_ha=False)
-        logger.info("Check {} pacemaker resources".format(ha_pcmk_resources))
-        for resource in ha_pcmk_resources:
-            self.helpers.check_pacemaker_resource(resource, "controller")
         logger.info("Check {} services on {}".format(
             controller_services, controller_ips))
         for ip in controller_ips:
