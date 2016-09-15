@@ -21,6 +21,9 @@ role_name = 'kafka'
 plugin_path = settings.KAFKA_PLUGIN_PATH
 version = helpers.get_plugin_version(plugin_path)
 
-default_options = {}
+default_options = {
+    "kafka_jvm_heap_size/value": "1",
+    "zookeeper_jvm_heap_size/value": "1"
+}
 
 toolchain_options = default_options
