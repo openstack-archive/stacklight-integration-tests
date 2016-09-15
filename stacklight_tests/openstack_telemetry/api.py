@@ -69,12 +69,19 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         self.helpers.activate_plugin(
             self.settings.name, self.settings.version, options)
 
-    def check_plugin_online(self):
+    def check_plugin_online(self, is_kafka_enabled=False):
         non_ha_pcmk_resources = ['p_ceilometer-agent-central',
                                  'p_aodh-evaluator']
-        ha_pcmk_resources = ['telemetry-collector-heka']
         controller_services = ['ceilometer-agent-notification',
                                'ceilometer-api', 'aodh-api']
+        if is_kafka_enabled is True:
+            controller_services.append('telemetry-collector-hindsight')
+        if not is_kafka_enabled:
+            ha_pcmk_resources = ['telemetry-collector-heka']
+            logger.info(
+                "Check {} pacemaker resources".format(ha_pcmk_resources))
+            for resource in ha_pcmk_resources:
+                self.helpers.check_pacemaker_resource(resource, "controller")
         compute_services = ['ceilometer-polling']
         controller_ips = [
             controller['ip'] for controller in
@@ -89,9 +96,7 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         for resource in non_ha_pcmk_resources:
             self.helpers.check_pacemaker_resource(
                 resource, "controller", is_ha=False)
-        logger.info("Check {} pacemaker resources".format(ha_pcmk_resources))
-        for resource in ha_pcmk_resources:
-            self.helpers.check_pacemaker_resource(resource, "controller")
+
         logger.info("Check {} services on {}".format(
             controller_services, controller_ips))
         for ip in controller_ips:
