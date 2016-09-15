@@ -27,6 +27,7 @@ from stacklight_tests.helpers import helpers
 from stacklight_tests.helpers import remote_ops
 from stacklight_tests.helpers import ui_tester
 from stacklight_tests.influxdb_grafana import api as influx_api
+from stacklight_tests.kafka import api as kafka_api
 from stacklight_tests.lma_collector import api as collector_api
 from stacklight_tests.lma_infrastructure_alerting import (
     api as infrastructure_alerting_api)
@@ -45,6 +46,7 @@ class ToolchainApi(object):
         self.ui_tester = ui_tester
         self.ELASTICSEARCH_KIBANA = elasticsearch_api.ElasticsearchPluginApi()
         self.INFLUXDB_GRAFANA = influx_api.InfluxdbPluginApi()
+        self.KAFKA = kafka_api.KafkaPluginApi()
         self.LMA_COLLECTOR = collector_api.LMACollectorPluginApi()
         self.LMA_INFRASTRUCTURE_ALERTING = (
             infrastructure_alerting_api.InfraAlertingPluginApi())
