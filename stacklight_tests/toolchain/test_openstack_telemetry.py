@@ -15,6 +15,7 @@
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from proboscis import test
 
+from stacklight_tests.kafka import api as kafka_api
 from stacklight_tests.toolchain import api
 
 
@@ -61,3 +62,47 @@ class TestOpenstackTelemetry(api.ToolchainApi):
         self.check_plugins_online()
         self.helpers.run_ostf()
         self.env.make_snapshot("deploy_openstack_telemetry", is_make=True)
+
+    @test(depends_on_groups=['prepare_slaves_5'],
+          groups=["deploy_openstack_telemetry_kafka", "deploy",
+                  "openstack_telemetry", "smoke"])
+    @log_snapshot_after_test
+    def deploy_openstack_telemetry_kafka(self):
+        """Deploy an environment with Openstack-Telemetry plugin
+        with Elasticsearch and InfluxDB backends and Kafka plugin.
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana, Kafka
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller and kafka roles
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with elasticsearch_kibana and influxdb_grafana roles
+            7. Deploy the cluster
+            8. Check that plugins are running
+            9. Run OSTF
+
+        Duration 90m
+        """
+        self.check_run("deploy_openstack_telemetry_kafka")
+        self.env.revert_snapshot("ready_with_5_slaves")
+        self.add_plugin(self.OPENSTACK_TELEMETRY)
+        self.add_plugin(kafka_api.KafkaPluginApi())
+        self.disable_plugin(self.LMA_COLLECTOR)
+        self.disable_plugin(self.LMA_INFRASTRUCTURE_ALERTING)
+        self.prepare_plugins()
+        self.helpers.create_cluster(name=self.__class__.__name__)
+        self.activate_plugins()
+        roles = ["elasticsearch_kibana", "influxdb_grafana"]
+        self.helpers.deploy_cluster(
+            {'slave-01': ['controller', 'kafka'],
+             'slave-02': ['controller', 'kafka'],
+             'slave-03': ['controller', 'kafka'],
+             'slave-04': ['compute', 'cinder'],
+             'slave-05': roles})
+        self.disable_plugin(self.OPENSTACK_TELEMETRY)
+        self.check_plugins_online()
+        self.OPENSTACK_TELEMETRY.check_plugin_online(is_kafka_enabled=True)
+        self.helpers.run_ostf()
+        self.env.make_snapshot("deploy_openstack_telemetry_kafka",
+                               is_make=True)
