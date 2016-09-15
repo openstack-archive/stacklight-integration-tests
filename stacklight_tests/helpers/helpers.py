@@ -14,6 +14,7 @@
 
 import os
 import re
+import signal
 import tempfile
 import time
 import urllib2
@@ -682,3 +683,78 @@ class PluginHelper(object):
                                               disk_format='qcow2',
                                               data=fp)
         return image
+
+    @staticmethod
+    def verify(secs, func, step='', msg='', action='', duration=1000,
+               sleep_for=10, *args, **kwargs):
+        """Arguments:
+        :secs: timeout time;
+        :func: function to be verified;
+        :step: number of test step;
+        :msg: message that will be displayed if an exception occurs;
+        :action: action that is performed by the method.
+        """
+        logger.info("STEP:{0}, verify action: '{1}'".format(step, action))
+        now = time.time()
+        time_out = now + duration
+        try:
+            with timeout(secs, action):
+                while now < time_out:
+                    result = func(*args, **kwargs)
+                    if result or result is None:
+                        return result
+                    logger.info(
+                        "{} is failed. Will try again".
+                        format(action)
+                    )
+                    time.sleep(sleep_for)
+                    now = time.time()
+        except Exception as exc:
+            logger.exception(exc)
+            if type(exc) is AssertionError:
+                msg = str(exc)
+            raise AssertionError(
+                "Step {} failed: {} Please refer to OpenStack logs for more "
+                "details.".format(step, msg)
+            )
+        else:
+            return result
+
+
+class TimeOutError(Exception):
+    def __init__(self):
+        Exception.__init__(self)
+
+
+def _raise_TimeOut(sig, stack):
+    raise TimeOutError()
+
+
+class timeout(object):
+    """Timeout context that will stop code running within context
+    if timeout is reached
+
+    >>with timeout(2):
+    ...     requests.get("http://msdn.com")
+    """
+
+    def __init__(self, timeout, action):
+        self.timeout = timeout
+        self.action = action
+
+    def __enter__(self):
+        signal.signal(signal.SIGALRM, _raise_TimeOut)
+        signal.alarm(self.timeout)
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        signal.alarm(0)  # disable the alarm
+        if exc_type is not TimeOutError:
+            return False  # never swallow other exceptions
+        else:
+            logger.info("Timeout {timeout}s exceeded for {call}".format(
+                call=self.action,
+                timeout=self.timeout
+            ))
+            msg = ("Time limit exceeded while waiting for {call} to "
+                   "finish.").format(call=self.action)
+            raise AssertionError(msg)

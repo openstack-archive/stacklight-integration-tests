@@ -11,7 +11,9 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import datetime
 
+import ceilometerclient.v2.client
 from fuelweb_test.helpers import checkers as fuelweb_checkers
 from fuelweb_test import logger
 
@@ -25,6 +27,35 @@ from stacklight_tests.openstack_telemetry import plugin_settings
 class OpenstackTelemeteryPluginApi(base_test.PluginApi):
     def __init__(self):
         super(OpenstackTelemeteryPluginApi, self).__init__()
+        self._ceilometer = None
+
+    @property
+    def ceilometer_client(self):
+        if self._ceilometer is None:
+            keystone_access = self.helpers.os_conn.keystone
+            endpoint = keystone_access.service_catalog.url_for(
+                service_type='metering',
+                service_name='ceilometer',
+                endpoint_type='internalURL'
+            )
+            if not endpoint:
+                raise self.helpers.NotFound(
+                    "Cannot find Ceilometer endpoint")
+            aodh_endpoint = keystone_access.service_catalog.url_for(
+                service_type='alarming',
+                service_name='aodh',
+                endpoint_type='internalURL'
+            )
+            if not aodh_endpoint:
+                raise self.helpers.NotFound(
+                    "Cannot find AODH (alarm) endpoint")
+
+            self._ceilometer = ceilometerclient.v2.Client(
+                aodh_endpoint=aodh_endpoint,
+                auth_url=keystone_access.auth_url,
+                endpoint=endpoint,
+                token=lambda: keystone_access.auth_token)
+        return self._ceilometer
 
     def get_plugin_settings(self):
         return plugin_settings
@@ -97,3 +128,80 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
     def check_uninstall_failure(self):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
+
+    def check_ceilometer_sample_functionality(self):
+        fail_msg = 'Failed to get sample list.'
+        msg = 'getting samples list'
+        self.helpers.verify(60, self.ceilometer_client.new_samples.list, 1,
+                            fail_msg, msg, limit=10)
+
+        fail_msg = 'Failed to get statistic of metric.'
+        msg = 'getting statistic of metric'
+        an_hour_ago = (datetime.datetime.now() -
+                       datetime.timedelta(hours=1)).isoformat()
+        query = [{'field': 'timestamp', 'op': 'gt', 'value': an_hour_ago}]
+
+        self.helpers.verify(600, self.ceilometer_client.statistics.list, 2,
+                            fail_msg, msg, meter_name='image', q=query)
+
+    def check_ceilometer_alarm_functionality(self):
+        fail_msg = 'Failed to create alarm.'
+        msg = 'creating alarm'
+        alarm = self.helpers.verify(60, self.create_alarm, 1, fail_msg, msg,
+                                    meter_name='image',
+                                    threshold=0.9,
+                                    name='ceilometer-fake-alarm',
+                                    period=600,
+                                    statistic='avg',
+                                    comparison_operator='lt')
+
+        fail_msg = 'Failed to get alarm.'
+        msg = 'getting alarm'
+        self.helpers.verify(60, self.ceilometer_client.alarms.get, 2,
+                            fail_msg, msg, alarm_id=alarm.alarm_id)
+
+        fail_msg = 'Failed while waiting for alarm state to become "ok".'
+        msg = 'waiting for alarm state to become "ok"'
+        self.helpers.verify(1000, self.check_alarm_state, 3,
+                            fail_msg, msg, alarm_id=alarm.alarm_id, state='ok')
+
+        fail_msg = 'Failed to update alarm.'
+        msg = 'updating alarm'
+        self.helpers.verify(60, self.ceilometer_client.alarms.update, 4,
+                            fail_msg, msg, alarm_id=alarm.alarm_id,
+                            threshold=1.1)
+
+        fail_msg = 'Failed while waiting for alarm state to become "alarm".'
+        msg = 'waiting for alarm state to become "alarm"'
+        self.helpers.verify(1000, self.check_alarm_state, 5,
+                            fail_msg, msg, alarm_id=alarm.alarm_id,
+                            state='alarm')
+
+        fail_msg = 'Failed to get alarm history.'
+        msg = 'getting alarm history'
+        self.helpers.verify(60, self.ceilometer_client.alarms.get_history, 6,
+                            fail_msg, msg, alarm_id=alarm.alarm_id)
+
+        fail_msg = 'Failed to delete alarm.'
+        msg = 'deleting alarm'
+        self.helpers.verify(60, self.ceilometer_client.alarms.delete, 7,
+                            fail_msg, msg, alarm_id=alarm.alarm_id)
+
+    def create_alarm(self, **kwargs):
+        for alarm in self.ceilometer_client.alarms.list():
+            if alarm.name == kwargs['name']:
+                self.ceilometer_client.alarms.delete(alarm.alarm_id)
+        return self.ceilometer_client.alarms.create(**kwargs)
+
+    def check_alarm_state(self, alarm_id, state=None):
+        try:
+            alarm_state = self.ceilometer_client.alarms.get_state(
+                alarm_id)
+        except Exception:
+            alarm_state = None
+        if state:
+            if alarm_state == state:
+                return True
+        elif alarm_state == 'alarm' or 'ok':
+            return True
+        return False

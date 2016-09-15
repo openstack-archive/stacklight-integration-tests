@@ -61,3 +61,26 @@ class TestOpenstackTelemetry(api.ToolchainApi):
         self.check_plugins_online()
         self.helpers.run_ostf()
         self.env.make_snapshot("deploy_openstack_telemetry", is_make=True)
+
+
+@test(groups=["openstack_telemetry"])
+class TestOpenstackTelemetryFunctional(api.ToolchainApi):
+    """Class for functional testing the Openstack Telemetry Plugin."""
+
+    @test(depends_on_groups=['deploy_openstack_telemetry'],
+          groups=["openstack_telemetry_default_functional", "functional"])
+    def openstack_telemetry_default_functional(self):
+        """Deploy an environment with Openstack-Telemetry plugin with
+        Elasticsearch and InfluxDB backends and check default functionality
+
+            1. Revert deploy_openstack_telemetry with Openstack-Telemetry,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins installed
+            2. Check Ceilometer Sample API
+            3. Check Ceilometer Alarm API
+
+        Duration 90m
+        """
+        self.check_run("openstack_telemetry_default_functional")
+        self.env.revert_snapshot("deploy_openstack_telemetry")
+        self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality()
+        self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality()
