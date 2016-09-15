@@ -71,51 +71,57 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         self.helpers.activate_plugin(
             self.settings.name, self.settings.version, options)
 
+    def is_kafka_enabled(self):
+        if len(self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+                self.helpers.cluster_id, ["kafka"])):
+            return True
+        return False
+
+    def check_services_on_nodes(self, services, node_role):
+        node_ips = [
+            node["ip"] for node in
+            self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+                self.helpers.cluster_id, [node_role])]
+        logger.info("Check {} services on {} nodes".format(
+            services, node_role))
+        for ip in node_ips:
+            for service in services:
+                fuelweb_checkers.verify_service(
+                    ip, service, ignore_count_of_proccesses=True)
+
     def check_plugin_online(self):
-        non_ha_pcmk_resources = ['p_ceilometer-agent-central',
-                                 'p_aodh-evaluator']
-        ha_pcmk_resources = ['telemetry-collector-heka']
-        controller_services = ['ceilometer-agent-notification',
-                               'ceilometer-api', 'aodh-api']
-        compute_services = ['ceilometer-polling']
-        controller_ips = [
-            controller['ip'] for controller in
-            self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-                self.helpers.cluster_id, ['controller'])]
-        compute_ips = [
-            compute['ip'] for compute in
-            self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-                self.helpers.cluster_id, ['compute'])]
-        logger.info("Check {} pacemaker resources".format(
-            non_ha_pcmk_resources))
-        for resource in non_ha_pcmk_resources:
-            self.helpers.check_pacemaker_resource(
-                resource, "controller", is_ha=False)
-        logger.info("Check {} pacemaker resources".format(ha_pcmk_resources))
+        non_ha_pcmk_resources = ["p_ceilometer-agent-central",
+                                 "p_aodh-evaluator"]
+        ha_pcmk_resources = ["telemetry-collector-heka"]
+        controller_services = ["ceilometer-agent-notification",
+                               "ceilometer-api", "aodh-api"]
+        compute_services = ["ceilometer-polling"]
+        if self.is_kafka_enabled():
+            kafka_services = ["telemetry-collector-hindsight"]
+            self.check_services_on_nodes(kafka_services, "kafka")
+            ha_pcmk_resources.extend(non_ha_pcmk_resources)
+        else:
+            logger.info("Check {} pacemaker resources".format(
+                non_ha_pcmk_resources))
+            for resource in non_ha_pcmk_resources:
+                self.helpers.check_pacemaker_resource(
+                    resource, "controller", is_ha=False)
+        logger.info(
+            "Check {} pacemaker resources".format(ha_pcmk_resources))
         for resource in ha_pcmk_resources:
             self.helpers.check_pacemaker_resource(resource, "controller")
-        logger.info("Check {} services on {}".format(
-            controller_services, controller_ips))
-        for ip in controller_ips:
-            for service in controller_services:
-                fuelweb_checkers.verify_service(
-                    ip, service, ignore_count_of_proccesses=True)
-        logger.info(
-            "Check {} services on {}".format(compute_services, compute_ips))
-        for ip in compute_ips:
-            for service in compute_services:
-                fuelweb_checkers.verify_service(
-                    ip, service, ignore_count_of_proccesses=True)
+        self.check_services_on_nodes(controller_services, "controller")
+        self.check_services_on_nodes(compute_services, "compute")
         logger.info("Check Ceilometer API")
         keystone_access = self.helpers.os_conn.keystone_access
         endpoint = keystone_access.service_catalog.url_for(
-            service_type='metering', service_name='ceilometer',
-            interface='internal')
+            service_type="metering", service_name="ceilometer",
+            interface="internal")
         if not endpoint:
-            raise helpers.NotFound("Cannot find ceilometer endpoint")
+            raise helpers.NotFound("Cannot find Ceilometer endpoint")
         headers = {
-            'X-Auth-Token': keystone_access.auth_token,
-            'content-type': 'application/json'
+            "X-Auth-Token": keystone_access.auth_token,
+            "content-type": "application/json"
         }
         checkers.check_http_get_response("{}/v2/capabilities".format(endpoint),
                                          headers=headers)
