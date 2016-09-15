@@ -25,22 +25,38 @@ class DashboardPage(base_pages.PageObject):
 
 
 class MainPage(base_pages.PageObject):
-    _dropdown_menu_locator = (
+    _main_menu_locator = (
         by.By.CLASS_NAME,
-        'navbar-brand-btn')
-
-    _dashboards_list_locator = (
-        by.By.CLASS_NAME,
-        'sidemenu'
+        "navbar-brand-btn"
     )
 
-    _dashboard_locator = (by.By.CLASS_NAME,
-                          "search-item-dash-db")
+    class MainDropDownMenu(base_pages.DropDownMenu):
+        _default_src_locator = (
+            by.By.CLASS_NAME,
+            "navbar-brand-btn"
+        )
+        _options_list_locator = (
+            by.By.CLASS_NAME,
+            "sidemenu"
+        )
+        _items_locator = (
+            by.By.CLASS_NAME,
+            "dropdown"
+        )
 
-    _dashboard_main_locator = (
-        by.By.CLASS_NAME,
-        "dropdown"
-    )
+    class DashboardDropDownMenu(base_pages.DropDownMenu):
+        _default_src_locator = (
+            by.By.CLASS_NAME,
+            "icon-gf-dashboard"
+        )
+        _options_list_locator = (
+            by.By.CLASS_NAME,
+            "search-results-container"
+        )
+        _items_locator = (
+            by.By.CLASS_NAME,
+            "search-item-dash-db"
+        )
 
     def __init__(self, driver):
         super(MainPage, self).__init__(driver)
@@ -48,37 +64,19 @@ class MainPage(base_pages.PageObject):
 
     def is_main_page(self):
         return (self.is_the_current_page() and
-                self._is_element_visible(*self._dropdown_menu_locator))
+                self._is_element_visible(*self._main_menu_locator))
 
     @property
-    def dropdown_menu(self):
-        return self._get_element(*self._dropdown_menu_locator)
+    def main_menu(self):
+        return self.MainDropDownMenu(self.driver)
 
     @property
-    def dashboards_list(self):
-        self.open_dropdown_menu()
-        return self._get_element(*self._dashboards_list_locator)
-
-    @property
-    def main_menu_items(self):
-        return self.dashboards_list.find_elements(
-            *self._dashboard_main_locator
-        )
-
-    @property
-    def dashboards(self):
-        return self.dashboards_list.find_elements(*self._dashboard_locator)
-
-    def is_dropdown_menu_opened(self):
-        return self._is_element_present(*self._dashboards_list_locator)
-
-    def open_dropdown_menu(self):
-        if not self.is_dropdown_menu_opened():
-            self.dropdown_menu.click()
+    def dashboard_menu(self):
+        return self.DashboardDropDownMenu(self.driver)
 
     def open_dashboard(self, dashboard_name):
         dashboards_mapping = {dashboard.text.lower(): dashboard
-                              for dashboard in self.dashboards}
+                              for dashboard in self.dashboard_menu.items}
         dashboards_mapping[dashboard_name.lower()].click()
         dashboard_page = DashboardPage(self.driver, dashboard_name)
         dashboard_page.is_dashboards_page()
@@ -86,8 +84,8 @@ class MainPage(base_pages.PageObject):
 
 
 class LoginPage(base_pages.PageObject):
-    _login_username_field_locator = (by.By.NAME, 'username')
-    _login_password_field_locator = (by.By.NAME, 'password')
+    _login_username_field_locator = (by.By.NAME, "username")
+    _login_password_field_locator = (by.By.NAME, "password")
     _login_submit_button_locator = (by.By.CLASS_NAME, "btn")
 
     def __init__(self, driver):

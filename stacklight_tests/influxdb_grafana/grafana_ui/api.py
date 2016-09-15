@@ -14,19 +14,26 @@
 from fuelweb_test import logger
 from proboscis import asserts
 
-from stacklight_tests.helpers.ui_tester import ui_driver
+from stacklight_tests.helpers import ui_tester
 from stacklight_tests.influxdb_grafana.grafana_ui import pages
 
 
-def check_grafana_dashboards(grafana_url):
+login_key_xpath = '//form[1]//button[1]'
 
-    login_key_xpath = '/html/body/div/div[2]/div/div/div[2]/form/div[2]/button'
 
-    with ui_driver(grafana_url, "Grafana", login_key_xpath) as driver:
-        login_page = pages.LoginPage(driver)
-        login_page.is_login_page()
-        home_page = login_page.login("grafana", "grafanapass")
-        home_page.is_main_page()
+def _get_main_page(driver, auth_data):
+    login_page = pages.LoginPage(driver)
+    login_page.is_login_page()
+    home_page = login_page.login(*auth_data)
+    home_page.is_main_page()
+    return home_page
+
+
+def check_grafana_dashboards(url):
+
+    with ui_tester.ui_driver(url, "Grafana", login_key_xpath) as driver:
+        user = ("grafana", "grafanapass")
+        home_page = _get_main_page(driver, user)
         dashboard_names = {
             "Apache", "Cinder", "Elasticsearch", "Glance", "HAProxy", "Heat",
             "Hypervisor", "InfluxDB", "Keystone", "LMA self-monitoring",
@@ -35,7 +42,8 @@ def check_grafana_dashboards(grafana_url):
         dashboard_names = {
             panel_name.lower() for panel_name in dashboard_names}
         available_dashboards_names = {
-            dashboard.text.lower() for dashboard in home_page.dashboards}
+            dashboard.text.lower()
+            for dashboard in home_page.dashboard_menu.items}
         msg = ("There is not enough panels in available panels, "
                "panels that are not presented: {}")
         # NOTE(rpromyshlennikov): should there be 'elasticsearch'
@@ -48,29 +56,25 @@ def check_grafana_dashboards(grafana_url):
             dashboard_page.get_back_to_home()
 
 
-def check_grafana_ldap(grafana_url, authz=False, uadmin=("uadmin", "uadmin"),
-                       uviewer=("uviewer", "uviewer")):
-
-    _check_available_menu_items_for_user(uadmin, grafana_url, authz)
-    _check_available_menu_items_for_user(uviewer, grafana_url, authz)
-
-
 def _check_available_menu_items_for_user(user, url, authz):
     logger.info("Checking Grafana service at {} with LDAP authorization "
                 "for {} user".format(url, user[0]))
-    login_key_xpath = '//form[1]//button[1]'
     admin_panels = ["Dashboards", "Data Sources", "Plugins"]
-    viewer_panel = list(admin_panels[1]) if authz else admin_panels
+    viewer_panel = admin_panels[1:2] if authz else admin_panels
 
-    with ui_driver(url, "Grafana", login_key_xpath) as driver:
-        login_page = pages.LoginPage(driver)
-        login_page.is_login_page()
-        home_page = login_page.login(*user)
-        home_page.is_main_page()
-        menu_items = [name.text for name in home_page.main_menu_items]
+    with ui_tester.ui_driver(url, "Grafana", login_key_xpath) as driver:
+        home_page = _get_main_page(driver, user)
+        menu_items = [name.text for name in home_page.main_menu.items]
         msg = "Not all required panels are available in main menu."
         asserts.assert_true(
             (admin_panels if ("uadmin" in user)
              else viewer_panel) == menu_items,
             msg
         )
+
+
+def check_grafana_ldap(grafana_url, authz=False,
+                       uadmin=("uadmin", "uadmin"),
+                       uviewer=("uviewer", "uviewer")):
+    _check_available_menu_items_for_user(uadmin, grafana_url, authz)
+    _check_available_menu_items_for_user(uviewer, grafana_url, authz)
