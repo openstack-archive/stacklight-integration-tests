@@ -128,7 +128,7 @@ class TestNodesToolchain(api.ToolchainApi):
         # Remove node with StackLight roles
         self.helpers.remove_nodes_from_cluster(manipulated_node)
 
-        self.check_plugin_online()
+        self.check_plugins_online()
 
         self.check_nodes_count(2, manipulated_node_hostname, False)
 
@@ -137,7 +137,7 @@ class TestNodesToolchain(api.ToolchainApi):
         # Add node with StackLight roles
         self.helpers.add_nodes_to_cluster(manipulated_node)
 
-        self.check_plugin_online()
+        self.check_plugins_online()
 
         manipulated_node_hostname = self.helpers.get_hostname_by_node_name(
             manipulated_node.keys()[0])
