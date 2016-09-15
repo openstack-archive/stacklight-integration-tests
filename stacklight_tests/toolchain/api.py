@@ -21,6 +21,7 @@ from fuelweb_test.tests import base_test_case
 from proboscis import asserts
 import yaml
 
+from stacklight_tests.openstack_telemetry import api as telemetry_api
 from stacklight_tests.elasticsearch_kibana import api as elasticsearch_api
 from stacklight_tests.helpers import checkers
 from stacklight_tests.helpers import helpers
@@ -47,6 +48,7 @@ class ToolchainApi(object):
         self.LMA_COLLECTOR = collector_api.LMACollectorPluginApi()
         self.LMA_INFRASTRUCTURE_ALERTING = (
             infrastructure_alerting_api.InfraAlertingPluginApi())
+        self.OPENSTACK_TELEMETRY = telemetry_api.OpenstackTelemeteryPluginApi()
         self._plugins = {
             self.ELASTICSEARCH_KIBANA,
             self.INFLUXDB_GRAFANA,
