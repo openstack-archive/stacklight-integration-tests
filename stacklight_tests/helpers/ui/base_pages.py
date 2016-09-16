@@ -161,3 +161,32 @@ class PageObject(BaseWebObject):
 
     def refresh_page(self):
         self.driver.refresh()
+
+
+class DropDownMenu(BaseWebObject):
+
+    _default_src_locator = None
+
+    _options_list_locator = None
+
+    _items_locator = None
+
+    def __init__(self, driver):
+        super(DropDownMenu, self).__init__(driver)
+        self.src_elem = self._get_element(*self._default_src_locator)
+
+    def is_opened(self):
+        return self._is_element_present(*self._options_list_locator)
+
+    def open(self):
+        if not self.is_opened():
+            self.src_elem.click()
+
+    @property
+    def options(self):
+        self.open()
+        return self._get_element(*self._options_list_locator)
+
+    @property
+    def items(self):
+        return self.options.find_elements(*self._items_locator)
