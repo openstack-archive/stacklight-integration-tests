@@ -107,7 +107,7 @@ class InfraAlertingPluginApi(base_test.PluginApi):
     def check_node_in_nagios(self, changed_node, state):
         with self.ui_tester.ui_driver(
                 self.get_authenticated_nagios_url(),
-                "//frame[2]", "Nagios Core") as driver:
+                "Nagios Core", "//frame[2]") as driver:
             driver = self.open_nagios_page(
                 driver, 'Hosts', "//table[@class='headertable']")
             asserts.assert_equal(state, self.node_is_present(
