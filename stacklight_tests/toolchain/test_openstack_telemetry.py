@@ -22,9 +22,35 @@ from stacklight_tests.toolchain import api
 class TestOpenstackTelemetry(api.ToolchainApi):
     """Class for testing the Openstack Telemetry Plugin."""
 
-    @test(depends_on_groups=['prepare_slaves_5'],
-          groups=["deploy_openstack_telemetry", "deploy",
-                  "openstack_telemetry", "smoke"])
+    def _deploy_telemetry_plugin(self, caller, snapshot="ready_with_5_slaves",
+                                 advanced_options=None, additional_tests=None):
+        self.check_run(caller)
+        self.env.revert_snapshot(snapshot)
+        self.add_plugin(self.OPENSTACK_TELEMETRY)
+        self.disable_plugin(self.LMA_COLLECTOR)
+        self.disable_plugin(self.LMA_INFRASTRUCTURE_ALERTING)
+        self.prepare_plugins()
+        self.helpers.create_cluster(name=self.__class__.__name__)
+        self.activate_plugins()
+        if advanced_options:
+            self.OPENSTACK_TELEMETRY.activate_plugin(options=advanced_options)
+        roles = ["elasticsearch_kibana", "influxdb_grafana"]
+        self.helpers.deploy_cluster(
+            {"slave-01": ["controller"],
+             "slave-02": ["controller"],
+             "slave-03": ["controller"],
+             "slave-04": ["compute", "cinder"],
+             "slave-05": roles})
+        self.check_plugins_online()
+        self.helpers.run_ostf()
+        if additional_tests:
+            for ostf_test in additional_tests:
+                ostf_test()
+        self.env.make_snapshot(caller, is_make=True)
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["deploy_openstack_telemetry", "deploy", "smoke",
+                  "openstack_telemetry"])
     @log_snapshot_after_test
     def deploy_openstack_telemetry(self):
         """Deploy an environment with Openstack-Telemetry plugin
@@ -43,31 +69,9 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
         Duration 90m
         """
-        self.check_run("deploy_openstack_telemetry")
-        self.env.revert_snapshot("ready_with_5_slaves")
-        self.add_plugin(self.OPENSTACK_TELEMETRY)
-        self.disable_plugin(self.LMA_COLLECTOR)
-        self.disable_plugin(self.LMA_INFRASTRUCTURE_ALERTING)
-        self.prepare_plugins()
-        self.helpers.create_cluster(name=self.__class__.__name__)
-        self.activate_plugins()
-        roles = ["elasticsearch_kibana", "influxdb_grafana"]
-        self.helpers.deploy_cluster(
-            {'slave-01': ['controller'],
-             'slave-02': ['controller'],
-             'slave-03': ['controller'],
-             'slave-04': ['compute', 'cinder'],
-             'slave-05': roles})
-        self.check_plugins_online()
-        self.helpers.run_ostf()
-        self.env.make_snapshot("deploy_openstack_telemetry", is_make=True)
+        self._deploy_telemetry_plugin("deploy_openstack_telemetry")
 
-
-@test(groups=["openstack_telemetry"])
-class TestOpenstackTelemetryFunctional(api.ToolchainApi):
-    """Class for functional testing the Openstack Telemetry Plugin."""
-
-    @test(depends_on_groups=['deploy_openstack_telemetry'],
+    @test(depends_on_groups=["deploy_openstack_telemetry"],
           groups=["openstack_telemetry_default_functional", "functional"])
     def openstack_telemetry_default_functional(self):
         """Deploy an environment with Openstack-Telemetry plugin with
@@ -80,7 +84,53 @@ class TestOpenstackTelemetryFunctional(api.ToolchainApi):
 
         Duration 90m
         """
-        self.check_run("openstack_telemetry_default_functional")
-        self.env.revert_snapshot("deploy_openstack_telemetry")
-        self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality()
-        self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality()
+        additional_tests = (
+            self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality
+        )
+
+        self._deploy_telemetry_plugin("openstack_telemetry_default_functional",
+                                      snapshot="deploy_openstack_telemetry",
+                                      additional_tests=additional_tests
+                                      )
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["openstack_telemetry_event_functional",
+                  "deploy_openstack_telemetry", "functional"])
+    @log_snapshot_after_test
+    def openstack_telemetry_event_functional(self):
+        """Deploy an environment with Openstack-Telemetry plugin with
+        enabled Ceilometer Event API and check its functionality
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller role
+            5. Add 1 nodes with compute and cinder roles
+            6. Add 1 nodes with elasticsearch_kibana and influxdb_grafana roles
+            7. Enable Ceilometer Event API
+            8. Deploy the cluster
+            9. Check that plugins are running
+            10. Run OSTF
+            11. Check Ceilometer Sample API
+            12. Check Ceilometer Alarm API
+            13. Check Ceilometer Events API
+
+        Duration 90m
+        """
+        additional_tests = (
+            self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality,
+        )
+
+        options = {
+            "advanced_settings/value": True,
+            "event_api/value": True,
+        }
+
+        self._deploy_telemetry_plugin("openstack_telemetry_event_functional",
+                                      additional_tests=additional_tests,
+                                      advanced_options=options
+                                      )
