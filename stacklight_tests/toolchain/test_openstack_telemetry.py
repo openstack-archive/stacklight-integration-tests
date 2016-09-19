@@ -84,3 +84,59 @@ class TestOpenstackTelemetryFunctional(api.ToolchainApi):
         self.env.revert_snapshot("deploy_openstack_telemetry")
         self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality()
         self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality()
+
+    @test(depends_on_groups=['prepare_slaves_5'],
+          groups=["openstack_telemetry_event_functional",
+                  "deploy_openstack_telemetry", "functional"])
+    @log_snapshot_after_test
+    def openstack_telemetry_event_functional(self):
+        """Deploy an environment with Openstack-Telemetry plugin with
+        enabled Ceilometer Event API and check its functionality
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 1 nodes with controller role
+            5. Add 1 nodes with compute and cinder roles
+            6. Add 1 nodes with elasticsearch_kibana and influxdb_grafana roles
+            7. Enable Ceilometer Event API
+            8. Deploy the cluster
+            9. Check that plugins are running
+            10. Run OSTF
+            11. Check Ceilometer Sample API
+            12. Check Ceilometer Alarm API
+            13. Check Ceilometer Events API
+
+        Duration 90m
+        """
+        self.check_run("openstack_telemetry_default_functional")
+        self.env.revert_snapshot("ready_with_3_slaves")
+        self.add_plugin(self.OPENSTACK_TELEMETRY)
+        self.disable_plugin(self.LMA_COLLECTOR)
+        self.disable_plugin(self.LMA_INFRASTRUCTURE_ALERTING)
+        self.prepare_plugins()
+        self.helpers.create_cluster(name=self.__class__.__name__)
+        self.activate_plugins()
+
+        options = {
+            "advanced_settings/value": True,
+            "event_api/value": True,
+        }
+
+        self.OPENSTACK_TELEMETRY.activate_plugin(options=options)
+
+        roles = ["elasticsearch_kibana", "influxdb_grafana"]
+        self.helpers.deploy_cluster(
+            {'slave-01': ['controller'],
+             'slave-02': ['controller'],
+             'slave-03': ['controller'],
+             'slave-04': ['compute', 'cinder'],
+             'slave-05': roles})
+        self.check_plugins_online()
+        self.helpers.run_ostf()
+        self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality()
+        self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality()
+        self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality()
+        self.env.make_snapshot("openstack_telemetry_event_functional",
+                               is_make=True)
