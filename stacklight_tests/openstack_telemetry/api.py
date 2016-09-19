@@ -130,62 +130,102 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
             self.settings.name, self.settings.version)
 
     def check_ceilometer_sample_functionality(self):
-        fail_msg = 'Failed to get sample list.'
-        msg = 'getting samples list'
+        logger.info("Start checking Ceilometer Samples API")
+
+        fail_msg = "Failed to get sample list."
+        msg = "getting samples list"
         self.helpers.verify(60, self.ceilometer_client.new_samples.list, 1,
                             fail_msg, msg, limit=10)
 
-        fail_msg = 'Failed to get statistic of metric.'
-        msg = 'getting statistic of metric'
+        fail_msg = "Failed to get statistic of metric."
+        msg = "getting statistic of metric"
         an_hour_ago = (datetime.datetime.now() -
                        datetime.timedelta(hours=1)).isoformat()
-        query = [{'field': 'timestamp', 'op': 'gt', 'value': an_hour_ago}]
+        query = [{"field": "timestamp", "op": "gt", "value": an_hour_ago}]
 
         self.helpers.verify(600, self.ceilometer_client.statistics.list, 2,
-                            fail_msg, msg, meter_name='image', q=query)
+                            fail_msg, msg, meter_name="image", q=query)
 
     def check_ceilometer_alarm_functionality(self):
-        fail_msg = 'Failed to create alarm.'
-        msg = 'creating alarm'
-        alarm = self.helpers.verify(60, self.create_alarm, 1, fail_msg, msg,
-                                    meter_name='image',
-                                    threshold=0.9,
-                                    name='ceilometer-fake-alarm',
-                                    period=600,
-                                    statistic='avg',
-                                    comparison_operator='lt')
+        logger.info("Start checking Ceilometer AODH(Alarms) API")
 
-        fail_msg = 'Failed to get alarm.'
-        msg = 'getting alarm'
+        fail_msg = "Failed to create alarm."
+        msg = "creating alarm"
+        alarm = self.helpers.verify(60, self.create_alarm, 1, fail_msg, msg,
+                                    meter_name="image",
+                                    threshold=0.9,
+                                    name="ceilometer-fake-alarm",
+                                    period=600,
+                                    statistic="avg",
+                                    comparison_operator="lt")
+
+        fail_msg = "Failed to get alarm."
+        msg = "getting alarm"
         self.helpers.verify(60, self.ceilometer_client.alarms.get, 2,
                             fail_msg, msg, alarm_id=alarm.alarm_id)
 
-        fail_msg = 'Failed while waiting for alarm state to become "ok".'
-        msg = 'waiting for alarm state to become "ok"'
+        fail_msg = "Failed while waiting for alarm state to become 'ok'."
+        msg = "waiting for alarm state to become 'ok'"
         self.helpers.verify(1000, self.check_alarm_state, 3,
-                            fail_msg, msg, alarm_id=alarm.alarm_id, state='ok')
+                            fail_msg, msg, alarm_id=alarm.alarm_id, state="ok")
 
-        fail_msg = 'Failed to update alarm.'
-        msg = 'updating alarm'
+        fail_msg = "Failed to update alarm."
+        msg = "updating alarm"
         self.helpers.verify(60, self.ceilometer_client.alarms.update, 4,
                             fail_msg, msg, alarm_id=alarm.alarm_id,
                             threshold=1.1)
 
-        fail_msg = 'Failed while waiting for alarm state to become "alarm".'
-        msg = 'waiting for alarm state to become "alarm"'
+        fail_msg = "Failed while waiting for alarm state to become 'alarm'."
+        msg = "waiting for alarm state to become 'alarm'"
         self.helpers.verify(1000, self.check_alarm_state, 5,
                             fail_msg, msg, alarm_id=alarm.alarm_id,
-                            state='alarm')
+                            state="alarm")
 
-        fail_msg = 'Failed to get alarm history.'
-        msg = 'getting alarm history'
+        fail_msg = "Failed to get alarm history."
+        msg = "getting alarm history"
         self.helpers.verify(60, self.ceilometer_client.alarms.get_history, 6,
                             fail_msg, msg, alarm_id=alarm.alarm_id)
 
-        fail_msg = 'Failed to delete alarm.'
-        msg = 'deleting alarm'
+        fail_msg = "Failed to delete alarm."
+        msg = "deleting alarm"
         self.helpers.verify(60, self.ceilometer_client.alarms.delete, 7,
                             fail_msg, msg, alarm_id=alarm.alarm_id)
+
+    def check_ceilometer_event_functionality(self):
+        logger.info("Start checking Ceilometer Events API")
+
+        fail_msg = "Failed to get event list."
+        msg = "getting event list"
+        events_list = self.verify(600, self.ceilometer_client.events.list, 1,
+                                  fail_msg, msg, limit=10)
+        event_type = events_list[0].event_type
+        message_id = events_list[0].message_id
+        traits = events_list[0].traits
+
+        fail_msg = ("Failed to find '{event_type}' event type in certain "
+                    "'{message_id}' event.".format(event_type=event_type,
+                                                   message_id=message_id))
+        msg = ("searching '{event_type}' event type in certain "
+               "'{message_id}' event.".format(event_type=event_type,
+                                              message_id=message_id))
+        self.helpers.verify(60, self.ceilometer_client.events.get, 2, fail_msg,
+                            msg, message_id=message_id)
+
+        fail_msg = "Failed to get event types list."
+        msg = "getting event types list"
+        self.helpers.verify(60, self.ceilometer_client.event_types.list, 3,
+                            fail_msg, msg)
+
+        fail_msg = "Failed to get trait list."
+        msg = "getting trait list"
+        self.helpers.verify(60, self.ceilometer_client.traits.list, 4,
+                            fail_msg, msg, event_type=event_type,
+                            trait_name=traits[0].name)
+
+        fail_msg = "Failed to check event traits description."
+        msg = "checking event traits description"
+        self.helpers.verify(60, self.ceilometer_client.trait_descriptions, 5,
+                            fail_msg, msg, event_type=event_type)
 
     def create_alarm(self, **kwargs):
         for alarm in self.ceilometer_client.alarms.list():
