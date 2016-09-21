@@ -283,53 +283,102 @@ class TestFunctionalToolchain(api.ToolchainApi):
         """
         self.env.revert_snapshot("deploy_ha_toolchain")
 
-        services = {
-            'nova': ['nova-api', 'nova-scheduler'],
-            'cinder': ['cinder-api', 'cinder-scheduler'],
-            'neutron': ['neutron-server', 'neutron-openvswitch-agent'],
-            'glance': ['glance-api'],
-            'heat': ['heat-api'],
-            'keystone': ['apache2']
+        controller_services = {
+            'nova': [['nova-api', 'haproxy'],
+                     ['nova-scheduler', 'nova_services']],
+            'cinder': [['cinder-api', 'haproxy'],
+                       ['cinder-scheduler', 'cinder_services']],
+            'neutron': [['neutron-server', 'haproxy']],
+            'glance': [['glance-api', 'haproxy']],
+            'heat': [['heat-api', 'haproxy']],
+            'keystone': [['apache2', 'haproxy']]
+        }
+
+        compute_services = {
+            'nova': [['nova-compute', 'nova_services']]
+        }
+
+        controller_pcs_services = {
+            'neutron': [['neutron-openvswitch-agent', 'neutron_agents'],
+                        ['neutron-l3-agent', 'neutron_agents'],
+                        ['neutron-metadata-agent', 'neutron_agents'],
+                        ['neutron-dhcp-agent', 'neutron_agents']],
+            'rabbitmq': [['p_rabbitmq-server', 'rabbit_nodes']]
+        }
+
+        compute_pcs_services = {
+            'neutron': [['neutron-openvswitch-agent', 'neutron_agents',
+                         ['stop', 'start']]]
+        }
+
+        check_list = {
+            'controller': {
+                'services': controller_services,
+                'pcs': controller_pcs_services
+            },
+            'compute': {
+                'services': compute_services,
+                'pcs': compute_pcs_services
+            }
         }
 
         lma_devops_node = self.helpers.get_node_with_vip(
             self.settings.stacklight_roles,
-            self.helpers.full_vip_name(
+            self.helpers.get_vip_resource_name(
                 self.LMA_INFRASTRUCTURE_ALERTING.settings.failover_vip))
         toolchain_node = self.fuel_web.get_nailgun_node_by_devops_node(
             lma_devops_node)
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
-            controller_node = (
-                self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-                    self.helpers.cluster_id, ['controller'])[0])
-            for key in services:
-                for service in services[key]:
-                    self.change_verify_service_state(
-                        service_name=[service, key], action='stop',
-                        new_state='WARNING',
-                        service_state_in_influx=self.settings.WARN,
-                        down_backends_in_haproxy=1,
-                        toolchain_node=toolchain_node,
-                        controller_nodes=[controller_node],
-                        nagios_driver=driver)
-                    self.change_verify_service_state(
-                        service_name=[service, key], action='start',
-                        new_state='OK',
-                        service_state_in_influx=self.settings.OKAY,
-                        down_backends_in_haproxy=0,
-                        toolchain_node=toolchain_node,
-                        controller_nodes=[controller_node],
-                        nagios_driver=driver)
+            for node_type in check_list:
+                node = (self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+                    self.helpers.cluster_id, [node_type])[0])
+                for key in check_list[node_type]['services']:
+                    for service in check_list[node_type]['services'][key]:
+                        self.change_verify_service_state(
+                            service_name=[service[0], key], action="stop",
+                            new_state='WARNING',
+                            service_state_in_influx=self.settings.WARN,
+                            backend_check=service[1], down_backends=1,
+                            toolchain_node=toolchain_node,
+                            nodes=[node],
+                            nagios_driver=driver)
+                        self.change_verify_service_state(
+                            service_name=[service[0], key], action="start",
+                            new_state='OK',
+                            service_state_in_influx=self.settings.OKAY,
+                            backend_check=service[1], down_backends=0,
+                            toolchain_node=toolchain_node,
+                            nodes=[node],
+                            nagios_driver=driver)
+                for key in check_list[node_type]['pcs']:
+                    for service in check_list[node_type]['pcs'][key]:
+                        actions = ['ban', 'clear']
+                        if len(service) == 3:
+                            actions = service[2]
+                        self.change_verify_pcs_service_state(
+                            service_name=[service[0], key], action=actions[0],
+                            new_state='WARNING',
+                            service_state_in_influx=self.settings.WARN,
+                            backend_check=service[1], down_backends=1,
+                            nodes=[node],
+                            nagios_driver=driver)
+                        self.change_verify_pcs_service_state(
+                            service_name=[service[0], key], action=actions[1],
+                            new_state='OK',
+                            service_state_in_influx=self.settings.OKAY,
+                            backend_check=service[1], down_backends=0,
+                            nodes=[node],
+                            nagios_driver=driver)
 
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["toolchain_critical_alert_service", "service_restart",
                   "toolchain", "functional"])
-    # @log_snapshot_after_test
+    @log_snapshot_after_test
     def toolchain_critical_alert_service(self):
         """Verify that the critical alerts for services show up in
         the Grafana and Nagios UI.
@@ -368,51 +417,91 @@ class TestFunctionalToolchain(api.ToolchainApi):
         """
         self.env.revert_snapshot("deploy_ha_toolchain")
 
-        services = {
-            'nova': ['nova-api', 'nova-scheduler'],
-            'cinder': ['cinder-api', 'cinder-scheduler'],
-            'neutron': ['neutron-server', 'neutron-openvswitch-agent'],
-            'glance': ['glance-api'],
-            'heat': ['heat-api'],
-            'keystone': ['apache2']
+        controller_services = {
+            'nova': [['nova-api', 'haproxy'],
+                     ['nova-scheduler', 'nova_services']],
+            'cinder': [['cinder-api', 'haproxy'],
+                       ['cinder-scheduler', 'cinder_services']],
+            'neutron': [['neutron-server', 'haproxy']],
+            'glance': [['glance-api', 'haproxy']],
+            'heat': [['heat-api', 'haproxy']],
+            'keystone': [['apache2', 'haproxy']]
+        }
+
+        compute_services = {
+            'nova': [['nova-compute', 'nova_services']]
+        }
+
+        controller_pcs_services = {
+            'neutron': [['neutron-l3-agent', 'neutron_agents'],
+                        ['neutron-metadata-agent', 'neutron_agents'],
+                        ['neutron-dhcp-agent', 'neutron_agents']],
+            'rabbitmq': [['p_rabbitmq-server', 'rabbit_nodes']]
+        }
+
+        check_list = {
+            'controller': {
+                'services': controller_services,
+                'pcs': controller_pcs_services
+            },
+            'compute': {
+                'services': compute_services,
+                'pcs': {}
+            }
         }
 
         lma_devops_node = self.helpers.get_node_with_vip(
             self.settings.stacklight_roles,
-            self.helpers.full_vip_name(
+            self.helpers.get_vip_resource_name(
                 self.LMA_INFRASTRUCTURE_ALERTING.settings.failover_vip))
         toolchain_node = self.fuel_web.get_nailgun_node_by_devops_node(
             lma_devops_node)
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "//frame[2]",
-                                      "Nagios Core") as driver:
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
                 driver, 'Services', "//table[@class='headertable']")
-            controller_nodes = (
-                self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-                    self.helpers.cluster_id, ['controller']))
-            for key in services:
-                for service in services[key]:
-                    logger.info("Checking service {0}".format(service))
-                    self.change_verify_service_state(
-                        service_name=[service, key], action='stop',
-                        new_state='CRITICAL',
-                        service_state_in_influx=self.settings.CRIT,
-                        down_backends_in_haproxy=2,
-                        toolchain_node=toolchain_node,
-                        controller_nodes=[controller_nodes[0],
-                                          controller_nodes[1]],
-                        nagios_driver=driver)
-                    self.change_verify_service_state(
-                        service_name=[service, key], action='start',
-                        new_state='OK',
-                        service_state_in_influx=self.settings.OKAY,
-                        down_backends_in_haproxy=0,
-                        toolchain_node=toolchain_node,
-                        controller_nodes=[controller_nodes[0],
-                                          controller_nodes[1]],
-                        nagios_driver=driver)
+            for node_type in check_list:
+                nodes = (self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+                    self.helpers.cluster_id, [node_type]))
+                for key in check_list[node_type]['services']:
+                    for service in check_list[node_type]['services'][key]:
+                        self.change_verify_service_state(
+                            service_name=[service[0], key], action="stop",
+                            new_state='CRITICAL',
+                            service_state_in_influx=self.settings.CRIT,
+                            backend_check=service[1], down_backends=2,
+                            toolchain_node=toolchain_node,
+                            nodes=[nodes[0], nodes[1]],
+                            nagios_driver=driver)
+                        self.change_verify_service_state(
+                            service_name=[service[0], key], action="start",
+                            new_state='OK',
+                            service_state_in_influx=self.settings.OKAY,
+                            backend_check=service[1], down_backends=0,
+                            toolchain_node=toolchain_node,
+                            nodes=[nodes[0], nodes[1]],
+                            nagios_driver=driver)
+                for key in check_list[node_type]['pcs']:
+                    for service in check_list[node_type]['pcs'][key]:
+                        actions = ['ban', 'clear']
+                        if len(service) == 3:
+                            actions = service[2]
+                        self.change_verify_pcs_service_state(
+                            service_name=[service[0], key], action=actions[0],
+                            new_state='CRITICAL',
+                            service_state_in_influx=self.settings.CRIT,
+                            backend_check=service[1], down_backends=2,
+                            nodes=[nodes[0], nodes[1]],
+                            nagios_driver=driver)
+                        self.change_verify_pcs_service_state(
+                            service_name=[service[0], key], action=actions[1],
+                            new_state='OK',
+                            service_state_in_influx=self.settings.OKAY,
+                            backend_check=service[1], down_backends=0,
+                            nodes=[nodes[0], nodes[1]],
+                            nagios_driver=driver)
 
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["toolchain_warning_alert_node", "node_alert_warning",

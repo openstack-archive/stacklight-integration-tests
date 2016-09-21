@@ -375,9 +375,9 @@ class ToolchainApi(object):
                             interval=10, timeout_msg=msg)
 
     def change_verify_service_state(self, service_name, action, new_state,
-                                    service_state_in_influx,
-                                    down_backends_in_haproxy, toolchain_node,
-                                    controller_nodes, nagios_driver):
+                                    service_state_in_influx, backend_check,
+                                    down_backends, toolchain_node,
+                                    nodes, nagios_driver):
         """Verify that the alerts for services show up in the Grafana
             and Nagios UI.
 
@@ -391,37 +391,97 @@ class ToolchainApi(object):
         :type new_state: str
         :param service_state_in_influx: new state of the service in influx.
         :type new_state: int
-        :param down_backends_in_haproxy: amout of backends in 'down' state.
-        :type down_backends_in_haproxy: int
+        :param backend_check: type of backend check to be performed.
+        :type backend_check: str
+        :param down_backends: amout of backends in 'down' state.
+        :type down_backends: int
         :param toolchain_node: toolchain node with
             infrastructure_alerting_ui vip.
         :type toolchain_node: dict
-        :param controller_nodes: list of the controller nodes to change
-            service state on.
-        :type controller_nodes: list
+        :param nodes: list of the nodes to change  service state on.
+        :type nodes: list
         :param nagios_driver: selenium web driver
             service state on.
         :type nagios_driver: WebDriver
         """
 
-        logger.info("Changing state of service {0}. "
-                    "New state is {1}".format(service_name[0], new_state))
+        logger.info("Changing state of service {}."
+                    " New state is {}".format(service_name[0], new_state))
         with self.fuel_web.get_ssh_for_nailgun_node(toolchain_node) as remote:
             self.remote_ops.clear_local_mail(remote)
-        for node in controller_nodes:
+        default = False
+        if service_name[0] == "apache2":
+            default = True
+        for node in nodes:
             with self.helpers.fuel_web.get_ssh_for_nailgun_node(
                     node) as remote:
-                self.remote_ops.manage_service(remote, service_name[0], action)
+                self.remote_ops.manage_service(remote, service_name[0],
+                                               action, default=default)
         self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
             nagios_driver, {service_name[1]: new_state})
-        self.INFLUXDB_GRAFANA.check_cluster_status(
+        self.INFLUXDB_GRAFANA.wait_cluster_status(
             service_name[1], service_state_in_influx)
-        self.INFLUXDB_GRAFANA.check_count_of_haproxy_backends(
-            service_name[0], expected_count=down_backends_in_haproxy)
+        if backend_check == "haproxy":
+            self.INFLUXDB_GRAFANA.wait_count_of_haproxy_backends(
+                service_name[0], expected_count=down_backends)
+        elif backend_check == "nova_services":
+            self.INFLUXDB_GRAFANA.wait_agent_status(
+                'nova_services', service_name[0], down_backends)
+        elif backend_check == "cinder_services":
+            self.INFLUXDB_GRAFANA.wait_agent_status(
+                'cinder_services', service_name[0], down_backends)
         with self.helpers.fuel_web.get_ssh_for_nailgun_node(
                 toolchain_node) as remote:
             self.checkers.check_local_mail(
                 remote, toolchain_node["name"], service_name[1], new_state)
+
+    def change_verify_pcs_service_state(self, service_name, action, new_state,
+                                    service_state_in_influx, backend_check,
+                                    down_backends, nodes, nagios_driver):
+        """Verify that the alerts for services show up in the Grafana
+            and Nagios UI.
+
+        :param service_name: name of the service to change state of.
+            Format [service name, service name
+            on dashboard] e.g. ['nova-api', 'nova']
+        :type service_name: list.
+        :param action: action to perform (e.g. stop, start).
+        :type action: str
+        :param new_state: new state of the service.
+        :type new_state: str
+        :param service_state_in_influx: new state of the service in influx.
+        :type new_state: int
+        :param backend_check: type of backend check to be performed.
+        :type backend_check: str
+        :param down_backends: amout of backends in 'down' state.
+        :type down_backends: int
+        :param nodes: list of the nodes to change  service state on.
+        :type nodes: list
+        :param nagios_driver: selenium web driver
+            service state on.
+        :type nagios_driver: WebDriver
+        """
+
+        logger.info("Changing state of service {}."
+                    " New state is {}".format(service_name[0], new_state))
+        for node in nodes:
+            with self.helpers.fuel_web.get_ssh_for_nailgun_node(
+                    node) as remote:
+                self.remote_ops.manage_pcs_service(
+                    remote, name=service_name[0], node=node['fqdn'],
+                    operation=action)
+        self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
+            nagios_driver, {service_name[1]: new_state})
+        self.INFLUXDB_GRAFANA.wait_cluster_status(
+            service_name[1], service_state_in_influx)
+        if backend_check == "haproxy":
+            self.INFLUXDB_GRAFANA.wait_count_of_haproxy_backends(
+                service_name[0], expected_count=down_backends)
+        elif backend_check == "neutron_agents":
+            self.INFLUXDB_GRAFANA.wait_agent_status(
+                'neutron_agents', service_name[0], down_backends)
+        elif backend_check == "rabbit_nodes":
+            self.INFLUXDB_GRAFANA.wait_rabbitmq_nodes_status(3 - down_backends)
 
     def change_verify_node_service_state(self, services, state, influx_state,
                                          percent, toolchain_node,
@@ -464,7 +524,7 @@ class ToolchainApi(object):
         self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
             nagios_driver, {services[1]: state},
             [controller_nodes[0]['hostname']])
-        self.INFLUXDB_GRAFANA.check_cluster_status(services[0],
+        self.INFLUXDB_GRAFANA.wait_cluster_status(services[0],
                                                    self.settings.OKAY)
 
         with self.fuel_web.get_ssh_for_nailgun_node(
@@ -478,7 +538,7 @@ class ToolchainApi(object):
                 nagios_driver, {services[0]: state})
             self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
                 nagios_driver, {services[1]: state}, [node['hostname']])
-        self.INFLUXDB_GRAFANA.check_cluster_status(services[0], influx_state)
+        self.INFLUXDB_GRAFANA.wait_cluster_status(services[0], influx_state)
 
         with self.helpers.fuel_web.get_ssh_for_nailgun_node(
                 toolchain_node) as remote:
@@ -495,7 +555,7 @@ class ToolchainApi(object):
                 nagios_driver, {services[0]: 'OK'})
             self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
                 nagios_driver, {services[1]: 'OK'}, [node['hostname']])
-        self.INFLUXDB_GRAFANA.check_cluster_status(services[0],
+        self.INFLUXDB_GRAFANA.wait_cluster_status(services[0],
                                                    self.settings.OKAY)
 
         with self.helpers.fuel_web.get_ssh_for_nailgun_node(
