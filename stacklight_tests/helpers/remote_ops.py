@@ -129,7 +129,7 @@ def manage_pacemaker_service(remote, name, operation="restart"):
         operation=operation, service=name))
 
 
-def manage_service(remote, name, operation="restart"):
+def manage_service(remote, name, operation="restart", default=False):
     """Operate service on remote node.
 
         :param remote: SSH connection to the node.
@@ -140,14 +140,32 @@ def manage_service(remote, name, operation="restart"):
         :type operation: str
     """
 
+    # if remote.execute("pcs resource show {}".format(name))['exit_code'] == 0:
+    #     service_cmd = 'pcs resource {operation} {service}'
     if remote.execute("service {} status".format(name))['exit_code'] == 0:
         service_cmd = 'service {service} {operation}'
     elif remote.execute("initctl status {}".format(name))['exit_code'] == 0:
         service_cmd = 'initctl {operation} {service}'
+    elif default:
+        service_cmd = 'service {service} {operation}'
     else:
         raise Exception('no service handler!')
 
     remote.check_call(service_cmd.format(service=name, operation=operation))
+
+
+def manage_pcs_service(remote, name, node, operation="ban"):
+    """Operate service on remote node.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param name: service name.
+        :type name: str
+        :param operation: type of operation, usually start, stop or restart.
+        :type operation: str
+    """
+
+    remote.check_call("pcs resource {} {} {}".format(operation, name, node))
 
 
 def clear_local_mail(remote):

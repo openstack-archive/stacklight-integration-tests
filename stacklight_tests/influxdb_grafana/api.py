@@ -14,6 +14,7 @@
 
 import json
 
+from devops.helpers import helpers
 from fuelweb_test import logger
 from proboscis import asserts
 
@@ -184,34 +185,57 @@ class InfluxdbPluginApi(base_test.PluginApi):
             return result["series"][0]["values"]
         return []
 
-    def check_cluster_status(self, name, expected_status, interval='3m'):
+    def wait_cluster_status(self, name, expected_status, interval='3m'):
         output = ("SELECT last(value) FROM cluster_status WHERE "
                   "time > now() - {0} AND cluster_name='{1}'".format(interval,
                                                                      name))
-        msg_header = "Wrong '{0}' service state has been found!".format(
-            name)
-        self._check_influx_query_last_value(output, expected_status,
-                                            msg_header)
+        msg = "Wrong '{0}' service state has been found!".format(name)
 
-    def check_count_of_haproxy_backends(self, service, node_state='down',
-                                        expected_count=0, interval='3m'):
+        helpers.wait(lambda: self._check_influx_query_last_value(
+            output, expected_status), timeout=60 * 5, timeout_msg=msg)
+
+    def wait_count_of_haproxy_backends(self, service, node_state='down',
+                                       expected_count=0, interval='3m'):
 
         query = ("SELECT last(value) FROM haproxy_backend_servers WHERE "
-                 "backend='{0}' AND state='{1}' and "
-                 "time > now() - {2}".format(service, node_state, interval))
+                 "state='{}' and time > now() - {}".format(node_state,
+                                                           interval))
 
-        msg_header = ("Wrong amout of nodes with service '{0}' "
-                      "in '{1}' state!".format(service, node_state))
-        self._check_influx_query_last_value(query, expected_count, msg_header)
+        msg = ("Wrong amout of nodes with service '{0}' "
+               "in '{1}' state!".format(service, node_state))
+        helpers.wait(lambda: self._check_influx_query_last_value(
+            query, expected_count), timeout=60 * 5, timeout_msg=msg)
 
-    def _check_influx_query_last_value(self, query, expected_value,
-                                       msg_header):
+    def wait_agent_status(self, from_selector, agent_name, expected_count,
+                          interval='3m'):
+        output = ("SELECT last(value) FROM openstack_{} WHERE "
+                  "service = '{}' AND state = 'down' AND"
+                  " time > now() - {}".format(from_selector,
+                                              agent_name.split('-')[1],
+                                              interval))
+        msg = "Wrong '{}' {} state has been found!".format(
+            agent_name, " ".join(from_selector.split('_')))
+
+        helpers.wait(lambda: self._check_influx_query_last_value(
+            output, expected_count), timeout=60 * 5, timeout_msg=msg)
+
+    def wait_rabbitmq_nodes_status(self, expected_count,
+                                   interval='3m'):
+        output = ("SELECT last(value) FROM rabbitmq_running_nodes WHERE "
+                  " time > now() - {}".format(interval))
+        msg = "Wrong amount of active rabbitmq nodes has been found!"
+
+        helpers.wait(lambda: self._check_influx_query_last_value(
+            output, expected_count), timeout=60 * 5, timeout_msg=msg)
+
+    def _check_influx_query_last_value(self, query, expected_value):
         output = self.do_influxdb_query(query)
         lines = output.json()
         if not lines['results'][0]:
             logger.error("The query ['result'] is empty!")
-            raise NotFound
+            return False
         state = lines['results'][0]['series'][0]['values'][0][1]
-        asserts.assert_equal(expected_value, state,
-                             msg_header + " Expected {0} but"
-                             " found {1}".format(expected_value, state))
+        if expected_value == state:
+            return True
+        else:
+            return False
