@@ -32,6 +32,8 @@ RABBITMQ_DISK_CRITICAL_PERCENT = 100
 RABBITMQ_MEMORY_WARNING_VALUE = 1.01
 RABBITMQ_MEMORY_CRITICAL_VALUE = 1.0001
 
+OKAY_FLAG = 1
+
 
 @test(groups=["plugins"])
 class TestToolchainAlarms(api.ToolchainApi):
@@ -301,3 +303,60 @@ class TestToolchainAlarms(api.ToolchainApi):
             self.helpers.cluster_id, ["compute"])[0]
         self._check_filesystem_alarms(compute, "/var/lib/nova", "nova-fs",
                                       "/var/lib/nova/bigfile", "compute")
+
+    def _check_mysql_cluster_metrics_on_disaster(self, metric):
+        self.env.revert_snapshot("deploy_ha_toolchain")
+
+        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
+        controller = self.fuel_web.get_devops_nodes_by_nailgun_nodes(
+            nailgun_nodes)[0]
+        primary_controller = self.fuel_web.get_nailgun_primary_node(
+            controller)
+        pc_host = self.fuel_web.get_nailgun_node_by_devops_node(
+            primary_controller)["hostname"]
+
+        filters = (
+            "value = {value}".format(value=OKAY_FLAG),
+            "time >= now() - 1m",
+            "hostname = '{hostname}'".format(hostname=pc_host)
+
+        )
+        self.check_metric(metric, filters)
+
+        self.helpers.power_off_node(primary_controller)
+
+        self.check_metric(metric, filters, is_positive=False)
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["check_alarm_mysql_node_connected", "toolchain",
+                  "mysql_cluster", "alarms"])
+    @log_snapshot_after_test
+    def check_alarm_mysql_node_connected(self):
+        """Check that mysql-node-connected alarm works as expected.
+
+        Scenario:
+            1. Revert the snapshot with 9 deployed nodes.
+            2. Destroy primary controller.
+            3. Check that mysql-node-connected alarm triggered.
+
+        Duration 20m
+        """
+        self._check_mysql_cluster_metrics_on_disaster(
+            "mysql_cluster_connected")
+
+    @test(depends_on_groups=["deploy_ha_toolchain"],
+          groups=["check_alarm_mysql_node_ready", "toolchain", "mysql_cluster",
+                  "alarms"])
+    @log_snapshot_after_test
+    def check_alarm_mysql_node_ready(self):
+        """Check that mysql-node-ready alarm works as expected.
+
+        Scenario:
+            1. Revert the snapshot with 9 deployed nodes.
+            2. Destroy primary controller.
+            3. Check that mysql-node-ready alarm triggered.
+
+        Duration 20m
+        """
+        self._check_mysql_cluster_metrics_on_disaster("mysql_cluster_ready")
