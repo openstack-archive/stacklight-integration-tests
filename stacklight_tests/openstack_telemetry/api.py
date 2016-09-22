@@ -231,6 +231,33 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         self.helpers.verify(60, self.ceilometer_client.trait_descriptions, 5,
                             fail_msg, msg, event_type=event_type)
 
+    def check_ceilometer_resource_functionality(self):
+        logger.info("Start checking Ceilometer Resource API")
+
+        fail_msg = "Failed to get resource list."
+        msg = "getting resources list"
+        resources_list = self.helpers.verify(
+            600, self.ceilometer_client.resources.list, 1, fail_msg, msg,
+            limit=10)
+        resource_id = resources_list[0].resource_id
+
+        fail_msg = ("Failed to find '{}' resource with certain resource "
+                    "ID.".format(resource_id))
+        msg = ("searching '{}' resource with certain resource "
+               "ID".format(resource_id))
+        self.helpers.verify(60, self.ceilometer_client.resources.get, 2,
+                            fail_msg, msg, resource_id=resource_id)
+
+        fail_msg = "Failed to get meters list."
+        msg = "getting meters list"
+        self.helpers.verify(60, self.ceilometer_client.meters.list, 3,
+                            fail_msg, msg, limit=10)
+
+        fail_msg = "Failed to get unique meters list."
+        msg = "getting unique meters list"
+        self.helpers.verify(60, self.ceilometer_client.meters.list, 4,
+                            fail_msg, msg, limit=10, unique=True)
+
     def create_alarm(self, **kwargs):
         for alarm in self.ceilometer_client.alarms.list():
             if alarm.name == kwargs['name']:
