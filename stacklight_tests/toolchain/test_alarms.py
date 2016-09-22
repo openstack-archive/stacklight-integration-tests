@@ -563,3 +563,53 @@ class TestToolchainAlarms(api.ToolchainApi):
             self._verify_service_alarms(
                 get_users_list("admin"), 100, metrics, WARNING_STATUS)
 
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_swift_api_logs_errors_alarms",
+                  "http_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_swift_api_logs_errors_alarms(self):
+        """Check that swift-logs-error and swift-api-http-error alarms
+        work as expected.
+
+        Scenario:
+            1. Stop swift-account service on controller.
+            2. Run some swift stack list command repeatedly.
+            3. Check the last value of the swift-logs-error alarm
+               in InfluxDB.
+            4. Check the last value of the swift-api-http-errors alarm
+               in InfluxDB.
+            5. Start swift-account service on controller.
+
+        Duration 15m
+        """
+
+        def get_objects_list():
+            try:
+                with self.fuel_web.get_ssh_for_nailgun_node(
+                        controller) as remote:
+                    return remote.execute(
+                        ". openrc "
+                        "&& export OS_AUTH_URL="
+                        "`(echo $OS_AUTH_URL | sed 's%:5000/%:5000/v2.0%')` "
+                        "&& swift list > /dev/null 2>&1")
+            except Exception:
+                pass
+
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])[0]
+
+        with self.fuel_web.get_ssh_for_nailgun_node(
+                controller) as remote:
+            self.remote_ops.manage_service(
+                remote, "swift-account", "stop")
+
+        metrics = {"swift-logs": "error",
+                   "swift-api": "http_errors"}
+        self._verify_service_alarms(
+            get_objects_list, 10, metrics, WARNING_STATUS)
+
+        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+            self.remote_ops.manage_service(
+                remote, "swift-account", "start")
