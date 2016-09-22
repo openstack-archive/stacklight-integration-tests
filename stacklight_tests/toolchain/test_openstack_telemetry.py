@@ -176,3 +176,48 @@ class TestOpenstackTelemetry(api.ToolchainApi):
             additional_tests=additional_tests,
             advanced_options=options
         )
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["openstack_telemetry_all_functional",
+                  "deploy_openstack_telemetry", "functional"])
+    @log_snapshot_after_test
+    def openstack_telemetry_full_functional(self):
+        """Deploy an environment with Openstack-Telemetry plugin with
+        enabled Ceilometer Event and Resource API and check its functionality
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller role
+            5. Add 1 nodes with compute and cinder roles
+            6. Add 1 nodes with elasticsearch_kibana and influxdb_grafana roles
+            9. Enable Ceilometer Event and Resource API
+            10. Deploy the cluster
+            11. Check that plugins are running
+            12. Run OSTF
+            13. Check Ceilometer Sample API
+            14. Check Ceilometer Alarm API
+            15. Check Ceilometer Event API
+            16. Check Ceilometer Resource API
+
+        Duration 90m
+        """
+        additional_tests = (
+            self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_resource_functionality,
+        )
+
+        options = {
+            "advanced_settings/value": True,
+            "event_api/value": True,
+            "resource_api/value": True,
+        }
+
+        self._deploy_telemetry_plugin(
+            "openstack_telemetry_full_functional",
+            additional_tests=additional_tests,
+            advanced_options=options
+        )
