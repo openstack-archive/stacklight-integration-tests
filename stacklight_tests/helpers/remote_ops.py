@@ -105,9 +105,9 @@ def clear_resource(remote, resource, wait=None):
         :param remote: SSH connection to the node.
         :type remote: SSHClient
         :param resource: resource name.
-        :type name: str
+        :type resource: str
         :param wait: number of seconds to wait for the operation to complete.
-        :type operation: int
+        :type wait: int
     """
     cmd = "pcs resource clear {}".format(resource)
     if wait is not None:

@@ -12,6 +12,7 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 
+import contextlib
 import os
 import re
 import signal
@@ -119,7 +120,7 @@ class PluginHelper(object):
         :param plugin: name of the plugin.
         :type plugin: str
         :param parameter: name of the parameter.
-        :type name: str
+        :type parameter: str
         :returns: parameter's value
         """
         asserts.assert_true(
@@ -202,7 +203,7 @@ class PluginHelper(object):
         """Get the virtual IP address.
 
         :param vip_name: name of the VIP.
-        :type name: str
+        :type vip_name: str
         :returns: the VIP address in dotted-decimal notation
         :rtype: str
         """
@@ -719,6 +720,34 @@ class PluginHelper(object):
             )
         else:
             return result
+
+    @contextlib.contextmanager
+    def make_logical_db_unavailable(self, db_name, controller):
+        """Context manager that renames all tables in provided database
+        to make it unavailable and renames it back on exit.
+
+        :param db_name: logical database name
+        :type db_name: str
+        :param controller: controller with MySQL database
+        :type controller: nailgun node
+        :returns: None, works as context manager
+        """
+        cmd = (
+            "mysql -AN -e "
+            "\"select concat("
+            "'rename table {db_name}.', table_name, ' "
+            "to {db_name}.' , {method}(table_name) , ';') "
+            "from information_schema.tables "
+            "where table_schema = '{db_name}';"
+            "\" | mysql")
+
+        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+            remote.check_call(cmd.format(db_name=db_name, method="upper"))
+
+        yield
+
+        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+            remote.check_call(cmd.format(db_name=db_name, method="lower"))
 
 
 def _raise_TimeOut(sig, stack):
