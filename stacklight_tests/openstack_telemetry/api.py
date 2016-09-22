@@ -231,6 +231,38 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         self.helpers.verify(60, self.ceilometer_client.trait_descriptions.list,
                             5, fail_msg, msg, event_type=event_type)
 
+    def check_ceilometer_resource_functionality(self):
+        logger.info("Start checking Ceilometer Resource API")
+
+        fail_msg = "Failed to get resource list."
+        msg = "getting resources list"
+        resources_list = self.helpers.verify(
+            600, self.ceilometer_client.resources.list, 1, fail_msg, msg,
+            limit=10)
+        for resource in resources_list:
+            # We have to check resource_id names to avoid using resource_id
+            # with '/' in its body which returns 404 Error for GET request
+            if "/" not in resource.resource_id:
+                resource_id = resource.resource_id
+                break
+
+        fail_msg = ("Failed to find '{}' resource with certain resource "
+                    "ID.".format(resource_id))
+        msg = ("searching '{}' resource with certain resource "
+               "ID".format(resource_id))
+        self.helpers.verify(60, self.ceilometer_client.resources.get, 2,
+                            fail_msg, msg, resource_id=resource_id)
+
+        fail_msg = "Failed to get meters list."
+        msg = "getting meters list"
+        self.helpers.verify(60, self.ceilometer_client.meters.list, 3,
+                            fail_msg, msg, limit=10)
+
+        fail_msg = "Failed to get unique meters list."
+        msg = "getting unique meters list"
+        self.helpers.verify(60, self.ceilometer_client.meters.list, 4,
+                            fail_msg, msg, limit=10, unique=True)
+
     def create_alarm(self, **kwargs):
         for alarm in self.ceilometer_client.alarms.list():
             if alarm.name == kwargs['name']:
