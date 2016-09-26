@@ -164,16 +164,19 @@ adv_net_template:
       - monitoring
       - mgmt
       - private
+      - public
       - storage
       influxdb_grafana:
       - admin
       - monitoring
       - mgmt
       - private
+      - public
       - storage
       infrastructure_alerting:
       - admin
       - monitoring
       - mgmt
       - private
+      - public
       - storage
