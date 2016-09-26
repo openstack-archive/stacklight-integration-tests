@@ -105,8 +105,10 @@ class TestToolchainNetworkTemplates(api.ToolchainApi):
                                       networks=network_config["networks"])
 
         # Don't update the interfaces when using network templates
+        # Also don't verify the network because the StackLight backends aren't
+        # connected to the public net and this would fail the verification
         self.helpers.deploy_cluster(self.settings.base_nodes,
-                                    verify_network=True,
+                                    verify_network=False,
                                     update_interfaces=False)
 
         self.check_plugins_online()
