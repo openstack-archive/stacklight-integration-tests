@@ -239,7 +239,12 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         resources_list = self.helpers.verify(
             600, self.ceilometer_client.resources.list, 1, fail_msg, msg,
             limit=10)
-        resource_id = resources_list[0].resource_id
+        for resource in resources_list:
+            # We need to check that resource_id doesn't contain char '/'
+            # because if it is GET resource request fails
+            if "/" not in resource.resource_id:
+                resource_id = resource.resource_id
+                break
         fail_msg = ("Failed to find '{}' resource with certain resource "
                     "ID.".format(resource_id))
         msg = ("searching '{}' resource with certain resource "
