@@ -12,8 +12,10 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import datetime
+import os
 
 import ceilometerclient.v2.client
+import heatclient.v1.client
 from fuelweb_test.helpers import checkers as fuelweb_checkers
 from fuelweb_test import logger
 
@@ -28,6 +30,32 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
     def __init__(self):
         super(OpenstackTelemeteryPluginApi, self).__init__()
         self._ceilometer = None
+        self._heat_cli = None
+
+    @property
+    def nova_cli(self):
+        return self.helpers.os_conn.nova
+
+    @property
+    def heat_cli(self):
+        if self._heat_cli is None:
+            keystone_access = self.helpers.os_conn.keystone_access
+            endpoint = keystone_access.service_catalog.url_for(
+                service_type='orchestration', service_name='heat',
+                interface='internal')
+            if not endpoint:
+                raise self.helpers.NotFound(
+                    "Cannot find Heat endpoint")
+            auth_url = keystone_access.service_catalog.url_for(
+                service_type='identity', service_name='keystone',
+                interface='internal')
+
+            self._heat_cli = heatclient.v1.client.Client(
+                auth_url=auth_url,
+                endpoint=endpoint,
+                token=(lambda: keystone_access.auth_token)()
+            )
+        return self._heat_cli
 
     @property
     def ceilometer_client(self):
@@ -268,6 +296,132 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         self.helpers.verify(60, self.ceilometer_client.meters.list, 4,
                             fail_msg, msg, limit=10, unique=True)
 
+    def create_flavor(self, ram=256, vcpus=1, disk=2):
+        """This method creates a flavor for Heat tests."""
+
+        logger.info("Creation of Heat tests flavor...")
+        name = "ostf_test-heat-flavor"
+        for flavor in self.nova_cli.flavors.list():
+            if name == flavor.name:
+                return flavor
+        flavor = self.helpers.os_conn.nova.flavors.create(name, ram, vcpus,
+                                                          disk)
+        # TODO(idegtiarov): remove test flavor after test passes or fails
+        logger.info("Flavor for Heat tests has been created.")
+        return flavor
+
+    def create_keypair(self, name="ostf_test-keypair-autoscaling"):
+        keypair = None
+        for keypairs in self.nova_cli.keypairs.list():
+            if name == keypairs.name:
+                keypair = keypairs
+                break
+        if not keypair:
+            keypair = self.nova_cli.keypairs.create(name)
+        return keypair
+
+    def create_securtity_group(self, name="ostf_test-secgroup-autoscaling"):
+        sg_desc = name + " description"
+        sec_group = None
+        for sgp in self.nova_cli.security_groups.list():
+            if name == sgp.name:
+                sec_group = sgp
+                break
+        if not sec_group:
+            sec_group = self.nova_cli.security_groups.create(name, sg_desc)
+        return sec_group
+
+    def check_ceilometer_autoscaling(self):
+
+        fuel_web = self.helpers.fuel_web
+
+        keystone_access = self.helpers.os_conn.keystone_access
+        # need to be checked
+        tenant_id = keystone_access.tenant_id
+        heat_flavor = self.create_flavor()
+        keypair = self.create_keypair()
+
+        controller = fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, roles=["controller", ])[0]
+
+        with fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+            path_to_key = remote.check_call(
+                "KEY=`mktemp`; echo '{0}' > $KEY; "
+                "chmod 600 $KEY; echo -ne $KEY;".format(keypair.private_key)
+            )['stdout'][0]
+
+        sec_group = self.create_securtity_group()
+        parameters = {
+            'KeyName': keypair.name,
+            'InstanceType': heat_flavor.name,
+            'ImageId': "TestVM",
+            'SecurityGroup': sec_group.name
+        }
+        net_provider = self.helpers.nailgun_client.get_cluster(
+            self.helpers.cluster_id)["net_provider"]
+        if "neutron" in net_provider:
+            template = self.load_template("heat_autoscaling_neutron.yaml")
+            parameters['Net'] = self.create_network_resources(tenant_id)
+        else:
+            template = self.load_temlate("heat_autoscaling_nova.yaml")
+        stack_name = 'ostf_test-heat-stack'
+        stack_id = self.heat_cli.stacks.create(
+            stack_name=stack_name,
+            template=template,
+            parameters=parameters,
+            disable_rollback=True
+        )['stack']['id']
+
+        stack = self.heat_cli.stacks.get(stack_id)
+
+        fail_msg = 'Stack was not created properly.'
+        self.helpers.verify(
+            600, self.check_stack_status,
+            6, fail_msg,
+            'stack status becoming "CREATE_COMPLETE"',
+            stack_id=stack_id, status='CREATE_COMPLETE'
+        )
+
+        reduced_stack_name = '{0}-{1}'.format(
+            stack.stack_name[:2], stack.stack_name[-4:])
+
+        logger.info("reduced_name: {}".format(reduced_stack_name))
+        instances = self.get_instances_by_name_mask(reduced_stack_name)
+        logger.info("list of instances is {}".format(instances[0].id))
+        floating_ip = self._create_floating_ip()
+        logger.info("Floating Ip is creating")
+        assign_floating_ip = self._assign_floating_ip_to_instance(instances[0],
+                                                                  floating_ip)
+        # launching the second instance during autoscaling
+        logger.info("Floating Ip is assigned to instance")
+        fail_msg = ("Failed to terminate the 2nd instance per autoscaling "
+                    "alarm.")
+        msg = "terminating the 2nd instance per autoscaling alarm"
+        self.helpers.verify(
+            1500, self.check_instance_scaling, 3, fail_msg, msg,
+            exp_length=(len(instances)+2),
+            reduced_stack_name=reduced_stack_name
+        )
+
+        # termination of the second instance during autoscaling
+        fail_msg = "Failed to terminate the 2nd instance per autoscaling alarm."
+        msg = "terminating the 2nd instance per autoscaling alarm"
+        self.verify(
+            1500, self.check_instance_scaling, 4, fail_msg, msg,
+            exp_lenght=(len(instances) + 1),
+            reduced_stack_name=reduced_stack_name
+        )
+
+    @staticmethod
+    def load_template(file_name):
+        """Load specified template file from etc directory."""
+
+        filepath = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            '../../fixtures/network_templates', file_name)
+        with open(filepath) as f:
+            return f.read()
+
     def create_alarm(self, **kwargs):
         for alarm in self.ceilometer_client.alarms.list():
             if alarm.name == kwargs['name']:
@@ -286,3 +440,55 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         elif alarm_state == 'alarm' or 'ok':
             return True
         return False
+
+    def check_instance_scaling(self, exp_length, reduced_stack_name):
+        return exp_length == self.get_instances_by_name_mask(
+            reduced_stack_name)
+
+
+    def check_stack_status(self, stack_id, status):
+        try:
+            stack_status = self.heat_cli.stacks.get(stack_id).stack_status
+        except Exception:
+            stack_status = None
+        if stack_status and stack_status == status:
+            return True
+        return False
+
+    def get_instances_by_name_mask(self, mask_name):
+        """This method retuns list of instances with certain names."""
+
+        instances = []
+
+        instance_list = self.nova_cli.servers.list()
+        logger.info('Instances list is {0}'.format(instance_list))
+        logger.info(
+            'Expected instance name should inlude {0}'.format(mask_name))
+
+        for inst in instance_list:
+            logger.info('Instance name is {0}'.format(inst.name))
+            if inst.name.startswith(mask_name):
+                instances.append(inst)
+        return instances
+
+    def _create_floating_ip(self):
+        floating_ips_pool = self.nova_cli.floating_ip_pools.list()
+        logger.info("floating ips pool: {}".format(floating_ips_pool))
+        if floating_ips_pool:
+            floating_ip = self.nova_cli.floating_ips.create(
+                pool=floating_ips_pool[0].name)
+            logger.info("floating ip: {}".format(floating_ip))
+            return floating_ip
+        else:
+            logger.warning('No available floating IP found')
+
+    def _assign_floating_ip_to_instance(self, server, floating_ip):
+        try:
+            self.nova_cli.servers.add_floating_ip(server, floating_ip)
+        except Exception:
+            logger.exception('Can not assign floating ip to instance')
+
+    def save_key_to_file(self, key):
+        return self._run_ssh_cmd(
+            "KEY=`mktemp`; echo '{0}' > $KEY; "
+            "chmod 600 $KEY; echo -ne $KEY;".format(key))[0]
