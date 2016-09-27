@@ -73,6 +73,7 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
     @test(depends_on_groups=["deploy_openstack_telemetry"],
           groups=["openstack_telemetry_default_functional", "functional"])
+    @log_snapshot_after_test
     def openstack_telemetry_default_functional(self):
         """Deploy an environment with Openstack-Telemetry plugin with
         Elasticsearch and InfluxDB backends and check default functionality
