@@ -12,15 +12,18 @@
 #    License for the specific language governing permissions and limitations
 #    under the License.
 import datetime
+import os
 
 import ceilometerclient.v2.client
 from fuelweb_test.helpers import checkers as fuelweb_checkers
 from fuelweb_test import logger
+import heatclient.v1.client
+import proboscis
 
 from stacklight_tests import base_test
 from stacklight_tests.helpers import checkers
 from stacklight_tests.helpers import helpers
-from stacklight_tests.influxdb_grafana.api import InfluxdbPluginApi
+from stacklight_tests.influxdb_grafana import api as influx_api
 from stacklight_tests.openstack_telemetry import plugin_settings
 
 
@@ -28,35 +31,62 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
     def __init__(self):
         super(OpenstackTelemeteryPluginApi, self).__init__()
         self._ceilometer = None
+        self._heat_cli = None
+
+    @property
+    def keystone_access(self):
+        return self.helpers.os_conn.keystone_access
+
+    @property
+    def nova_cli(self):
+        return self.helpers.os_conn.nova
+
+    @property
+    def neutron_cli(self):
+        return self.helpers.os_conn.neutron
+
+    @property
+    def auth_url(self):
+        return self.keystone_access.service_catalog.url_for(
+            service_type='identity', service_name='keystone',
+            interface='internal')
+
+    @property
+    def heat_cli(self):
+        if self._heat_cli is None:
+            endpoint = self.keystone_access.service_catalog.url_for(
+                service_type='orchestration', service_name='heat',
+                interface='internal')
+            if not endpoint:
+                raise self.helpers.NotFound(
+                    "Cannot find Heat endpoint")
+            self._heat_cli = heatclient.v1.client.Client(
+                auth_url=self.auth_url,
+                endpoint=endpoint,
+                token=(lambda: self.keystone_access.auth_token)()
+            )
+        return self._heat_cli
 
     @property
     def ceilometer_client(self):
         if self._ceilometer is None:
-            keystone_access = self.helpers.os_conn.keystone_access
-            endpoint = keystone_access.service_catalog.url_for(
+            endpoint = self.keystone_access.service_catalog.url_for(
                 service_type='metering', service_name='ceilometer',
                 interface='internal')
             if not endpoint:
                 raise self.helpers.NotFound(
                     "Cannot find Ceilometer endpoint")
-            aodh_endpoint = keystone_access.service_catalog.url_for(
+            aodh_endpoint = self.keystone_access.service_catalog.url_for(
                 service_type='alarming', service_name='aodh',
                 interface='internal')
             if not aodh_endpoint:
                 raise self.helpers.NotFound(
                     "Cannot find AODH (alarm) endpoint")
-            auth_url = keystone_access.service_catalog.url_for(
-                service_type='identity', service_name='keystone',
-                interface='internal')
-            if not auth_url:
-                raise self.helpers.NotFound(
-                    "Cannot find Keystone endpoint")
-
             self._ceilometer = ceilometerclient.v2.Client(
                 aodh_endpoint=aodh_endpoint,
-                auth_url=auth_url,
+                auth_url=self.auth_url,
                 endpoint=endpoint,
-                token=lambda: keystone_access.auth_token)
+                token=lambda: self.keystone_access.auth_token)
         return self._ceilometer
 
     def get_plugin_settings(self):
@@ -126,7 +156,7 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         checkers.check_http_get_response("{}/v2/capabilities".format(endpoint),
                                          headers=headers)
         logger.info("Check Ceilometer database in InfluxDB")
-        InfluxdbPluginApi().do_influxdb_query(
+        influx_api.InfluxdbPluginApi().do_influxdb_query(
             "show measurements", db="ceilometer")
 
     def uninstall_plugin(self):
@@ -268,6 +298,172 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         self.helpers.verify(60, self.ceilometer_client.meters.list, 4,
                             fail_msg, msg, limit=10, unique=True)
 
+    def check_ceilometer_autoscaling(self):
+        logger.info("Start checking autoscaling")
+
+        # check required resources available
+        self._check_required_resources()
+
+        # create test flavor
+        fail_msg = "Failed to create test heat flavor"
+        heat_flavor = self.helpers.verify(
+            60, self.helpers.os_conn.create_flavor, 1, fail_msg,
+            "creating test heat flavor",
+            name="ostf_test-flavor-autoscaling", ram=256, vcpus=1, disk=2
+        )
+
+        # create keypair
+        fail_msg = "Failed to create test keypair"
+        keypair = self.helpers.verify(
+            60, self.helpers.os_conn.create_key, 2, fail_msg,
+            "creating test keypair", key_name="ostf_test-keypair-autoscaling")
+
+        # create security group
+        fail_msg = "Failed to create test seurity group"
+        msg = "creating test security group"
+        sec_group = self.helpers.verify(60, self._create_securtity_group, 3,
+                                        fail_msg, msg)
+        parameters = {
+            'KeyName': keypair.name,
+            'InstanceType': heat_flavor.name,
+            'ImageId': "TestVM",
+            'SecurityGroup': sec_group.name
+        }
+        net_provider = self.helpers.nailgun_client.get_cluster(
+            self.helpers.cluster_id)["net_provider"]
+
+        if "neutron" in net_provider:
+            template = self._load_template("heat_autoscaling_neutron.yaml")
+            fail_msg = "Failed to create test network resources"
+            msg = "creating network resources"
+            parameters['Net'] = self.helpers.verify(
+                60, self._create_network_resources, 4, fail_msg, msg,
+                tenant_id=self.keystone_access.tenant_id)
+        else:
+            template = self._load_temlate("heat_autoscaling_nova.yaml")
+
+        # create Heat stack
+        fail_msg = "Failed to create Heat stack"
+        msg = "creating Heat stack"
+        stack_name = 'ostf_test-heat-stack'
+        stack_id = self.helpers.verify(60, self.heat_cli.stacks.create, 5,
+                                       fail_msg, msg,
+                                       stack_name=stack_name,
+                                       template=template,
+                                       parameters=parameters,
+                                       disable_rollback=True)['stack']['id']
+
+        # get Heat stack
+        fail_msg = "Failed to get Heat stack"
+        msg = "getting Heat stack"
+        stack = self.helpers.verify(60, self.heat_cli.stacks.get, 6, fail_msg,
+                                    msg, stack_id=stack_id)
+
+        # check stack creation comleted
+        fail_msg = "Stack was not created properly."
+        self.helpers.verify(
+            600, self._check_stack_status,
+            6, fail_msg,
+            "stack status becoming 'CREATE_COMPLETE'",
+            stack_id=stack_id, status="CREATE_COMPLETE"
+        )
+
+        # getting instances list
+        reduced_stack_name = "{0}-{1}".format(
+            stack.stack_name[:2], stack.stack_name[-4:])
+
+        instances = self.helpers.verify(60, self._get_instances_by_name_mask,
+                                        7, "Failed to get instances list",
+                                        "getting instances list",
+                                        mask_name=reduced_stack_name)
+
+        # launching the second instance during autoscaling
+        fail_msg = "Failed to launch the 2nd instance per autoscaling alarm."
+        msg = "launching the new instance per autoscaling alarm"
+        self.helpers.verify(
+            1500, self._check_instance_scaling, 8, fail_msg, msg,
+            exp_lenght=(len(instances) + 2),
+            reduced_stack_name=reduced_stack_name
+        )
+
+        # termination of the second instance during autoscaling
+        fail_msg = ("Failed to terminate the 2nd instance per autoscaling "
+                    "alarm.")
+        msg = "terminating the 2nd instance per autoscaling alarm"
+        self.helpers.verify(
+            1500, self._check_instance_scaling, 9, fail_msg, msg,
+            exp_lenght=(len(instances) + 1),
+            reduced_stack_name=reduced_stack_name
+        )
+
+        # delete Heat stack
+        self.helpers.verify(60, self.heat_cli.stacks.delete, 10,
+                            "Failed to delete Heat stack",
+                            "deleting Heat stack", stack_id=stack_id)
+        self.helpers.verify(
+            600, self._check_instance_scaling, 11,
+            "Not all stack instances was deleted",
+            "checking all stack instances was deleted",
+            exp_lenght=(len(instances) - 1),
+            reduced_stack_name=reduced_stack_name
+        )
+
+    def _create_securtity_group(self, name="ostf_test-secgroup-autoscaling"):
+        logger.info("Creating test security group for Heat autoscaling...")
+        sg_desc = name + " description"
+        sec_group = None
+        for sgp in self.nova_cli.security_groups.list():
+            if name == sgp.name:
+                sec_group = sgp
+                break
+        if not sec_group:
+            sec_group = self.nova_cli.security_groups.create(name, sg_desc)
+        return sec_group
+
+    def _create_network_resources(self, tenant_id):
+        """This method creates network resources.
+
+        It creates a network, an internal subnet on the network, a router and
+        links the network to the router. All resources created by this method
+        will be automatically deleted.
+        """
+        logger.info("Creating network resources...")
+        net_name = "ostf-autoscaling-test-service-net"
+        net_body = {
+            "network": {
+                "name": net_name,
+                "tenant_id": tenant_id
+            }
+        }
+        ext_net = None
+        net = None
+        for network in self.neutron_cli.list_networks()["networks"]:
+            if not net and network["name"] == net_name:
+                net = network
+            if not ext_net and network["router:external"]:
+                ext_net = network
+        if not net:
+            net = self.neutron_cli.create_network(net_body)["network"]
+        subnet = self.helpers.os_conn.create_subnet(
+            "sub" + net_name, net["id"], "10.1.7.0/24", tenant_id=tenant_id
+        )
+        router_name = 'ostf-autoscaling-test-service-router'
+        router = self.helpers.os_conn.create_router(
+            router_name, self.helpers.os_conn.get_tenant("admin"))
+        self.neutron_cli.add_interface_router(
+            router["id"], {"subnet_id": subnet["id"]})
+        return net["id"]
+
+    @staticmethod
+    def _load_template(file_name):
+        """Load specified template file from etc directory."""
+
+        filepath = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            '../../fixtures/network_templates', file_name)
+        with open(filepath) as f:
+            return f.read()
+
     def create_alarm(self, **kwargs):
         for alarm in self.ceilometer_client.alarms.list():
             if alarm.name == kwargs['name']:
@@ -286,3 +482,68 @@ class OpenstackTelemeteryPluginApi(base_test.PluginApi):
         elif alarm_state == 'alarm' or 'ok':
             return True
         return False
+
+    def _check_instance_scaling(self, exp_lenght, reduced_stack_name):
+        return exp_lenght == self._get_instances_by_name_mask(
+            reduced_stack_name)
+
+    def _check_stack_status(self, stack_id, status):
+        try:
+            stack_status = self.heat_cli.stacks.get(stack_id).stack_status
+        except Exception:
+            stack_status = None
+        if stack_status and stack_status == status:
+            return True
+        return False
+
+    def _get_instances_by_name_mask(self, mask_name):
+        """This method retuns list of instances with certain names."""
+
+        instances = []
+
+        instance_list = self.nova_cli.servers.list()
+        logger.info('Instances list is {0}'.format(instance_list))
+        logger.info(
+            'Expected instance name should inlude {0}'.format(mask_name))
+
+        for inst in instance_list:
+            logger.info('Instance name is {0}'.format(inst.name))
+            if inst.name.startswith(mask_name):
+                instances.append(inst)
+        return instances
+
+    def _get_info_about_available_resources(self, min_ram, min_hdd, min_vcpus):
+        """This function allows to get the information about resources.
+
+        We need to collect the information about available RAM, HDD and vCPUs
+        on all compute nodes for cases when we will create more than 1 VM.
+
+        This function returns the count of VMs with required parameters which
+        we can successfully run on existing cloud.
+        """
+        vms_count = 0
+        for hypervisor in self.nova_cli.hypervisors.list():
+            if hypervisor.free_ram_mb >= min_ram:
+                if hypervisor.free_disk_gb >= min_hdd:
+                    if hypervisor.vcpus - hypervisor.vcpus_used >= min_vcpus:
+                        # We need to determine how many VMs we can run
+                        # on this hypervisor
+                        free_cpu = hypervisor.vcpus - hypervisor.vcpus_used
+                        k1 = int(hypervisor.free_ram_mb / min_ram)
+                        k2 = int(hypervisor.free_disk_gb / min_hdd)
+                        k3 = int(free_cpu / min_vcpus)
+                        vms_count += min(k1, k2, k3)
+        return vms_count
+
+    def _check_required_resources(self, min_required_ram_mb=4096,
+                                  hdd=40, vCpu=2):
+        vms_count = self._get_info_about_available_resources(
+            min_required_ram_mb, hdd, vCpu)
+        if vms_count < 1:
+            msg = ('This test requires more hardware resources of your '
+                   'OpenStack cluster: your cloud should allow to create '
+                   'at least 1 VM with {0} MB of RAM, {1} HDD and {2} vCPUs. '
+                   'You need to remove some resources or add compute nodes '
+                   'to have an ability to run this OSTF test.'
+                   .format(min_required_ram_mb, hdd, vCpu))
+            raise proboscis.SkipTest(msg)
