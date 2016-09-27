@@ -74,6 +74,7 @@ class TestOpenstackTelemetry(api.ToolchainApi):
         self.helpers.run_ostf(test_sets=test_sets)
         self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality()
         self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality()
+        self.OPENSTACK_TELEMETRY.check_ceilometer_autoscaling()
         if additional_tests:
             for ostf_test in additional_tests:
                 ostf_test()
