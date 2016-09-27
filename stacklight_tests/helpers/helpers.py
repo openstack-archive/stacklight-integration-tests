@@ -39,6 +39,10 @@ class TimeoutException(Exception):
     pass
 
 
+class SkipTest(Exception):
+    pass
+
+
 def get_plugin_name(filename):
     """Extract the plugin name from the package filename.
 
