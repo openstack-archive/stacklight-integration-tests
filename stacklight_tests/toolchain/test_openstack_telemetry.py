@@ -26,21 +26,21 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                                  advanced_options=None, additional_tests=None):
         self.check_run(caller)
         self.env.revert_snapshot(snapshot)
-        self.add_plugin(self.OPENSTACK_TELEMETRY)
-        self.disable_plugin(self.LMA_COLLECTOR)
-        self.disable_plugin(self.LMA_INFRASTRUCTURE_ALERTING)
-        self.prepare_plugins()
-        self.helpers.create_cluster(name=self.__class__.__name__)
-        self.activate_plugins()
-        if advanced_options:
-            self.OPENSTACK_TELEMETRY.activate_plugin(options=advanced_options)
-        roles = ["elasticsearch_kibana", "influxdb_grafana"]
-        self.helpers.deploy_cluster(
-            {"slave-01": ["controller"],
-             "slave-02": ["controller"],
-             "slave-03": ["controller"],
-             "slave-04": ["compute", "cinder"],
-             "slave-05": roles})
+        if snapshot == "ready_with_5_slaves":
+            self.add_plugin(self.OPENSTACK_TELEMETRY)
+            self.disable_plugin(self.LMA_INFRASTRUCTURE_ALERTING)
+            self.prepare_plugins()
+            self.helpers.create_cluster(name=self.__class__.__name__)
+            self.activate_plugins()
+            if advanced_options:
+                self.OPENSTACK_TELEMETRY.activate_plugin(options=advanced_options)
+            roles = ["elasticsearch_kibana", "influxdb_grafana"]
+            self.helpers.deploy_cluster(
+                {"slave-01": ["controller"],
+                 "slave-02": ["controller"],
+                 "slave-03": ["controller"],
+                 "slave-04": ["compute", "cinder"],
+                 "slave-05": roles})
         self.check_plugins_online()
         self.helpers.run_ostf()
         if additional_tests:
@@ -73,6 +73,7 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
     @test(depends_on_groups=["deploy_openstack_telemetry"],
           groups=["openstack_telemetry_default_functional", "functional"])
+    @log_snapshot_after_test
     def openstack_telemetry_default_functional(self):
         """Deploy an environment with Openstack-Telemetry plugin with
         Elasticsearch and InfluxDB backends and check default functionality
