@@ -211,6 +211,7 @@ class TestOpenstackTelemetry(api.ToolchainApi):
         additional_tests = (
             self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality,
             self.OPENSTACK_TELEMETRY.check_ceilometer_resource_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_autoscaling,
         )
 
         options = {
@@ -731,6 +732,7 @@ class TestOpenstackTelemetry(api.ToolchainApi):
         additional_tests = (
             self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality,
             self.OPENSTACK_TELEMETRY.check_ceilometer_resource_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_autoscaling,
         )
 
         options = {
