@@ -95,18 +95,20 @@ def check_local_mail(remote, node_name, service, state, timeout=10 * 60):
     :type remote: SSHClient
     :param node_name: name of the node to check for email on.
     :type node_name: str
-    :param message: message to look for.
-    :type message: str
+    :param service: service to look for.
+    :type service: str
+    :param state: status of service to check.
+    :type state: str
     :param timeout: timeout to wait for email to arrive.
     :rtype timeout: int
     """
     def check_mail():
         try:
-            responce = remote.check_call("cat $MAIL")
-            if not responce:
+            response = remote.check_call("cat $MAIL")
+            if not response:
                 return False
-            if ("Service: {}\n".format(service) in responce['stdout'] and
-                    "State: {}\n".format(state) in responce['stdout']):
+            if ("Service: {}\n".format(service) in response['stdout'] and
+                    "State: {}\n".format(state) in response['stdout']):
                 return True
         except DevopsCalledProcessError:
             return False

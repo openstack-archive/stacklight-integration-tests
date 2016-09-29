@@ -34,7 +34,7 @@ class TestToolchainHTTPs(api.ToolchainApi):
             1. Upload the LMA Toolchain plugins to the master node
             2. Install the plugins
             3. Create the cluster
-            4. Uplaod script for ssl certificate creation
+            4. Upload script for ssl certificate creation
             5. Create ssl certificate for influxdb_grafana plugin
             6. Create ssl certificate for elasticsearch_kibana plugin
             7. Create ssl certificate for lma_infrastructure_alerting plugin
