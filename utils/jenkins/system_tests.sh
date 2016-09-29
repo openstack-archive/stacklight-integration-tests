@@ -25,7 +25,7 @@ export ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT=${ALWAYS_CREATE_DIAGNOSTIC_SNAPSHOT:-tr
 # Export specified settings
 if [ -z $NODE_VOLUME_SIZE ]; then export NODE_VOLUME_SIZE=350; fi
 if [ -z $OPENSTACK_RELEASE ]; then export OPENSTACK_RELEASE=Ubuntu; fi
-if [ -z $ENV_NAME ]; then export ENV_NAME="elasticsearch_kibana"; fi
+if [ -z $ENV_NAME ]; then export ENV_NAME="stacklight"; fi
 if [ -z $ADMIN_NODE_MEMORY ]; then export ADMIN_NODE_MEMORY=3072; fi
 if [ -z $ADMIN_NODE_CPU ]; then export ADMIN_NODE_CPU=2; fi
 if [ -z $SLAVE_NODE_MEMORY ]; then export SLAVE_NODE_MEMORY=4096; fi
@@ -73,7 +73,7 @@ if you do need to override them.
 -K          - Keep test environment after tests are finished
 -h          - Show this help page
 
-Most variables uses guesing from Jenkins' job name but can be overriden
+Most variables uses guessing from Jenkins' job name but can be overridden
 by exported variable before script is run or by one of command line options.
 
 You can override following variables using export VARNAME="value" before running this script

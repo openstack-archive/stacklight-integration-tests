@@ -13,9 +13,9 @@
 import contextlib
 
 from proboscis import asserts
-import selenium.common.exceptions as Exceptions
+import selenium.common.exceptions as exceptions
 from selenium.webdriver.remote import webelement
-import selenium.webdriver.support.ui as Support
+import selenium.webdriver.support.ui as support
 
 
 class BaseWebObject(object):
@@ -42,14 +42,14 @@ class BaseWebObject(object):
             try:
                 self._get_element(*locator)
                 return True
-            except Exceptions.NoSuchElementException:
+            except exceptions.NoSuchElementException:
                 return False
 
     def _is_element_visible(self, *locator):
         try:
             return self._get_element(*locator).is_displayed()
-        except (Exceptions.NoSuchElementException,
-                Exceptions.ElementNotVisibleException):
+        except (exceptions.NoSuchElementException,
+                exceptions.ElementNotVisibleException):
             return False
 
     def _is_element_displayed(self, element):
@@ -60,8 +60,8 @@ class BaseWebObject(object):
                 return element.is_displayed()
             else:
                 return element.src_elem.is_displayed()
-        except (Exceptions.ElementNotVisibleException,
-                Exceptions.StaleElementReferenceException):
+        except (exceptions.ElementNotVisibleException,
+                exceptions.StaleElementReferenceException):
             return False
 
     def _is_text_visible(self, element, text, strict=True):
@@ -84,15 +84,15 @@ class BaseWebObject(object):
         return field_element
 
     def _select_dropdown(self, value, element):
-        select = Support.Select(element)
+        select = support.Select(element)
         select.select_by_visible_text(value)
 
     def _select_dropdown_by_value(self, value, element):
-        select = Support.Select(element)
+        select = support.Select(element)
         select.select_by_value(value)
 
     def _get_dropdown_options(self, element):
-        select = Support.Select(element)
+        select = support.Select(element)
         return select.options
 
 

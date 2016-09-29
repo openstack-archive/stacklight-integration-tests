@@ -29,6 +29,7 @@ class MainPage(base_pages.PageObject):
         self._page_title = "Logs - Dashboard - Kibana"
 
     def is_main_page(self):
+        # TODO(rpromyshlennikov): fix unresolved attribute ._main_menu_locator
         return (self.is_the_current_page() and
                 self._is_element_visible(*self._main_menu_locator))
 

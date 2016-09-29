@@ -101,7 +101,7 @@ class TestToolchainReducedFootprint(api.ToolchainApi):
             "Spawning 1 virtual machine on node {}".format(virt_node["id"]))
         fuel_web.spawn_vms_wait(self.helpers.cluster_id)
 
-        logger.info("Waiting for the virtual manchine to be up...")
+        logger.info("Waiting for the virtual machine to be up...")
         wait(lambda: len(nailgun_client.list_nodes()) == 4,
              timeout=10 * 60,
              timeout_msg=("Timeout waiting for 4 nodes to be ready, "

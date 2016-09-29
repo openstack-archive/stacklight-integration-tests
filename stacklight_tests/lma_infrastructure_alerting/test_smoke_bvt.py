@@ -149,7 +149,7 @@ class TestLMAInfraAlertingPlugin(api.InfraAlertingPluginApi):
                   "uninstall", "lma_infrastructure_alerting", "smoke"])
     @log_snapshot_after_test
     def uninstall_deployed_lma_infrastructure_alerting(self):
-        """Uninstall the LMA Infrastructure Alering plugin with a deployed
+        """Uninstall the LMA Infrastructure Alerting plugin with a deployed
         environment
 
         Scenario:
