@@ -30,9 +30,19 @@ class TestOpenstackTelemetry(api.ToolchainApi):
         "slave-05": ["elasticsearch_kibana", "influxdb_grafana"]
     }
 
+    ceilometer_core_roles = {
+        "slave-01": ["controller", "mongo"],
+        "slave-02": ["controller", "mongo"],
+        "slave-03": ["controller", "mongo"],
+        "slave-04": ["compute", "cinder"],
+        "slave-05": ["elasticsearch_kibana", "influxdb_grafana"]
+    }
+
     def _deploy_telemetry_plugin(self, caller, advanced_options=None,
                                  additional_tests=None,
-                                 additional_plugins=None, roles=None):
+                                 additional_plugins=None, roles=None,
+                                 settings=None, should_fail=0,
+                                 failed_test_name=None):
         self.check_run(caller)
         self.env.revert_snapshot("ready_with_5_slaves")
         self.add_plugin(self.OPENSTACK_TELEMETRY)
@@ -40,7 +50,8 @@ class TestOpenstackTelemetry(api.ToolchainApi):
         if additional_plugins:
             self.add_plugin(additional_plugins)
         self.prepare_plugins()
-        self.helpers.create_cluster(name=self.__class__.__name__)
+        self.helpers.create_cluster(name=self.__class__.__name__,
+                                    settings=settings)
         self.activate_plugins()
         if advanced_options:
             self.OPENSTACK_TELEMETRY.activate_plugin(options=advanced_options)
@@ -53,7 +64,8 @@ class TestOpenstackTelemetry(api.ToolchainApi):
         } if not roles else roles
         self.helpers.deploy_cluster(nodes_roles=node_roles)
         self.check_plugins_online()
-        self.helpers.run_ostf()
+        self.helpers.run_ostf(should_fail=should_fail,
+                              failed_test_name=failed_test_name)
         self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality()
         self.OPENSTACK_TELEMETRY.check_ceilometer_alarm_functionality()
         if additional_tests:
@@ -367,3 +379,181 @@ class TestOpenstackTelemetry(api.ToolchainApi):
             additional_plugins=self.KAFKA,
             roles=self.kafka_roles
         )
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["deploy_telemetry_ceilometer_core", "deploy", "smoke"])
+    @log_snapshot_after_test
+    def deploy_telemetry_ceilometer_core(self):
+        """Deploy an environment with Openstack-Telemetry plugin
+        with Elasticsearch and InfluxDB backends and enabled Ceilometer Core.
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller and mongo roles
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with elasticsearch_kibana and influxdb_grafana roles
+            7. Enable Ceilometer core component
+            8. Deploy the cluster
+            9. Check that plugins are running
+            10. Run OSTF
+            11. Check Ceilometer Sample API
+            12. Check Ceilometer Alarm API
+
+        Duration 90m
+        """
+        settings = {'ceilometer': True}
+
+        failed_test_name = ("Ceilometer test to list meters, alarms, "
+                            "resources and events")
+
+        self._deploy_telemetry_plugin("deploy_telemetry_ceilometer_core",
+                                      roles=self.ceilometer_core_roles,
+                                      settings=settings,
+                                      should_fail=1,
+                                      failed_test_name=failed_test_name)
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["deploy_telemetry_ceilometer_core_resource_api", "deploy",
+                  "smoke"])
+    @log_snapshot_after_test
+    def deploy_telemetry_ceilometer_core_resource_api(self):
+        """Deploy an environment with Openstack-Telemetry plugin with enabled
+        Resource API, Elasticsearch and InfluxDB backends and enabled
+        Ceilometer Core.
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller and mongo roles
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with elasticsearch_kibana and influxdb_grafana roles
+            7. Enable Ceilometer core component
+            8. Enable Ceilometer Resource API
+            9. Deploy the cluster
+            10. Check that plugins are running
+            11. Run OSTF
+            12. Check Ceilometer Sample API
+            13. Check Ceilometer Alarm API
+            14. Check Ceilometer Resource API
+
+        Duration 90m
+        """
+        additional_tests = (
+            self.OPENSTACK_TELEMETRY.check_ceilometer_resource_functionality,
+        )
+
+        options = {
+            "advanced_settings/value": True,
+            "resource_api/value": True,
+        }
+
+        settings = {'ceilometer': True}
+
+        failed_test_name = ("Ceilometer test to list meters, alarms, "
+                            "resources and events")
+
+        self._deploy_telemetry_plugin(
+            "deploy_telemetry_ceilometer_core_resource_api",
+            advanced_options=options,
+            additional_tests=additional_tests,
+            roles=self.ceilometer_core_roles, settings=settings,
+            should_fail=1, failed_test_name=failed_test_name)
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["deploy_telemetry_ceilometer_core_event_api", "deploy",
+                  "smoke"])
+    @log_snapshot_after_test
+    def deploy_telemetry_ceilometer_core_event_api(self):
+        """Deploy an environment with Openstack-Telemetry plugin with enabled
+        Event API, Elasticsearch and InfluxDB backends and enabled
+        Ceilometer Core.
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller and mongo roles
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with elasticsearch_kibana and influxdb_grafana roles
+            7. Enable Ceilometer core component
+            8. Enable Ceilometer Event API
+            9. Deploy the cluster
+            10. Check that plugins are running
+            11. Run OSTF
+            12. Check Ceilometer Sample API
+            13. Check Ceilometer Alarm API
+            14. Check Ceilometer Event API
+
+        Duration 90m
+        """
+        additional_tests = (
+            self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality,
+        )
+
+        options = {
+            "advanced_settings/value": True,
+            "event_api/value": True,
+        }
+
+        settings = {'ceilometer': True}
+
+        failed_test_name = ("Ceilometer test to list meters, alarms, "
+                            "resources and events")
+
+        self._deploy_telemetry_plugin(
+            "deploy_telemetry_ceilometer_core_event_api",
+            advanced_options=options,
+            additional_tests=additional_tests,
+            roles=self.ceilometer_core_roles, settings=settings,
+            should_fail=1, failed_test_name=failed_test_name)
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["deploy_telemetry_ceilometer_core_resource_event_api",
+                  "deploy", "smoke"])
+    @log_snapshot_after_test
+    def deploy_telemetry_ceilometer_core_resource_event_api(self):
+        """Deploy an environment with Openstack-Telemetry plugin with enabled
+        Resource API and Event API, Elasticsearch and InfluxDB backends
+        and enabled Ceilometer Core.
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller and mongo roles
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with elasticsearch_kibana and influxdb_grafana roles
+            7. Enable Ceilometer core component
+            8. Enable Ceilometer Resource API
+            9. Enable Ceilometer Event API
+            10. Deploy the cluster
+            11. Check that plugins are running
+            12. Run OSTF
+            13. Check Ceilometer Sample API
+            14. Check Ceilometer Alarm API
+            15. Check Ceilometer Resource API
+            16. Check Ceilometer Event API
+
+        Duration 90m
+        """
+        additional_tests = (
+            self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_resource_functionality,
+        )
+
+        options = {
+            "advanced_settings/value": True,
+            "event_api/value": True,
+            "resource_api/value": True,
+        }
+
+        settings = {'ceilometer': True}
+
+        self._deploy_telemetry_plugin(
+            "deploy_telemetry_ceilometer_core_resource_event_api",
+            advanced_options=options,
+            additional_tests=additional_tests,
+            roles=self.ceilometer_core_roles, settings=settings)
