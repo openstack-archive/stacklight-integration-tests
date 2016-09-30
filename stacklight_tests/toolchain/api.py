@@ -326,6 +326,18 @@ class ToolchainApi(object):
             cinder_event_types, index_type="notification",
             query_filter='volume_id:"{}"'.format(volume_id), size=500)
 
+    def check_metric(self, table, filters=(), is_positive=True,
+                     timeout_msg=None):
+        query = "select last(value) from {table}{where_clause}".format(
+            table=table,
+            where_clause=" where {filters}".format(
+                filters=" and ".join(filters)) if filters else "")
+
+        logger.info("InfluxDB query: {}".format(query))
+
+        self.INFLUXDB_GRAFANA.wait_value_in_influxdb(
+            query, is_positive=is_positive, timeout_msg=timeout_msg)
+
     def check_alarms(self, alarm_type, filter_value, source, hostname, value,
                      time_interval="now() - 5m"):
         filter_by = "node_role"
@@ -340,21 +352,11 @@ class ToolchainApi(object):
         if hostname is not None:
             filters.append("hostname = '{}'".format(hostname))
 
-        query = "select last(value) from {select_from} where {filters}".format(
-                select_from="{}_status".format(alarm_type),
-                filters=" and ".join(filters))
-        logger.info("InfluxDB query: {}".format(query))
-
-        def check_result():
-            result = self.INFLUXDB_GRAFANA.do_influxdb_query(
-                query=query).json()["results"][0]
-            return len(result)
-
         msg = ("Alarm of type: {}: entity: {}, source:{}, hostname: {}, "
                "value: {} wasn't triggered".format(alarm_type, filter_value,
                                                    source, hostname, value))
-        devops_helpers.wait(check_result, timeout=60 * 5,
-                            interval=10, timeout_msg=msg)
+        self.check_metric(
+            "{}_status".format(alarm_type), filters, timeout_msg=msg)
 
     def get_rabbitmq_memory_usage(self, interval="now() - 5m"):
         query = ("select last(value) from rabbitmq_used_memory "
