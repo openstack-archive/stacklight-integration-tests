@@ -56,19 +56,20 @@ def check_grafana_dashboards(url):
             dashboard_page.get_back_to_home()
 
 
-def _check_available_menu_items_for_user(user, url, authz):
+def _check_available_menu_items_for_user(user, url, authz, is_admin=False):
     logger.info("Checking Grafana service at {} with LDAP authorization "
                 "for {} user".format(url, user[0]))
     admin_panels = ["Dashboards", "Data Sources", "Plugins", "Admin"]
     viewer_panel = admin_panels[:1] if authz else admin_panels
+    expected_panels = admin_panels if is_admin else viewer_panel
 
     with ui_tester.ui_driver(url, "Grafana", login_key_xpath) as driver:
         home_page = _get_main_page(driver, user)
         menu_items = [name.text for name in home_page.main_menu.items]
-        msg = "Not all required panels are available in main menu."
+        msg = ("Not all required panels are available in main menu, "
+               "expected: {}, found: {}.".format(expected_panels, menu_items))
         asserts.assert_true(
-            (admin_panels if ("uadmin" in user)
-             else viewer_panel) == menu_items,
+            expected_panels == menu_items,
             msg
         )
 
@@ -76,5 +77,5 @@ def _check_available_menu_items_for_user(user, url, authz):
 def check_grafana_ldap(grafana_url, authz=False,
                        uadmin=("uadmin", "uadmin"),
                        uviewer=("uviewer", "uviewer")):
-    _check_available_menu_items_for_user(uadmin, grafana_url, authz)
+    _check_available_menu_items_for_user(uadmin, grafana_url, authz, True)
     _check_available_menu_items_for_user(uviewer, grafana_url, authz)

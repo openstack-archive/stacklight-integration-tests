@@ -23,6 +23,9 @@ class MainPage(base_pages.PageObject):
     _submit_button_locator = (
         by.By.XPATH, '//button[@class="btn btn-primary"][@type="submit"]')
     _error_field_locator = (by.By.CLASS_NAME, 'panel-title')
+    _main_menu_locator = (
+        by.By.CLASS_NAME, 'navbar-nav'
+    )
 
     def __init__(self, driver):
         super(MainPage, self).__init__(driver)
