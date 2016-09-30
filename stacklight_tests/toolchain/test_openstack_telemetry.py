@@ -86,11 +86,12 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                   "openstack_telemetry"])
     @log_snapshot_after_test
     def deploy_openstack_telemetry(self):
-        """Deploy an environment with Openstack-Telemetry plugin
-        with Elasticsearch and InfluxDB backends.
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with Elasticsearch and InfluxDB backends.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller roles
@@ -110,11 +111,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
           groups=["openstack_telemetry_event_functional", "functional"])
     @log_snapshot_after_test
     def openstack_telemetry_event_functional(self):
-        """Deploy an environment with Openstack-Telemetry plugin with
-        enabled Ceilometer Event API and check its functionality
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with enabled Ceilometer Event API and check
+        its functionality.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller role
@@ -148,11 +151,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
           groups=["openstack_telemetry_resource_functional", "functional"])
     @log_snapshot_after_test
     def openstack_telemetry_resource_functional(self):
-        """Deploy an environment with Openstack-Telemetry plugin with
-        enabled Ceilometer Resource API and check its functionality
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with enabled Ceilometer Resource API and check its
+        functionality.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller role
@@ -187,11 +192,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
           groups=["openstack_telemetry_all_functional", "functional"])
     @log_snapshot_after_test
     def openstack_telemetry_full_functional(self):
-        """Deploy an environment with Openstack-Telemetry plugin with
-        enabled Ceilometer Event and Resource API and check its functionality
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with enabled Ceilometer Event and Resource API
+        and check its functionality.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller role
@@ -229,11 +236,12 @@ class TestOpenstackTelemetry(api.ToolchainApi):
           groups=["deploy_openstack_telemetry_kafka", "deploy", "smoke"])
     @log_snapshot_after_test
     def deploy_openstack_telemetry_kafka(self):
-        """Deploy an environment with Openstack-Telemetry plugin
-        with Elasticsearch and InfluxDB backends and Kafka plugin.
+        """Deploy an environment with Openstack-Telemetry, StackLight Collector
+        and Kafka plugins with Elasticsearch and InfluxDB backends.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana, Kafka and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana, Kafka and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller and kafka roles
@@ -258,12 +266,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
           groups=["deploy_telemetry_kafka_resource_api", "deploy", "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_kafka_resource_api(self):
-        """Deploy an environment with Openstack-Telemetry and Kafka plugins
-        with Elasticsearch and InfluxDB backends and enabled Ceilometer
-        Resource API.
+        """Deploy an environment with Openstack-Telemetry, StackLight Collector
+        and Kafka plugins with Elasticsearch and InfluxDB backends and enabled
+        Ceilometer Resource API.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana, Kafka and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana, Kafka and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller and kafka roles
@@ -301,12 +310,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
           groups=["deploy_telemetry_kafka_event_api", "deploy", "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_kafka_event_api(self):
-        """Deploy an environment with Openstack-Telemetry and Kafka plugins
-        with Elasticsearch and InfluxDB backends and enabled Ceilometer
-        Event API.
+        """Deploy an environment with Openstack-Telemetry, StackLight Collector
+        and Kafka plugins with Elasticsearch and InfluxDB backends and enabled
+        Ceilometer Event API.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana, Kafka and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana, Kafka and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller and kafka roles
@@ -345,12 +355,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                   "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_kafka_resource_event_api(self):
-        """Deploy an environment with Openstack-Telemetry and Kafka plugins
-        with Elasticsearch and InfluxDB backends and enabled Ceilometer
-        Resource and Event API.
+        """Deploy an environment with Openstack-Telemetry, StackLight Collector
+        and Kafka plugins with Elasticsearch and InfluxDB backends and enabled
+        Ceilometer Resource and Event API.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana, Kafka and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana, Kafka and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller and kafka roles
@@ -392,11 +403,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
           groups=["deploy_telemetry_ceilometer_core", "deploy", "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_ceilometer_core(self):
-        """Deploy an environment with Openstack-Telemetry plugin
-        with Elasticsearch and InfluxDB backends and enabled Ceilometer Core.
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with Elasticsearch and InfluxDB backends and enabled
+        Ceilometer Core.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller and mongo roles
@@ -427,12 +440,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                   "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_ceilometer_core_resource_api(self):
-        """Deploy an environment with Openstack-Telemetry plugin with enabled
-        Resource API, Elasticsearch and InfluxDB backends and enabled
-        Ceilometer Core.
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with enabled Resource API, Elasticsearch and InfluxDB
+        backends and enabled Ceilometer Core.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller and mongo roles
@@ -475,12 +489,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                   "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_ceilometer_core_event_api(self):
-        """Deploy an environment with Openstack-Telemetry plugin with enabled
-        Event API, Elasticsearch and InfluxDB backends and enabled
-        Ceilometer Core.
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with enabled Event API, Elasticsearch and InfluxDB
+        backends and enabled Ceilometer Core.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller and mongo roles
@@ -523,12 +538,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                   "deploy", "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_ceilometer_core_resource_event_api(self):
-        """Deploy an environment with Openstack-Telemetry plugin with enabled
-        Resource API and Event API, Elasticsearch and InfluxDB backends
-        and enabled Ceilometer Core.
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with enabled Resource API and Event API,
+        Elasticsearch and InfluxDB backends and enabled Ceilometer Core.
 
-            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller and mongo roles
@@ -570,11 +586,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
           groups=["deploy_telemetry_ceilometer_core_kafka", "deploy", "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_ceilometer_core_kafka(self):
-        """Deploy an environment with Openstack-Telemetry and Kafka plugins
-        with Elasticsearch and InfluxDB backends and enabled Ceilometer Core.
+        """Deploy an environment with Openstack-Telemetry, StackLight Collector
+        and Kafka plugins with Elasticsearch and InfluxDB backends and enabled
+        Ceilometer Core.
 
-            1. Upload the Openstack-Telemetry, Kafka, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, Kafka, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller, mongo and kafka roles
@@ -606,12 +624,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                   "deploy", "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_ceilometer_core_kafka_resource_api(self):
-        """Deploy an environment with Openstack-Telemetry plugin with enabled
-        Resource API, Elasticsearch and InfluxDB backends, Kafka plugin and
-        enabled Ceilometer Core.
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with enabled Resource API, Elasticsearch and InfluxDB
+        backends, Kafka plugin and enabled Ceilometer Core.
 
-            1. Upload the Openstack-Telemetry, Kafka, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, Kafka, StackLight Collector,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller, mongo and kafka roles
@@ -655,12 +674,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                   "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_ceilometer_core_kafka_event_api(self):
-        """Deploy an environment with Openstack-Telemetry plugin with enabled
-        Event API, Elasticsearch and InfluxDB backends, Kafka plugin and
-        enabled Ceilometer Core.
+        """Deploy an environment with Openstack-Telemetry and StackLight
+        Collector plugins with enabled Event API, Elasticsearch and InfluxDB
+        backends, Kafka plugin and enabled Ceilometer Core.
 
-            1. Upload the Openstack-Telemetry, Kafka, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector, Kafka,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller, mongo and kafka roles
@@ -704,12 +724,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
                   "deploy", "smoke"])
     @log_snapshot_after_test
     def deploy_telemetry_ceilometer_core_kafka_resource_event_api(self):
-        """Deploy an environment with Openstack-Telemetry plugin with enabled
-        Resource API and Event API, Elasticsearch and InfluxDB backends,
-        Kafka plugin and enabled Ceilometer Core.
+        """Deploy an environment with Openstack-Telemetry, StackLight
+        Collector and Kafka plugins with enabled Resource API and Event API,
+        Elasticsearch and InfluxDB backends and enabled Ceilometer Core.
 
-            1. Upload the Openstack-Telemetry, Kafka, Elasticsearch-Kibana and
-            InfluxDB-Grafana plugins to the master node
+            1. Upload the Openstack-Telemetry, StackLight Collector, Kafka,
+            Elasticsearch-Kibana and InfluxDB-Grafana plugins to the
+            master node
             2. Install the plugins
             3. Create the cluster
             4. Add 3 nodes with controller, mongo and kafka roles
@@ -743,6 +764,107 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
         self._deploy_telemetry_plugin(
             "deploy_telemetry_ceilometer_core_kafka_resource_event_api",
+            additional_plugins=self.KAFKA,
+            advanced_options=options,
+            additional_tests=additional_tests,
+            roles=self.ceilometer_core_kafka_roles, settings=settings)
+
+    @test(depends_on_groups=['prepare_slaves_5'],
+          groups=["deploy_telemetry_kafka_without_collector",
+                  "deploy", "smoke"])
+    @log_snapshot_after_test
+    def deploy_telemetry_kafka_without_collector(self):
+        """Deploy an environment with Openstack-Telemetry and Kafka plugins
+        with Elasticsearch and InfluxDB backends, enabled Ceilometer
+        Resource and Event API and without StackLight Collector plugin.
+
+            1. Upload the Openstack-Telemetry, Elasticsearch-Kibana, Kafka and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller and kafka roles
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with elasticsearch_kibana and influxdb_grafana roles
+            7. Enable Ceilometer Resource API
+            8. Enable Ceilometer Event API
+            9. Deploy the cluster
+            10. Check that plugins are running
+            11. Run OSTF
+            12. Check Ceilometer Sample API
+            13. Check Ceilometer Alarm API
+            14. Check Ceilometer Resource API
+            15. Check Ceilometer Event API
+
+        Duration 90m
+        """
+        self.disable_plugin(self.LMA_COLLECTOR)
+
+        additional_tests = (
+            self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_resource_functionality,
+        )
+
+        options = {
+            "advanced_settings/value": True,
+            "event_api/value": True,
+            "resource_api/value": True,
+        }
+
+        self._deploy_telemetry_plugin(
+            "deploy_telemetry_kafka_without_collector",
+            additional_tests=additional_tests,
+            advanced_options=options,
+            additional_plugins=self.KAFKA,
+            roles=self.kafka_roles
+        )
+
+    @test(depends_on_groups=["prepare_slaves_5"],
+          groups=["deploy_telemetry_ceilometer_core_kafka_without_collector",
+                  "deploy", "smoke"])
+    @log_snapshot_after_test
+    def deploy_telemetry_ceilometer_core_kafka_without_collector(self):
+        """Deploy an environment with Openstack-Telemetry and Kafka plugins
+        with enabled Resource API and Event API, Elasticsearch and InfluxDB
+        backends, enabled Ceilometer Core and without StackLight collector
+        plugin.
+
+            1. Upload the Openstack-Telemetry, Kafka, Elasticsearch-Kibana and
+            InfluxDB-Grafana plugins to the master node
+            2. Install the plugins
+            3. Create the cluster
+            4. Add 3 nodes with controller, mongo and kafka roles
+            5. Add 1 node with compute and cinder roles
+            6. Add 1 node with elasticsearch_kibana and influxdb_grafana roles
+            7. Enable Ceilometer core component
+            8. Enable Ceilometer Resource API
+            9. Enable Ceilometer Event API
+            10. Deploy the cluster
+            11. Check that plugins are running
+            12. Run OSTF
+            13. Check Ceilometer Sample API
+            14. Check Ceilometer Alarm API
+            15. Check Ceilometer Resource API
+            16. Check Ceilometer Event API
+
+        Duration 90m
+        """
+        self.disable_plugin(self.LMA_COLLECTOR)
+
+        additional_tests = (
+            self.OPENSTACK_TELEMETRY.check_ceilometer_event_functionality,
+            self.OPENSTACK_TELEMETRY.check_ceilometer_resource_functionality,
+        )
+
+        options = {
+            "advanced_settings/value": True,
+            "event_api/value": True,
+            "resource_api/value": True,
+        }
+
+        settings = {'ceilometer': True}
+
+        self._deploy_telemetry_plugin(
+            "deploy_telemetry_ceilometer_core_kafka_without_collector",
             additional_plugins=self.KAFKA,
             advanced_options=options,
             additional_tests=additional_tests,
