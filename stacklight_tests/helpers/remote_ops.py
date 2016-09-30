@@ -139,8 +139,10 @@ def manage_service(remote, name, operation="restart"):
         :param operation: type of operation, usually start, stop or restart.
         :type operation: str
     """
-
-    if remote.execute("service {} status".format(name))['exit_code'] == 0:
+    # NOTE(rpromyshlennikov): "service apache2 status" returns
+    # code 3 in stopped status,
+    # maybe we can use more flexible way to check exist of the service
+    if remote.execute("service {} status".format(name))['exit_code'] in (0, 3):
         service_cmd = 'service {service} {operation}'
     elif remote.execute("initctl status {}".format(name))['exit_code'] == 0:
         service_cmd = 'initctl {operation} {service}'

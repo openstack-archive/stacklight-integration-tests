@@ -236,6 +236,77 @@ class TestFunctionalToolchain(api.ToolchainApi):
 
         self.check_cinder_notifications()
 
+    def _check_services_alerts(self, controllers_count, nagios_status,
+                               influx_status, down_haproxy_count):
+        components = {
+            "nova": [("nova-api", "nova-api"), ("nova-scheduler", None)],
+            "cinder": [("cinder-api", "cinder-api"),
+                       ("cinder-scheduler", None)],
+            "neutron": [
+                ("neutron-server", "neutron-api"),
+                # TODO(rpromyshlennikov): temporary fix,
+                # because openvswitch-agent is managed by pacemaker
+                # ("neutron-openvswitch-agent", None)
+            ],
+            "glance": [("glance-api", "glance-api")],
+            "heat": [("heat-api", "heat-api")],
+            "keystone": [("apache2", "keystone-public-api")]
+        }
+
+        services_names_in_nagios = {
+            "nova": "global-nova",
+            "cinder": "global-cinder",
+            "neutron": "global-neutron",
+            "glance": "global-glance",
+            "heat": "global-heat",
+            "keystone": "global-keystone",
+        }
+
+        lma_devops_node = self.helpers.get_node_with_vip(
+            self.settings.stacklight_roles,
+            self.helpers.get_vip_resource_name(
+                self.LMA_INFRASTRUCTURE_ALERTING.settings.failover_vip))
+        toolchain_node = self.fuel_web.get_nailgun_node_by_devops_node(
+            lma_devops_node)
+
+        url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
+        with self.ui_tester.ui_driver(url, "Nagios Core",
+                                      "//frame[2]") as driver:
+            self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
+                driver, "Services", "//table[@class='headertable']")
+            controller_nodes = (
+                self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+                    self.helpers.cluster_id,
+                    ["controller"])[:controllers_count]
+            )
+            for component in components:
+                for (service, haproxy_backend) in components[component]:
+                    logger.info("Checking service {0}".format(service))
+                    self.change_verify_service_state(
+                        service_name=[
+                            service, component,
+                            services_names_in_nagios[component],
+                            haproxy_backend],
+                        action="stop",
+                        new_state=nagios_status,
+                        service_state_in_influx=influx_status,
+                        down_backends_in_haproxy=down_haproxy_count,
+                        toolchain_node=toolchain_node,
+                        controller_nodes=controller_nodes,
+                        nagios_driver=driver)
+                    self.change_verify_service_state(
+                        service_name=[
+                            service, component,
+                            services_names_in_nagios[component],
+                            haproxy_backend],
+                        action="start",
+                        new_state="OK",
+                        service_state_in_influx=self.settings.OKAY,
+                        down_backends_in_haproxy=0,
+                        toolchain_node=toolchain_node,
+                        controller_nodes=controller_nodes,
+                        nagios_driver=driver)
+
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["toolchain_warning_alert_service", "service_restart",
                   "toolchain", "functional"])
@@ -282,54 +353,17 @@ class TestFunctionalToolchain(api.ToolchainApi):
         Duration 45m
         """
         self.env.revert_snapshot("deploy_ha_toolchain")
+        params = {"controllers_count": 1,
+                  "nagios_status": "WARNING",
+                  "influx_status": self.settings.WARN,
+                  "down_haproxy_count": 1}
 
-        services = {
-            'nova': ['nova-api', 'nova-scheduler'],
-            'cinder': ['cinder-api', 'cinder-scheduler'],
-            'neutron': ['neutron-server', 'neutron-openvswitch-agent'],
-            'glance': ['glance-api'],
-            'heat': ['heat-api'],
-            'keystone': ['apache2']
-        }
-
-        lma_devops_node = self.helpers.get_node_with_vip(
-            self.settings.stacklight_roles,
-            self.helpers.full_vip_name(
-                self.LMA_INFRASTRUCTURE_ALERTING.settings.failover_vip))
-        toolchain_node = self.fuel_web.get_nailgun_node_by_devops_node(
-            lma_devops_node)
-
-        url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "Nagios Core",
-                                      "//frame[2]") as driver:
-            self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
-                driver, 'Services', "//table[@class='headertable']")
-            controller_node = (
-                self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-                    self.helpers.cluster_id, ['controller'])[0])
-            for key in services:
-                for service in services[key]:
-                    self.change_verify_service_state(
-                        service_name=[service, key], action='stop',
-                        new_state='WARNING',
-                        service_state_in_influx=self.settings.WARN,
-                        down_backends_in_haproxy=1,
-                        toolchain_node=toolchain_node,
-                        controller_nodes=[controller_node],
-                        nagios_driver=driver)
-                    self.change_verify_service_state(
-                        service_name=[service, key], action='start',
-                        new_state='OK',
-                        service_state_in_influx=self.settings.OKAY,
-                        down_backends_in_haproxy=0,
-                        toolchain_node=toolchain_node,
-                        controller_nodes=[controller_node],
-                        nagios_driver=driver)
+        self._check_services_alerts(**params)
 
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["toolchain_critical_alert_service", "service_restart",
                   "toolchain", "functional"])
-    # @log_snapshot_after_test
+    @log_snapshot_after_test
     def toolchain_critical_alert_service(self):
         """Verify that the critical alerts for services show up in
         the Grafana and Nagios UI.
@@ -367,52 +401,34 @@ class TestFunctionalToolchain(api.ToolchainApi):
         Duration 45m
         """
         self.env.revert_snapshot("deploy_ha_toolchain")
+        params = {"controllers_count": 2,
+                  "nagios_status": "CRITICAL",
+                  "influx_status": self.settings.CRIT,
+                  "down_haproxy_count": 2}
 
-        services = {
-            'nova': ['nova-api', 'nova-scheduler'],
-            'cinder': ['cinder-api', 'cinder-scheduler'],
-            'neutron': ['neutron-server', 'neutron-openvswitch-agent'],
-            'glance': ['glance-api'],
-            'heat': ['heat-api'],
-            'keystone': ['apache2']
-        }
+        self._check_services_alerts(**params)
 
+    def _check_mysql_alerts_node(
+            self, nagios_status, influx_status, disk_usage_percent):
         lma_devops_node = self.helpers.get_node_with_vip(
             self.settings.stacklight_roles,
-            self.helpers.full_vip_name(
-                self.LMA_INFRASTRUCTURE_ALERTING.settings.failover_vip))
+            self.helpers.get_vip_resource_name(
+                "infrastructure_alerting_mgmt_vip"))
         toolchain_node = self.fuel_web.get_nailgun_node_by_devops_node(
             lma_devops_node)
+        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])
 
         url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
         with self.ui_tester.ui_driver(url, "Nagios Core",
                                       "//frame[2]") as driver:
             self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
-                driver, 'Services', "//table[@class='headertable']")
-            controller_nodes = (
-                self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-                    self.helpers.cluster_id, ['controller']))
-            for key in services:
-                for service in services[key]:
-                    logger.info("Checking service {0}".format(service))
-                    self.change_verify_service_state(
-                        service_name=[service, key], action='stop',
-                        new_state='CRITICAL',
-                        service_state_in_influx=self.settings.CRIT,
-                        down_backends_in_haproxy=2,
-                        toolchain_node=toolchain_node,
-                        controller_nodes=[controller_nodes[0],
-                                          controller_nodes[1]],
-                        nagios_driver=driver)
-                    self.change_verify_service_state(
-                        service_name=[service, key], action='start',
-                        new_state='OK',
-                        service_state_in_influx=self.settings.OKAY,
-                        down_backends_in_haproxy=0,
-                        toolchain_node=toolchain_node,
-                        controller_nodes=[controller_nodes[0],
-                                          controller_nodes[1]],
-                        nagios_driver=driver)
+                driver, "Services", "//table[@class='headertable']")
+            self.change_verify_node_service_state(
+                ["global-mysql", "mysql-nodes.mysql-fs", "mysql"],
+                nagios_status,
+                influx_status, disk_usage_percent, toolchain_node,
+                nailgun_nodes[:2], driver)
 
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["toolchain_warning_alert_node", "node_alert_warning",
@@ -473,24 +489,11 @@ class TestFunctionalToolchain(api.ToolchainApi):
         Duration 15m
         """
         self.env.revert_snapshot("deploy_ha_toolchain")
-
-        lma_devops_node = self.helpers.get_node_with_vip(
-            self.settings.stacklight_roles,
-            self.helpers.full_vip_name("infrastructure_alerting_mgmt_vip"))
-        toolchain_node = self.fuel_web.get_nailgun_node_by_devops_node(
-            lma_devops_node)
-        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-            self.helpers.cluster_id, ['controller'])
-
-        url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "Nagios Core",
-                                      "//frame[2]") as driver:
-            self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
-                driver, 'Services', "//table[@class='headertable']")
-            self.change_verify_node_service_state(
-                ['mysql', 'mysql-nodes.mysql-fs'], 'WARNING',
-                self.settings.WARN, '96', toolchain_node,
-                [nailgun_nodes[0], nailgun_nodes[1]], driver)
+        params = {
+            "nagios_status": "WARNING",
+            "influx_status": self.settings.WARN,
+            "disk_usage_percent": 96}
+        self._check_mysql_alerts_node(**params)
 
     @test(depends_on_groups=["deploy_ha_toolchain"],
           groups=["toolchain_critical_alert_node", "node_alert_critical",
@@ -550,21 +553,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
         Duration 15m
         """
         self.env.revert_snapshot("deploy_ha_toolchain")
-
-        lma_devops_node = self.helpers.get_node_with_vip(
-            self.settings.stacklight_roles,
-            self.helpers.full_vip_name("infrastructure_alerting_mgmt_vip"))
-        toolchain_node = self.fuel_web.get_nailgun_node_by_devops_node(
-            lma_devops_node)
-        nailgun_nodes = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
-            self.helpers.cluster_id, ['controller'])
-
-        url = self.LMA_INFRASTRUCTURE_ALERTING.get_authenticated_nagios_url()
-        with self.ui_tester.ui_driver(url, "Nagios Core",
-                                      "//frame[2]") as driver:
-            self.LMA_INFRASTRUCTURE_ALERTING.open_nagios_page(
-                driver, 'Services', "//table[@class='headertable']")
-            self.change_verify_node_service_state(
-                ['mysql', 'mysql-nodes.mysql-fs'], 'CRITICAL',
-                self.settings.UNKW, '98', toolchain_node,
-                [nailgun_nodes[0], nailgun_nodes[1]], driver)
+        params = {
+            "nagios_status": "CRITICAL",
+            "influx_status": self.settings.CRIT,
+            "disk_usage_percent": 98}
+        self._check_mysql_alerts_node(**params)
