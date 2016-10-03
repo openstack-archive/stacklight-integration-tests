@@ -154,7 +154,7 @@ class TestNodesToolchain(api.ToolchainApi):
         """Run fuel-createmirror and deploy environment
 
         Scenario:
-            1. Copy the LMA Toolchais plugins to the Fuel Master node and
+            1. Copy the LMA Toolchain plugins to the Fuel Master node and
                install the plugins.
             2. Run the following command on the master node:
                fuel-createmirror

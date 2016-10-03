@@ -84,6 +84,7 @@ class InfluxdbPluginApi(base_test.PluginApi):
                           user=plugin_settings.influxdb_user,
                           password=plugin_settings.influxdb_pass,
                           expected_code=200):
+        logger.debug("Making query to Influx DB: {}".format(query))
         return self.checkers.check_http_get_response(
             url=self.get_influxdb_url('query'),
             expected_code=expected_code,
@@ -200,7 +201,7 @@ class InfluxdbPluginApi(base_test.PluginApi):
                  "backend='{0}' AND state='{1}' and "
                  "time > now() - {2}".format(service, node_state, interval))
 
-        msg_header = ("Wrong amout of nodes with service '{0}' "
+        msg_header = ("Wrong amount of nodes with service '{0}' "
                       "in '{1}' state!".format(service, node_state))
         self._check_influx_query_last_value(query, expected_count, msg_header)
 
