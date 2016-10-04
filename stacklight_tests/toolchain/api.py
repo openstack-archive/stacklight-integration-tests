@@ -102,17 +102,21 @@ class ToolchainApi(object):
                 plugin.get_plugin_settings().name))
             plugin.check_plugin_online()
 
-    def check_nodes_count(self, count, hostname, state):
+    def check_nodes_count(self, count, hostname, state, ignored_plugins=()):
         """Check that all nodes are present in the different backends."""
-        self.call_plugin_method(
-            self.ELASTICSEARCH_KIBANA,
-            lambda x: x.check_elasticsearch_nodes_count(count))
-        self.call_plugin_method(
-            self.INFLUXDB_GRAFANA,
-            lambda x: x.check_influxdb_nodes_count(count))
-        self.call_plugin_method(
-            self.LMA_INFRASTRUCTURE_ALERTING,
-            lambda x: x.check_node_in_nagios(hostname, state))
+        check_nodes_methods = {
+            self.ELASTICSEARCH_KIBANA:
+                lambda x: x.check_elasticsearch_nodes_count(count),
+            self.INFLUXDB_GRAFANA:
+                lambda x: x.check_influxdb_nodes_count(count),
+            self.LMA_INFRASTRUCTURE_ALERTING:
+                lambda x: x.check_node_in_nagios(hostname, state)
+        }
+        for plugin, method in check_nodes_methods.items():
+            if plugin not in ignored_plugins:
+                logger.info("Check node count for {} plugin".format(
+                    plugin.settings.name))
+                self.call_plugin_method(plugin, method)
 
     def uninstall_plugins(self):
         """Uninstall the plugins from the environment."""

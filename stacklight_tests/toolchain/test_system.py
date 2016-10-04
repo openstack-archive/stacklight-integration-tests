@@ -130,9 +130,12 @@ class TestNodesToolchain(api.ToolchainApi):
 
         self.check_plugins_online()
 
-        self.check_nodes_count(2, manipulated_node_hostname, False)
+        # NOTE(vgusev): Do not check influxdb node count because node is not
+        # removed from database and the number 3 is always returned
+        self.check_nodes_count(2, manipulated_node_hostname, False,
+                               ignored_plugins=[self.INFLUXDB_GRAFANA])
 
-        self.fuel_web.run_ostf()
+        self.helpers.run_ostf()
 
         # Add node with StackLight roles
         self.helpers.add_nodes_to_cluster(manipulated_node)
