@@ -144,7 +144,7 @@ class TestNodesInfluxdbPlugin(api.InfluxdbPluginApi):
         # but it'll be fixed in next releases
         self.check_influxdb_nodes_count(2)
 
-        self.fuel_web.run_ostf()
+        self.helpers.run_ostf()
 
         # Add InfluxDB-Grafana node
         self.helpers.add_nodes_to_cluster(manipulated_node)

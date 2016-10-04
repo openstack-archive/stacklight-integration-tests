@@ -134,7 +134,7 @@ class TestNodesElasticsearchPlugin(api.ElasticsearchPluginApi):
 
         self.check_elasticsearch_nodes_count(2)
 
-        self.fuel_web.run_ostf()
+        self.helpers.run_ostf()
 
         # Add an Elasticsearch-Kibana node
         self.helpers.add_nodes_to_cluster(target_node)

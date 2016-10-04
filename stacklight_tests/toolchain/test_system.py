@@ -130,9 +130,10 @@ class TestNodesToolchain(api.ToolchainApi):
 
         self.check_plugins_online()
 
-        self.check_nodes_count(2, manipulated_node_hostname, False)
+        self.check_nodes_count(2, manipulated_node_hostname, False,
+                               disabled_plugins=self.INFLUXDB_GRAFANA)
 
-        self.fuel_web.run_ostf()
+        self.helpers.run_ostf()
 
         # Add node with StackLight roles
         self.helpers.add_nodes_to_cluster(manipulated_node)
