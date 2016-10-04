@@ -166,7 +166,7 @@ class ToolchainApi(object):
 
     def check_nova_logs(self):
         output = self.ELASTICSEARCH_KIBANA.query_elasticsearch(
-            index_type="log", query_filter="programname:nova*")
+            index_type="log", query_filter="programname:nova*", size=500)
         asserts.assert_not_equal(output['hits']['total'], 0,
                                  "Indexes don't contain Nova logs")
         controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
