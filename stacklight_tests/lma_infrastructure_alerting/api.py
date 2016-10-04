@@ -11,19 +11,18 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-import six.moves as sm
 
 from devops.helpers import helpers
 from fuelweb_test import logger
 from proboscis import asserts
 
-from selenium.common.exceptions import StaleElementReferenceException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common import exceptions
+from selenium.webdriver.common import by
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support import ui
 
 from stacklight_tests import base_test
-from stacklight_tests.lma_infrastructure_alerting import(
+from stacklight_tests.lma_infrastructure_alerting import (
     plugin_settings as infra_alerting_plugin_settings)
 
 
@@ -100,8 +99,8 @@ class InfraAlertingPluginApi(base_test.PluginApi):
         link.click()
         driver.switch_to.default_content()
         driver.switch_to.frame(driver.find_element_by_name("main"))
-        WebDriverWait(driver, 120).until(
-            EC.presence_of_element_located((By.XPATH, anchor)))
+        ui.WebDriverWait(driver, 120).until(
+            ec.presence_of_element_located((by.By.XPATH, anchor)))
         return driver
 
     def check_node_in_nagios(self, changed_node, state):
@@ -117,7 +116,7 @@ class InfraAlertingPluginApi(base_test.PluginApi):
     def node_is_present(self, driver, name):
         table = self.ui_tester.get_table(driver,
                                          "/html/body/div[2]/table/tbody")
-        for ind in sm.xrange(2, self.ui_tester.get_table_size(table) + 1):
+        for ind in range(2, self.ui_tester.get_table_size(table) + 1):
             node_name = self.ui_tester.get_table_cell(
                 table, ind, 1).text.rstrip()
             if name == node_name:
@@ -133,9 +132,12 @@ class InfraAlertingPluginApi(base_test.PluginApi):
         return self.helpers.check_plugin_cannot_be_uninstalled(
             self.settings.name, self.settings.version)
 
-    def get_services_for_node(self, table, node_name, driver,
+    def get_services_for_node(self, node_name, driver,
                               table_xpath="/html/body/table[3]/tbody"):
         services = {}
+        limit_xpath = "//select[@name='limit']/option[@value='0']"
+        driver.find_element_by_xpath(limit_xpath).click()
+        table = self.ui_tester.get_table(driver, table_xpath)
         found_node = False
         ind = 2
         while ind < self.ui_tester.get_table_size(table) + 1:
@@ -144,6 +146,7 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                     if found_node:
                         break
                     else:
+                        ind += 1
                         continue
                 if self.ui_tester.get_table_cell(
                         table, ind, 1).text == node_name:
@@ -152,7 +155,8 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                     services[self.ui_tester.get_table_cell(
                         table, ind, 2).text] = (
                         self.ui_tester.get_table_cell(table, ind, 3).text)
-            except StaleElementReferenceException:
+            except exceptions.StaleElementReferenceException:
+                driver.find_element_by_xpath(limit_xpath).click()
                 table = self.ui_tester.get_table(driver, table_xpath)
                 ind -= 1
             ind += 1
@@ -162,12 +166,12 @@ class InfraAlertingPluginApi(base_test.PluginApi):
     def check_service_state_on_nagios(self, driver, service_state=None,
                                       node_names=None):
         self.open_nagios_page(
-            driver, 'Services', "//table[@class='headertable']")
+            driver, "Services", "//table[@class='headertable']")
         table = self.ui_tester.get_table(driver, "/html/body/table[3]/tbody")
         if not node_names:
             node_names = [self.ui_tester.get_table_cell(table, 2, 1).text]
         for node in node_names:
-            node_services = self.get_services_for_node(table, node, driver)
+            node_services = self.get_services_for_node(node, driver)
             if service_state:
                 for service in service_state:
                     if service_state[service] != node_services[service]:
@@ -182,20 +186,10 @@ class InfraAlertingPluginApi(base_test.PluginApi):
                                      node_names=None):
         msg = ("Fail to get expected service states for services: {0} "
                "on nodes: {1}")
-
-        if not service_state or not node_names:
-            self.open_nagios_page(
-                driver, 'Services', "//table[@class='headertable']")
-            table = self.ui_tester.get_table(driver,
-                                             "/html/body/table[3]/tbody")
-            if not node_names:
-                node_names = [self.ui_tester.get_table_cell(table, 2, 1).text]
-            if not service_state:
-                service_state = dict((key, 'OK') for key in
-                                     self.get_services_for_node(
-                                         table, node_names[0], driver))
-
-        msg = msg.format([key for key in service_state], node_names)
+        msg = msg.format(
+            [key for key in service_state]
+            if service_state is not None else "all",
+            node_names if node_names is not None else "global-cluster")
 
         helpers.wait(lambda: self.check_service_state_on_nagios(
             driver, service_state, node_names), timeout=60 * 5,

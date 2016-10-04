@@ -384,16 +384,18 @@ class ToolchainApi(object):
             and Nagios UI.
 
         :param service_name: name of the service to change state of.
-            Format [service name, service name
-            on dashboard] e.g. ['nova-api', 'nova']
+            Format:
+             [service name, service name in influx,
+             service name on nagios, haproxy-backend for service if exist]
+             e.g. ['nova-api', 'nova', 'nova-global', 'nova-api']
         :type service_name: list.
         :param action: action to perform (e.g. stop, start).
         :type action: str
         :param new_state: new state of the service.
         :type new_state: str
         :param service_state_in_influx: new state of the service in influx.
-        :type new_state: int
-        :param down_backends_in_haproxy: amout of backends in 'down' state.
+        :type service_state_in_influx: int
+        :param down_backends_in_haproxy: amount of backends in 'down' state.
         :type down_backends_in_haproxy: int
         :param toolchain_node: toolchain node with
             infrastructure_alerting_ui vip.
@@ -415,15 +417,16 @@ class ToolchainApi(object):
                     node) as remote:
                 self.remote_ops.manage_service(remote, service_name[0], action)
         self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
-            nagios_driver, {service_name[1]: new_state})
+            nagios_driver, {service_name[2]: new_state})
         self.INFLUXDB_GRAFANA.check_cluster_status(
             service_name[1], service_state_in_influx)
-        self.INFLUXDB_GRAFANA.check_count_of_haproxy_backends(
-            service_name[0], expected_count=down_backends_in_haproxy)
+        if service_name[3]:
+            self.INFLUXDB_GRAFANA.check_count_of_haproxy_backends(
+                service_name[3], expected_count=down_backends_in_haproxy)
         with self.helpers.fuel_web.get_ssh_for_nailgun_node(
                 toolchain_node) as remote:
             self.checkers.check_local_mail(
-                remote, toolchain_node["name"], service_name[1], new_state)
+                remote, toolchain_node["name"], service_name[2], new_state)
 
     def change_verify_node_service_state(self, services, state, influx_state,
                                          percent, toolchain_node,
@@ -462,11 +465,11 @@ class ToolchainApi(object):
                 "/var/lib/mysql/test/bigfile")
 
         self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
-            nagios_driver, {services[0]: 'OK'})
+            nagios_driver, {services[0]: "OK"})
         self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
             nagios_driver, {services[1]: state},
-            [controller_nodes[0]['hostname']])
-        self.INFLUXDB_GRAFANA.check_cluster_status(services[0],
+            [controller_nodes[0]["hostname"]])
+        self.INFLUXDB_GRAFANA.check_cluster_status(services[2],
                                                    self.settings.OKAY)
 
         with self.fuel_web.get_ssh_for_nailgun_node(
@@ -479,8 +482,8 @@ class ToolchainApi(object):
             self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
                 nagios_driver, {services[0]: state})
             self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
-                nagios_driver, {services[1]: state}, [node['hostname']])
-        self.INFLUXDB_GRAFANA.check_cluster_status(services[0], influx_state)
+                nagios_driver, {services[1]: state}, [node["hostname"]])
+        self.INFLUXDB_GRAFANA.check_cluster_status(services[2], influx_state)
 
         with self.helpers.fuel_web.get_ssh_for_nailgun_node(
                 toolchain_node) as remote:
@@ -494,13 +497,13 @@ class ToolchainApi(object):
 
         for node in controller_nodes:
             self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
-                nagios_driver, {services[0]: 'OK'})
+                nagios_driver, {services[0]: "OK"})
             self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
-                nagios_driver, {services[1]: 'OK'}, [node['hostname']])
-        self.INFLUXDB_GRAFANA.check_cluster_status(services[0],
+                nagios_driver, {services[1]: "OK"}, [node["hostname"]])
+        self.INFLUXDB_GRAFANA.check_cluster_status(services[2],
                                                    self.settings.OKAY)
 
         with self.helpers.fuel_web.get_ssh_for_nailgun_node(
                 toolchain_node) as remote:
             self.checkers.check_local_mail(
-                remote, toolchain_node["name"], services[0], 'OK')
+                remote, toolchain_node["name"], services[0], "OK")

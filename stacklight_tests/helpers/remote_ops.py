@@ -139,13 +139,10 @@ def manage_service(remote, name, operation="restart"):
         :param operation: type of operation, usually start, stop or restart.
         :type operation: str
     """
-
-    if remote.execute("service {} status".format(name))['exit_code'] == 0:
-        service_cmd = 'service {service} {operation}'
-    elif remote.execute("initctl status {}".format(name))['exit_code'] == 0:
+    if remote.execute("ls /etc/init/{}.conf".format(name))["exit_code"] == 0:
         service_cmd = 'initctl {operation} {service}'
     else:
-        raise Exception('no service handler!')
+        service_cmd = 'service {service} {operation}'
 
     remote.check_call(service_cmd.format(service=name, operation=operation))
 
