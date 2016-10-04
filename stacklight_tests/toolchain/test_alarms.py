@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+import time
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from fuelweb_test import logger
@@ -613,3 +614,45 @@ class TestToolchainAlarms(api.ToolchainApi):
         with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
             self.remote_ops.manage_service(
                 remote, "swift-account", "start")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_hdd_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_hdd_errors_alarms(self):
+        """Check that hdd-errors-critical alarm works as expected.
+
+        Scenario:
+            1. Generate errors entries in kernel log: in /var/log/kern.log
+            2. Check the last value of the hdd-errors-critical
+               alarm in InfluxDB.
+
+        Duration 10m
+        """
+        def poison_kern_log_with_hdd_errors():
+            kernel_log = "/var/log/kern.log"
+            prefix = "<5>{timestamp} {hostname} kernel: [ 3525.262016] "
+            messages = (
+                "Buffer I/O error on device vda2, logical block 51184",
+                "XFS (vda): xfs_log_force: error 5 returned.",
+                "XFS (vdb2): metadata I/O error: block 0x68c2b7d8 "
+                "(\"xfs_trans_read_buf_map\") error 121 numblks 8",
+            )
+            for msg in messages:
+                for repeat in range(10):
+                    curr_timestamp = time.strftime("%b  %-d %H:%M:%S")
+                    curr_msg = "{prefix}{msg}".format(
+                        prefix=prefix.format(timestamp=curr_timestamp,
+                                             hostname=hostname),
+                        msg=msg)
+                    self.remote_ops.write_to_file(remote, kernel_log, curr_msg)
+                    time.sleep(1)
+
+        self.env.revert_snapshot("deploy_toolchain")
+        compute = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["compute"])[0]
+        hostname = compute["hostname"]
+        with self.fuel_web.get_ssh_for_nailgun_node(compute) as remote:
+            poison_kern_log_with_hdd_errors()
+
+        self.check_alarms(
+            "node", "compute", "hdd-errors", hostname, CRITICAL_STATUS)
