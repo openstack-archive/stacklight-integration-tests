@@ -188,3 +188,9 @@ def clean_filesystem(remote, filename):
     """
     logger.info("Removing {} file".format(filename))
     remote.check_call("rm -f {}".format(filename))
+
+
+def write_to_file(remote, filename, line, append=True):
+    op = ">>" if append else ">"
+    remote.check_call("echo '{line}' {op} {filename}".format(
+        line=line, op=op, filename=filename))
