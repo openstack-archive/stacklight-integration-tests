@@ -68,7 +68,7 @@ def check_process_count(remote, process, count):
     :rtype: list
     """
     msg = "Got {got} instances instead of {count} for process {process}."
-    pids = remote_ops.get_pids_of_process(remote, process)
+    pids = remote_ops.get_pgrep_of_process(remote, process)
     asserts.assert_equal(
         len(pids), count,
         msg.format(process=process, count=count, got=len(pids)))
