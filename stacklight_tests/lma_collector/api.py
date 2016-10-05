@@ -37,18 +37,22 @@ class LMACollectorPluginApi(base_test.PluginApi):
         :returns: list of process IDs indexed by node and process
         :rtype: dict
         """
+        services = ["metric_collector", "log_collector"]
+        service_version_9 = ["lma_collector"]
         pids = {}
         processes_count = {
-            "collectd": 1,
-            "collectdmon": 1
+            "collectd ": 1,
+            "collectdmon ": 1
         }
 
         if self.settings.version.startswith("0.9"):
-            processes_count["hekad"] = 1
+            processes_count[
+                "hekad -config[= ]/etc/{}".format(service_version_9)] = 1
         else:
             # Starting with 0.10, there are one collector for logs and one for
             # metrics
-            processes_count["hekad"] = 2
+            for service in services:
+                processes_count["hekad -config[= ]/etc/{}".format(service)] = 1
         online_nodes = [node for node in self.helpers.get_all_ready_nodes()
                         if node["online"]]
         for node in online_nodes:
