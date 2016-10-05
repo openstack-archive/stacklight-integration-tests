@@ -75,6 +75,25 @@ def check_process_count(remote, process, count):
     return pids
 
 
+def check_process_count_by_pattern(remote, process, count):
+    """Check that the expected number of processes is running on a host.
+
+    :param remote: SSH connection to the node.
+    :type remote: SSHClient
+    :param process: the process name to match.
+    :type process: str
+    :param count: the number of processes to match.
+    :type count: int
+    :returns: list of PGREP.
+    :rtype: list
+    """
+    msg = "Got {got} instance instead of {count} for process {process}"
+    pgrep = remote_ops.get_pgrep_of_process(remote, process)
+    asserts.assert_equal(len(pgrep), count, msg.format(process=process,
+                                                       count=count,
+                                                       got=len(pgrep)))
+
+
 def check_port(address, port):
     """Check whether or not a TCP port is open.
 

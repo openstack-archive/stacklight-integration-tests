@@ -83,6 +83,24 @@ def get_pids_of_process(remote, name):
     return result['stdout'][0].strip().split()
 
 
+def get_pgrep_of_process(remote, cmd_pattern):
+    """Get PGREP of process by its pattern.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param cmd_pattern: command.
+        :type cmd_pattern: str
+        :returns: list of PGREP.
+        :rtype: list
+        """
+
+    cmd = "pgrep -f {}".format(cmd_pattern)
+    result = remote.execute(cmd)
+    if result['exit_code'] != 0:
+        return []
+    return result['stdout'][0].strip().split()
+
+
 def ban_resource(remote, resource, wait=None):
     """Ban a resource from the current node.
 
