@@ -37,31 +37,35 @@ class LMACollectorPluginApi(base_test.PluginApi):
         :returns: list of process IDs indexed by node and process
         :rtype: dict
         """
-        pids = {}
+        services = ["metric_collector", "log_collector"]
+        service_version_9 = ["lma_collector"]
+        pgrep = {}
         processes_count = {
-            "collectd": 1,
-            "collectdmon": 1
+            "collectd ": 1,
+            "collectdmon ": 1
         }
 
         if self.settings.version.startswith("0.9"):
-            processes_count["hekad"] = 1
+            processes_count[
+                "hekad -config[= ]/etc/{}".format(service_version_9)] = 1
         else:
             # Starting with 0.10, there are one collector for logs and one for
             # metrics
-            processes_count["hekad"] = 2
+            for service in services:
+                processes_count["hekad -config[= ]/etc/{}".format(service)] = 1
         online_nodes = [node for node in self.helpers.get_all_ready_nodes()
                         if node["online"]]
         for node in online_nodes:
-            pids[node["name"]] = {}
+            pgrep[node["name"]] = {}
             with self.env.d_env.get_ssh_to_remote(node["ip"]) as remote:
                 for process, count in processes_count.items():
                     logger.info("Checking process {0} on node {1}".format(
                         process, node["name"]
                     ))
-                    pids[node["name"]][process] = (
-                        self.checkers.check_process_count(
+                    pgrep[node["name"]][process] = (
+                        self.checkers.check_process_count_by_pattern(
                             remote, process, count))
-        return pids
+        return pgrep
 
     def check_plugin_online(self):
         # Run the OSTF tests to check the Pacemaker status except when no
