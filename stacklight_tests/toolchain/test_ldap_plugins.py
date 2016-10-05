@@ -212,7 +212,7 @@ class TestToolchainLDAP(api.ToolchainApi):
                     "ldap_group_search_base_dns/value":
                         "ou=groups,dc=stacklight,dc=ci",
                     "ldap_group_search_filter/value":
-                        "(&(objectClass=posixGroup)(memberUid=%s)",
+                        "(&(objectClass=posixGroup)(memberUid=%s))",
                     "ldap_admin_group_dn/value": "plugin_admins",
                     "ldap_viewer_group_dn/value": "plugin_viewers"
                 })
