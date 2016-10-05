@@ -501,3 +501,64 @@ class TestToolchainAlarms(api.ToolchainApi):
                        "cinder-api": "http_errors"}
             self._verify_service_alarms(
                 get_volumes_list, 100, metrics, WARNING_STATUS)
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_keystone_api_logs_errors_alarms",
+                  "http_logs_errors_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_keystone_api_logs_errors_alarms(self):
+        """Check that keystone-logs-error, keystone-public-api-http-errors and
+        keystone-admin-api-http-errors alarms work as expected.
+
+        Scenario:
+            1. Rename all keystone tables to UPPERCASE.
+            2. Run some keystone stack list command repeatedly.
+            3. Check the last value of the keystone-logs-error alarm
+               in InfluxDB.
+            4. Check the last value of the keystone-public-api-http-errors
+               alarm in InfluxDB.
+            5. Check the last value of the keystone-admin-api-http-errors alarm
+               in InfluxDB.
+            6. Revert all keystone tables names to lowercase.
+
+        Duration 10m
+        """
+
+        def get_users_list(level):
+            additional_cmds = {
+                "user": ("&& export OS_AUTH_URL="
+                         "`(echo $OS_AUTH_URL "
+                         "| sed 's%:5000/%:5000/v2.0%')` "),
+                "admin": ("&& export OS_AUTH_URL="
+                          "`(echo $OS_AUTH_URL "
+                          "| sed 's%:5000/%:35357/v2.0%')` ")
+            }
+
+            def get_users_list_parametrized():
+                try:
+                    with self.fuel_web.get_ssh_for_nailgun_node(
+                            controller) as remote:
+                        return remote.execute(
+                            ". openrc {additional_cmd}"
+                            "&& keystone user-list > /dev/null 2>&1".format(
+                                additional_cmd=additional_cmds[level]
+                            )
+                        )
+                except Exception:
+                    pass
+            return get_users_list_parametrized
+
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])[0]
+
+        with self.helpers.make_logical_db_unavailable("keystone", controller):
+            metrics = {"keystone-logs": "error",
+                       "keystone-public-api": "http_errors"}
+            self._verify_service_alarms(
+                get_users_list("user"), 100, metrics, WARNING_STATUS)
+
+            metrics = {"keystone-admin-api": "http_errors"}
+            self._verify_service_alarms(
+                get_users_list("admin"), 100, metrics, WARNING_STATUS)
