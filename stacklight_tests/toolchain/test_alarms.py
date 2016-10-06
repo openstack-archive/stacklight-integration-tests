@@ -33,6 +33,7 @@ RABBITMQ_MEMORY_WARNING_VALUE = 1.01
 RABBITMQ_MEMORY_CRITICAL_VALUE = 1.0001
 
 OKAY_FLAG = 1
+DOWN_FLAG = 0
 
 
 @test(groups=["plugins"])
@@ -672,3 +673,89 @@ class TestToolchainAlarms(api.ToolchainApi):
         Duration 20m
         """
         self._check_mysql_cluster_metrics_on_disaster("mysql_cluster_ready")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_service_api_metrics", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_service_api_metrics(self):
+        """Verify that the metric 'openstack_check_local_api' is present in
+        InfluxDB backend for all necessary services.
+
+        Scenario:
+            1. Check that the metric 'openstack_check_local_api' is present in
+               InfluxDB backend for all services in the list below:
+                * cinder-api
+                * glance-api
+                * heat-api
+                * heat-cfn-api
+                * keystone-public-api
+                * neutron-api
+                * nova-api
+                * swift-api
+
+        Duration 5m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+
+        def generate_filters(service_api):
+            return (
+                "value = {}".format(OKAY_FLAG),
+                "time >= now() - 1m",
+                "hostname = '{}'".format(controller["hostname"]),
+                "service = '{}'".format(service_api)
+            )
+
+        service_list = ["cinder-api", "glance-api", "heat-api", "heat-cfn-api",
+                        "keystone-public-api", "neutron-api", "nova-api",
+                        "swift-api"]
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])[0]
+
+        for service in service_list:
+            filters = generate_filters(service)
+            self.check_metric("openstack_check_local_api", filters)
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_service_api_endpoint_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_service_api_endpoint_alarms(self):
+        """Check that <service-api>-local-endpoint alarms work as
+        expected.
+
+        Scenario:
+            1. Stop the service that cause endpoint fail.
+            2. Check the last value of the <service-api>-local-endpoint alarm
+               in InfluxDB.
+            3. Start the service from step #1.
+            4. Check the last value of the <service-api>-local-endpoint alarm
+               in InfluxDB.
+
+        Duration 10m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+
+        service_mapping = {
+            "cinder-api": "cinder-api-endpoint",
+            "glance-api": "glance-api-endpoint",
+            "heat-api": "heat-api-endpoint",
+            "heat-api-cfn": "heat-cfn-api-endpoint",
+            "apache2": "keystone-public-api-endpoint",
+            "neutron-server": "neutron-api-endpoint",
+            "nova-api": "nova-api-endpoint",
+            "swift-proxy": "swift-api-endpoint"
+        }
+
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])[0]
+
+        for service, endpoint in service_mapping.items():
+            with self.helpers.fuel_web.get_ssh_for_nailgun_node(
+                    controller) as remote:
+                logger.info("Stop {} service".format(service))
+                self.remote_ops.manage_service(remote, service, "stop")
+                self.check_alarms("service", endpoint, "endpoint",
+                                  controller["hostname"], DOWN_STATUS)
+                logger.info("Start {} service".format(service))
+                self.remote_ops.manage_service(remote, service, "start")
+                self.check_alarms("service", endpoint, "endpoint",
+                                  controller["hostname"], OKAY_STATUS)
