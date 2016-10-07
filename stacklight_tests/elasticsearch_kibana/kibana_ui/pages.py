@@ -13,6 +13,8 @@
 #    under the License.
 from selenium.common import exceptions
 from selenium.webdriver.common import by
+from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support import ui
 
 from stacklight_tests.helpers.ui import base_pages
 
@@ -32,7 +34,6 @@ class MainPage(base_pages.PageObject):
         self._page_title = "Logs - Dashboard - Kibana"
 
     def is_main_page(self):
-        # TODO(rpromyshlennikov): fix unresolved attribute ._main_menu_locator
         return (self.is_the_current_page() and
                 self._is_element_visible(*self._main_menu_locator))
 
@@ -40,7 +41,11 @@ class MainPage(base_pages.PageObject):
         self._get_element(*self._save_button_locator).click()
         self._get_element(*self._submit_button_locator).click()
         try:
+            ui.WebDriverWait(self.driver, 10).until(
+                ec.alert_is_present(),
+                "Timed out waiting of confirmation alert")
             self.driver.switch_to.alert.accept()
-        except exceptions.NoAlertPresentException:
+        except (exceptions.NoAlertPresentException,
+                exceptions.TimeoutException):
             pass
         return self._get_element(*self._error_field_locator).text

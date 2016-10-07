@@ -25,7 +25,6 @@ class ElasticsearchPluginApi(base_test.PluginApi):
     def __init__(self):
         super(ElasticsearchPluginApi, self).__init__()
         self._es_client = None
-        self._kibana_port = None
         self._kibana_protocol = None
 
     @property
@@ -36,18 +35,17 @@ class ElasticsearchPluginApi(base_test.PluginApi):
         return self._es_client
 
     def kibana_port(self, admin_role=True):
-        if self._kibana_port is None:
-            if admin_role:
-                if self.kibana_protocol == 'http':
-                    self._kibana_port = 80
-                else:
-                    self._kibana_port = 443
+        if admin_role:
+            if self.kibana_protocol == 'http':
+                _kibana_port = 80
             else:
-                if self.kibana_protocol == 'http':
-                    self._kibana_port = 8000
-                else:
-                    self._kibana_port = 8443
-        return self._kibana_port
+                _kibana_port = 443
+        else:
+            if self.kibana_protocol == 'http':
+                _kibana_port = 8000
+            else:
+                _kibana_port = 8443
+        return _kibana_port
 
     @property
     def kibana_protocol(self):
