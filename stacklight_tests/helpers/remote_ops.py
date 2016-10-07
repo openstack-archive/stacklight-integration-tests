@@ -66,17 +66,18 @@ def simulate_network_interrupt_on_node(remote, interval=30):
     remote.execute(cmd)
 
 
-def get_pids_of_process(remote, name):
-    """Get PIDs of process by its name.
+def get_pids_of_process(remote, cmd_pattern):
+    """Get PIDS of process by its pattern.
 
         :param remote: SSH connection to the node.
         :type remote: SSHClient
-        :param name: process name.
-        :type name: str
-        :returns: list of PIDs.
+        :param cmd_pattern: command.
+        :type cmd_pattern: str
+        :returns: list of PIDS.
         :rtype: list
         """
-    cmd = "pidof {}".format(name)
+
+    cmd = "pgrep -f '{}'".format(cmd_pattern)
     result = remote.execute(cmd)
     if result['exit_code'] != 0:
         return []
