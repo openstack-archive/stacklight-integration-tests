@@ -59,7 +59,7 @@ def check_grafana_dashboards(url):
 def _check_available_menu_items_for_user(user, url, authz, is_admin=False):
     logger.info("Checking Grafana service at {} with LDAP authorization "
                 "for {} user".format(url, user[0]))
-    admin_panels = ["Dashboards", "Data Sources", "Plugins", "Admin"]
+    admin_panels = ["Dashboards", "Data Sources", "Plugins"]
     viewer_panel = admin_panels[:1] if authz else admin_panels
     expected_panels = admin_panels if is_admin else viewer_panel
 

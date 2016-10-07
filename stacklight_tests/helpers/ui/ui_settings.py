@@ -32,4 +32,4 @@ implicit_wait = os.environ.get('IMPLICIT_WAIT', 5)
 
 # Set the amount of time to wait for a page load to complete
 # before throwing an error.
-page_timeout = os.environ.get('PAGE_TIMEOUT', 25)
+page_timeout = os.environ.get('PAGE_TIMEOUT', 15)
