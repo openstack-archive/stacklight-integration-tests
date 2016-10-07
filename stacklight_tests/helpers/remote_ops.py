@@ -187,3 +187,35 @@ def clean_filesystem(remote, filename):
     """
     logger.info("Removing {} file".format(filename))
     remote.check_call("rm -f {}".format(filename))
+
+
+def create_and_mount_ramdisk(remote, mountpoint, name):
+    """Create a ramdisk and mount this as a filesystem.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param mountpoint: a directory to mount on
+        :type mountpoint: str
+        :param name: a name of new filesystem
+        :type name: str
+    """
+    size = remote.check_call(
+        "echo $(($(free -m | awk \'/Mem:/{print $4}\') / 2))"
+    )["stdout"][0].rstrip()
+    cmd = ('mkdir {mountpoint}; mount -o size={size}M -t tmpfs {name} '
+           '{mountpoint}'.format(mountpoint=mountpoint, size=size, name=name))
+    remote.check_call(cmd)
+
+
+def umount_filesystem(remote, mountpoint):
+    """Detach a filesystem and remove a mountpoint.
+
+        :param remote: SSH connection to the node.
+        :type remote: SSHClient
+        :param mountpoint: a directory to detach from
+        :type mountpoint: str
+    """
+    logger.info("Detaching {} filesystem".format(mountpoint))
+    cmd = "umount {mountpoint}; sleep 5; rm -rf {mountpoint}".format(
+        mountpoint=mountpoint)
+    remote.check_call(cmd)

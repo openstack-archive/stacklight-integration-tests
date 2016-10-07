@@ -613,3 +613,40 @@ class TestToolchainAlarms(api.ToolchainApi):
         with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
             self.remote_ops.manage_service(
                 remote, "swift-account", "start")
+
+    @test(depends_on_groups=["deploy_toolchain"],
+          groups=["check_other_fs_alarms", "toolchain", "alarms"])
+    @log_snapshot_after_test
+    def check_other_fs_alarms(self):
+        """Check that other-fs-warning and other-fs-critical alarms work as
+        expected.
+
+        Scenario:
+            1. Create a ramdisk and mount this as a new filesystem.
+            2. Fill up the filesystem to 91 percent.
+            3. Check the last value of the warning alarm in InfluxDB.
+            4. Clean the filesystem.
+            5. Fill up /var/log filesystem to 96 percent.
+            6. Check the last value of the critical alarm in InfluxDB.
+            7. Clean the filesystem.
+            8. Detach the filesystem and remove a mountpoint
+
+
+        Duration 15m
+        """
+        self.env.revert_snapshot("deploy_toolchain")
+
+        controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ["controller"])[0]
+        mountpoint = "/mnt/tmpfs"
+        fs_name = "test-tmpfs"
+
+        with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
+            self.remote_ops.create_and_mount_ramdisk(
+                remote, mountpoint, fs_name)
+
+            self._check_filesystem_alarms(
+                controller, fs_name, "other-fs",
+                "{}/bigfile".format(mountpoint), "controller")
+
+            self.remote_ops.umount_filesystem(remote, mountpoint)
