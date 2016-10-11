@@ -64,23 +64,23 @@ class TestToolchainAlarms(api.ToolchainApi):
         cmd = ("rabbitmqctl set_disk_free_limit $(df | grep /dev/dm-4 | "
                "awk '{{ printf(\"%.0f\\n\", 1024 * ((($3 + $4) * "
                "{percent} / 100) - $3))}}')")
-        self.check_alarms("service", "rabbitmq", "disk",
+        self.check_alarms("service", "rabbitmq-cluster", "disk",
                           controller["hostname"], OKAY_STATUS)
         with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
             default_value = remote.check_call(
                 "rabbitmqctl environment | grep disk_free_limit | "
                 "sed -r 's/}.+//' | sed 's|.*,||'")['stdout'][0].rstrip()
             remote.check_call(cmd.format(percent=percent))
-            self.check_alarms("service", "rabbitmq", "disk",
+            self.check_alarms("service", "rabbitmq-cluster", "disk",
                               controller["hostname"], status)
             remote.check_call("rabbitmqctl set_disk_free_limit {}".format(
                 default_value))
-            self.check_alarms("service", "rabbitmq", "disk",
+            self.check_alarms("service", "rabbitmq-cluster", "disk",
                               controller["hostname"], OKAY_STATUS)
 
     def _check_rabbit_mq_memory_alarms(self, controller, status, value):
         cmd = "rabbitmqctl set_vm_memory_high_watermark absolute \"{memory}\""
-        self.check_alarms("service", "rabbitmq", "memory",
+        self.check_alarms("service", "rabbitmq-cluster", "memory",
                           controller["hostname"], OKAY_STATUS)
         with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
             default_value = remote.check_call(
@@ -88,10 +88,10 @@ class TestToolchainAlarms(api.ToolchainApi):
                 "sed -r 's/}.+//' | sed 's|.*,||'")['stdout'][0].rstrip()
             mem_usage = self.get_rabbitmq_memory_usage()
             remote.check_call(cmd.format(memory=int(mem_usage * value)))
-            self.check_alarms("service", "rabbitmq", "memory",
+            self.check_alarms("service", "rabbitmq-cluster", "memory",
                               controller["hostname"], status)
             self.set_rabbitmq_memory_watermark(controller, default_value)
-            self.check_alarms("service", "rabbitmq", "memory",
+            self.check_alarms("service", "rabbitmq-cluster", "memory",
                               controller["hostname"], OKAY_STATUS)
 
     def _verify_service_alarms(self, trigger_fn, trigger_count,
