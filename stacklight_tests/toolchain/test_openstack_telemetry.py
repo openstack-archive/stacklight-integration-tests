@@ -49,7 +49,8 @@ class TestOpenstackTelemetry(api.ToolchainApi):
     def _deploy_telemetry_plugin(self, caller, advanced_options=None,
                                  additional_tests=None,
                                  additional_plugins=None, roles=None,
-                                 settings=None, test_sets=None):
+                                 settings=None, test_sets=None,
+                                 check_services=True):
         self.check_run(caller)
         self.env.revert_snapshot("ready_with_5_slaves")
         self.add_plugin(self.OPENSTACK_TELEMETRY)
@@ -69,7 +70,8 @@ class TestOpenstackTelemetry(api.ToolchainApi):
             "slave-04": ["compute", "cinder"],
             "slave-05": ["elasticsearch_kibana", "influxdb_grafana"]
         } if not roles else roles
-        self.helpers.deploy_cluster(nodes_roles=node_roles)
+        self.helpers.deploy_cluster(nodes_roles=node_roles,
+                                    check_services=check_services)
         self.check_plugins_online()
         self.helpers.run_ostf(test_sets=test_sets)
         self.OPENSTACK_TELEMETRY.check_ceilometer_sample_functionality()
@@ -414,10 +416,13 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
         test_sets = ['smoke']
 
+        check_services = False
+
         self._deploy_telemetry_plugin("deploy_telemetry_ceilometer_core",
                                       roles=self.ceilometer_core_roles,
                                       settings=settings,
-                                      test_sets=test_sets)
+                                      test_sets=test_sets,
+                                      check_services=check_services)
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["deploy_telemetry_ceilometer_core_resource_api", "deploy",
@@ -459,12 +464,14 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
         test_sets = ['smoke']
 
+        check_services = False
+
         self._deploy_telemetry_plugin(
             "deploy_telemetry_ceilometer_core_resource_api",
             advanced_options=options,
             additional_tests=additional_tests,
             roles=self.ceilometer_core_roles, settings=settings,
-            test_sets=test_sets)
+            test_sets=test_sets, check_services=check_services)
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["deploy_telemetry_ceilometer_core_event_api", "deploy",
@@ -506,12 +513,14 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
         test_sets = ['smoke']
 
+        check_services = False
+
         self._deploy_telemetry_plugin(
             "deploy_telemetry_ceilometer_core_event_api",
             advanced_options=options,
             additional_tests=additional_tests,
             roles=self.ceilometer_core_roles, settings=settings,
-            test_sets=test_sets)
+            test_sets=test_sets, check_services=check_services)
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["deploy_telemetry_ceilometer_core_resource_event_api",
@@ -588,11 +597,14 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
         test_sets = ['smoke']
 
+        check_services = False
+
         self._deploy_telemetry_plugin("deploy_telemetry_ceilometer_core_kafka",
                                       additional_plugins=self.KAFKA,
                                       roles=self.ceilometer_core_kafka_roles,
                                       settings=settings,
-                                      test_sets=test_sets)
+                                      test_sets=test_sets,
+                                      check_services=check_services)
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["deploy_telemetry_ceilometer_core_kafka_resource_api",
@@ -634,13 +646,15 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
         test_sets = ['smoke']
 
+        check_services = False
+
         self._deploy_telemetry_plugin(
             "deploy_telemetry_ceilometer_core_kafka_resource_api",
             advanced_options=options,
             additional_tests=additional_tests,
             additional_plugins=self.KAFKA,
             roles=self.ceilometer_core_kafka_roles, settings=settings,
-            test_sets=test_sets)
+            test_sets=test_sets, check_services=check_services)
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["deploy_telemetry_ceilometer_core_kafka_event_api", "deploy",
@@ -682,13 +696,15 @@ class TestOpenstackTelemetry(api.ToolchainApi):
 
         test_sets = ['smoke']
 
+        check_services = False
+
         self._deploy_telemetry_plugin(
             "deploy_telemetry_ceilometer_core_kafka_event_api",
             advanced_options=options,
             additional_tests=additional_tests,
             additional_plugins=self.KAFKA,
             roles=self.ceilometer_core_kafka_roles, settings=settings,
-            test_sets=test_sets)
+            test_sets=test_sets, check_services=check_services)
 
     @test(depends_on_groups=["prepare_slaves_5"],
           groups=["deploy_telemetry_ceilometer_core_kafka_resource_event_api",
