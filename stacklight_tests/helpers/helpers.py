@@ -239,7 +239,8 @@ class PluginHelper(object):
         return self._cluster_id
 
     def deploy_cluster(self, nodes_roles, verify_network=False,
-                       update_interfaces=True, check_services=True):
+                       update_interfaces=True, check_services=True,
+                       timeout=7800):
         """Assign roles to nodes and deploy the cluster.
 
         :param nodes_roles: nodes to roles mapping.
@@ -260,7 +261,8 @@ class PluginHelper(object):
         if verify_network:
             self.fuel_web.verify_network(self.cluster_id)
         self.fuel_web.deploy_cluster_wait(self.cluster_id,
-                                          check_services=check_services)
+                                          check_services=check_services,
+                                          timeout=timeout)
 
     def run_ostf(self, *args, **kwargs):
         """Run the OpenStack health checks."""

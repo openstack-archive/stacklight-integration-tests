@@ -16,6 +16,11 @@ export LMA_COLLECTOR_PLUGIN_PATH=$HOME/plugins/lma_collector-0.9-0.9.0-1.noarch.
 export LMA_INFRA_ALERTING_PLUGIN_PATH=$HOME/plugins/lma_infrastructure_alerting-0.9-0.9.0-1.noarch.rpm
 export ELASTICSEARCH_KIBANA_PLUGIN_PATH=$HOME/plugins/elasticsearch_kibana-0.9-0.9.0-1.noarch.rpm
 export INFLUXDB_GRAFANA_PLUGIN_PATH=$HOME/plugins/influxdb_grafana-0.9-0.9.0-1.noarch.rpm
+# Zabbix plugins
+export ZABBIX_MONITORING_PLUGIN_PATH=$HOME/plugins/zabbix_monitoring-2.5-2.5.1-1.noarch.rpm
+export ZABBIX_MONITORING_SNMPTRAPD_PLUGIN_PATH=$HOME/plugins/zabbix_snmptrapd-1.1-1.1.0-1.noarch.rpm
+export ZABBIX_MONITORING_EMC_PLUGIN_PATH=$HOME/plugins/zabbix_monitoring_emc-1.1-1.1.0-1.noarch.rpm
+export ZABBIX_MONITORING_EXTREME_NETWORKS_PLUGIN_PATH=$HOME/plugins/zabbix_monitoring_extreme_networks-1.1-1.1.0-1.noarch.rpm
 
 # UI Tests settings
 export SELENIUM_HEADLESS=True
