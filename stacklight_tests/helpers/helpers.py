@@ -240,7 +240,9 @@ class PluginHelper(object):
 
     def deploy_cluster(self, nodes_roles, verify_network=False,
                        update_interfaces=True, check_services=True,
-                       timeout=settings.DEPLOYMENT_TIMEOUT):
+                       timeout=(settings.DEPLOYMENT_TIMEOUT
+                                if hasattr(settings, 'DEPLOYMENT_TIMEOUT')
+                                else 7800)):
         """Assign roles to nodes and deploy the cluster.
 
         :param nodes_roles: nodes to roles mapping.
