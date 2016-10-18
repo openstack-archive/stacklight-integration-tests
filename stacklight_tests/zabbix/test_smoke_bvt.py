@@ -22,7 +22,7 @@ class TestZabbix(api.ZabbixApi):
     """Class for smoke testing the zabbix plugin."""
 
     @test(depends_on_groups=['prepare_slaves_3'],
-          groups=["install_zabbix", "install", "zabbix_monitoring", "smoke"])
+          groups=["install_zabbix", "install", "zabbix", "smoke"])
     @log_snapshot_after_test
     def install_zabbix(self):
         """Install Zabbix plugin and check it exists
@@ -44,7 +44,7 @@ class TestZabbix(api.ZabbixApi):
         self.activate_plugin()
 
     @test(depends_on_groups=["prepare_slaves_5"],
-          groups=["deploy_zabbix_monitoring_ha", "smoke", "zabbix", ])
+          groups=["deploy_zabbix_monitoring_ha", "smoke", "zabbix"])
     @log_snapshot_after_test
     def deploy_zabbix_monitoring_ha(self):
         """Deploy environment with zabbix plugin
@@ -90,8 +90,7 @@ class TestZabbix(api.ZabbixApi):
         self.env.make_snapshot("deploy_zabbix_monitoring_ha", is_make=True)
 
     @test(depends_on_groups=["deploy_zabbix_monitoring_ha"],
-          groups=["uninstall_deployed_zabbix", "uninstall", "zabbix",
-                  "smoke"])
+          groups=["uninstall_deployed_zabbix", "uninstall", "zabbix", "smoke"])
     @log_snapshot_after_test
     def uninstall_deployed_zabbix(self):
         """Uninstall Zabbix plugin with a deployed environment
@@ -113,8 +112,8 @@ class TestZabbix(api.ZabbixApi):
         self.uninstall_plugin()
 
     @test(depends_on_groups=["prepare_slaves_3"],
-          groups=["uninstall_zabbix_monitoring", "uninstall",
-                  "zabbix_monitoring", "smoke"])
+          groups=["uninstall_zabbix_monitoring", "uninstall", "zabbix",
+                  "smoke"])
     @log_snapshot_after_test
     def uninstall_zabbix_monitoring(self):
         """Uninstall Zabbix plugin
