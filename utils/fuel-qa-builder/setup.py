@@ -14,6 +14,11 @@ def get_requirements_list(requirements):
                         if 'devops' not in req and 'launchpadlib' not in req]
     return all_requirements
 
+all_pkgs = ['fuelweb_test', 'gates_tests', 'core']
+pkgs = []
+for d in all_pkgs:
+    if os.path.isdir(d):
+        pkgs += [d]
 
 setup(
     name='fuelweb_test',
@@ -23,7 +28,7 @@ setup(
     url='http://www.openstack.org/',
     author='OpenStack',
     author_email='openstack-dev@lists.openstack.org',
-    packages=['fuelweb_test', 'gates_tests', 'core'],
+    packages=pkgs,
     include_package_data=True,
     classifiers=[
         'Environment :: Linux',
