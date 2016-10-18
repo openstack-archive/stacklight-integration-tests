@@ -12,12 +12,13 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
-
-from fuelweb_test.helpers.decorators import log_snapshot_after_test
 from netaddr import IPNetwork
+
 from proboscis import test
 
 from stacklight_tests.zabbix import api
+
+from fuelweb_test.helpers.decorators import log_snapshot_after_test
 
 
 @test(groups=["plugins"])
@@ -59,7 +60,7 @@ class TestZabbixPluginSystem(api.ZabbixApi):
                 'slave-03': ['controller'],
                 'slave-04': ['compute'],
                 'slave-05': ['cinder']
-            }
+            }, timeout=10800
         )
 
         self.check_plugin_online()
