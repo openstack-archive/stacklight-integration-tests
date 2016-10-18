@@ -1,0 +1,10 @@
+elasticsearch<=2.4.0
+git+git://github.com/openstack/fuel-devops.git@2.9.23
+netaddr
+py-zabbix
+PyYAML
+requests
+selenium
+six
+tox
+xvfbwrapper

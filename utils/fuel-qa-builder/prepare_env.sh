@@ -16,6 +16,9 @@ if [ -z "${FUELQA_GITREF}" ]; then
     # Pick up the correct fuel-qa branch depending on the ISO version
     FUEL_VERSION=$(basename "${ISO_PATH}" | egrep -o '[0-9]+\.[0-9]+')
     case "$FUEL_VERSION" in
+    7.0)
+        FUELQA_GITREF="stable/7.0"
+        ;;
     8.0)
         FUELQA_GITREF="stable/8.0"
         ;;
@@ -28,6 +31,8 @@ if [ -z "${FUELQA_GITREF}" ]; then
         exit 1
     esac
 fi
+
+FUEL_REV=`echo $FUELQA_GITREF | sed -e 's?stable/??' -e 's/\.0.*//' -e 's/mitaka/9/'`
 
 # Create the virtual environment if it doesn't exist yet
 if [[ ! -f "$VENV_PATH"/bin/activate ]]; then
@@ -69,7 +74,7 @@ if [[ "$(pip show fuelweb-test)" == "" ]]; then
 fi
 
 # Install the project's dependencies
-pip install -r"${BASE_DIR}/../../requirements.txt"
+pip install -r"${BASE_DIR}/../../requirements/mos${FUEL_REV}-requirements.txt"
 
 # List the Python packages (this can be useful for troubleshooting)
 pip freeze
