@@ -21,12 +21,12 @@ import time
 import urllib2
 
 from devops.helpers import helpers
+from fuelweb_test.helpers import checkers
 from fuelweb_test.helpers import os_actions
 from fuelweb_test import logger
 from proboscis import asserts
-
 from stacklight_tests.helpers import remote_ops
-from stacklight_tests import settings
+from stacklight_tests import settings as conf
 
 
 PLUGIN_PACKAGE_RE = re.compile(r'([^/]+)-(\d+\.\d+)-(\d+\.\d+\.\d+)')
@@ -78,12 +78,39 @@ def get_fixture(name):
     return path
 
 
+def mos7_get_ssh_for_nailgun_node(target, node):
+    return target.environment.d_env.get_ssh_to_remote(node['ip'])
+
+
+def mos7_upload_plugin(plugin, source=None):
+    with source.get_admin_remote() as remote:
+        checkers.upload_tarball(
+            remote, plugin, "/var")
+
+
+def mos7_install_plugin(plugin_file_name, source=None):
+    with source.get_admin_remote() as remote:
+        checkers.install_plugin_check_code(
+            remote, plugin=plugin_file_name)
+
+
 class PluginHelper(object):
     """Class for common help functions."""
 
     def __init__(self, env):
         self.env = env
         self.fuel_web = self.env.fuel_web
+        # This method does not exist in MOS 7.0
+        # Using Monkey-patching on class. The benefit is that the code
+        # modifications required to get everything to work properly
+        # on every supported version os MOS is located here and there is no
+        # need to modify any other existing code in the test suite
+        wtype = type(self.fuel_web)
+        if not hasattr(wtype, 'get_ssh_for_nailgun_node'):
+            wtype.get_ssh_for_nailgun_node = mos7_get_ssh_for_nailgun_node
+        # Do NOT patch other MOS 7.0 methods on self.env.admin_actions
+        # class because it is not yet instanciated at this point
+        # (see further down in prepare_plugin)
         self._cluster_id = None
         self.nailgun_client = self.fuel_web.client
         self._os_conn = None
@@ -110,9 +137,18 @@ class PluginHelper(object):
 
     def prepare_plugin(self, plugin_path):
         """Upload and install plugin by path."""
-        self.env.admin_actions.upload_plugin(plugin=plugin_path)
-        self.env.admin_actions.install_plugin(
-            plugin_file_name=os.path.basename(plugin_path))
+        # This method does not exist in MOS 7.0
+        # Using Monkey-patching on class
+        atype = type(self.env.admin_actions)
+        if not hasattr(atype, 'upload_plugin'):
+            mos7_upload_plugin(plugin=plugin_path, source=self.env.d_env)
+            mos7_install_plugin(
+                plugin_file_name=os.path.basename(plugin_path),
+                source=self.env.d_env)
+        else:
+            self.env.admin_actions.upload_plugin(plugin=plugin_path)
+            self.env.admin_actions.install_plugin(
+                plugin_file_name=os.path.basename(plugin_path))
 
     def get_plugin_setting(self, plugin, parameter):
         """Return the given parameter's value for the plugin.
@@ -171,12 +207,18 @@ class PluginHelper(object):
         attributes = attributes['editable'][name]
 
         plugin_data = None
-        for item in attributes['metadata']['versions']:
-            if item['metadata']['plugin_version'] == version:
-                plugin_data = item
-                break
-        asserts.assert_is_not_none(
-            plugin_data, "Plugin {0} ({1}) is not found".format(name, version))
+        # This key does not exist in MOS 7.0
+        if 'versions' in attributes['metadata']:
+            for item in attributes['metadata']['versions']:
+                if item['metadata']['plugin_version'] == version:
+                    plugin_data = item
+                    break
+            asserts.assert_is_not_none(
+                plugin_data,
+                "Plugin {0} ({1}) is not found".format(
+                    name, version))
+        else:
+            plugin_data = attributes
 
         attributes['metadata']['enabled'] = True
         for option, value in options.items():
@@ -232,6 +274,13 @@ class PluginHelper(object):
         """
         if not name:
             name = self.__class__.__name__
+        # For MOS 7.0 as default network is Nova
+        # The global environment variables should have been set via openrc file
+        if hasattr(conf, 'NEUTRON_ENABLE') and conf.NEUTRON_ENABLE:
+            if settings is None:
+                settings = {}
+            settings["net_provider"] = "neutron"
+            settings["net_segment_type"] = conf.NEUTRON_SEGMENT_TYPE
         self._cluster_id = self.env.fuel_web.create_cluster(
             name=name,
             settings=settings,
@@ -240,8 +289,8 @@ class PluginHelper(object):
 
     def deploy_cluster(self, nodes_roles, verify_network=False,
                        update_interfaces=True, check_services=True,
-                       timeout=(settings.DEPLOYMENT_TIMEOUT
-                                if hasattr(settings, 'DEPLOYMENT_TIMEOUT')
+                       timeout=(conf.DEPLOYMENT_TIMEOUT
+                                if hasattr(conf, 'DEPLOYMENT_TIMEOUT')
                                 else 7800)):
         """Assign roles to nodes and deploy the cluster.
 
@@ -545,7 +594,7 @@ class PluginHelper(object):
                 "--tenant={tenant_name} --update".format(
                     path=path_to_mu_script,
                     identifier=self.cluster_id,
-                    **settings.KEYSTONE_CREDS
+                    **conf.KEYSTONE_CREDS
                 )
             )
 
