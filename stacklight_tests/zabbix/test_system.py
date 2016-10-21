@@ -89,7 +89,7 @@ class TestZabbixPluginSystem(api.ZabbixApi):
         """
         self.env.revert_snapshot("ready_with_5_slaves")
 
-        self.prepare_plugin(dependat_plugins=True)
+        self.prepare_plugin(dependant_plugins=True)
 
         self.helpers.create_cluster(name=self.__class__.__name__)
 
@@ -106,12 +106,10 @@ class TestZabbixPluginSystem(api.ZabbixApi):
         self.activate_dependant_plugin(
             self.settings.dependant_plugins[
                 "ZABBIX_MONITORING_EXTREME_NETWORKS"],
-            options={'metadata/enabled': True,
-                     'hosts/value': 'MyXNHost:{}'.format(extreme_host_ip)})
+            options={'hosts/value': 'MyXNHost:{}'.format(extreme_host_ip)})
         self.activate_dependant_plugin(
             self.settings.dependant_plugins["ZABBIX_MONITORING_EMC"],
-            options={'metadata/enabled': True,
-                     'hosts/value': 'MyEMCHost:{}'.format(emc_host_ip)})
+            options={'hosts/value': 'MyEMCHost:{}'.format(emc_host_ip)})
 
         self.helpers.deploy_cluster(
             {
