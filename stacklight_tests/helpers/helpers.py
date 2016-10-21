@@ -240,7 +240,7 @@ class PluginHelper(object):
 
     def deploy_cluster(self, nodes_roles, verify_network=False,
                        update_interfaces=True, check_services=True,
-                       timeout=7800):
+                       timeout=settings.DEPLOYMENT_TIMEOUT):
         """Assign roles to nodes and deploy the cluster.
 
         :param nodes_roles: nodes to roles mapping.
@@ -254,6 +254,9 @@ class PluginHelper(object):
         :param check_services: whether or not OSTF tests should run after the
         deployment (default: True).
         :type check_services: boolean
+        :param timeout: deployment timeout: after run out of it
+        deployment process will be stopped with exception.
+        :type timeout: int
         :returns: None
         """
         self.fuel_web.update_nodes(self.cluster_id, nodes_roles,
