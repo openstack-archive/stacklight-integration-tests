@@ -155,12 +155,19 @@ class PluginHelper(object):
             # Fallback mechanism for SSH to remote
             source = self.env.d_env
         else:
-            # Need to keep original methods because of interface change below
-            atype.orig_upload_plugin = atype.upload_plugin
-            atype.orig_install_plugin = atype.install_plugin
-            atype.upload_plugin = mos89_upload_plugin
-            atype.install_plugin = mos89_install_plugin
-            source = None
+            # If already Monkey-patched then only set source
+            if atype.upload_plugin.__name__ not in (
+                    mos7_upload_plugin.__name__,
+                    mos89_upload_plugin.__name__):
+                # Need to keep original methods
+                # because of interface change below
+                atype.orig_upload_plugin = atype.upload_plugin
+                atype.orig_install_plugin = atype.install_plugin
+                atype.upload_plugin = mos89_upload_plugin
+                atype.install_plugin = mos89_install_plugin
+                source = None
+            else:
+                source = self.env.d_env
         # Changing interface of methods for genericity across MOS versions
         self.env.admin_actions.upload_plugin(plugin=plugin_path, source=source)
         self.env.admin_actions.install_plugin(
@@ -233,6 +240,8 @@ class PluginHelper(object):
                 plugin_data,
                 "Plugin {0} ({1}) is not found".format(
                     name, version))
+        else:
+            plugin_data = attributes
 
         attributes['metadata']['enabled'] = True
         for option, value in options.items():
