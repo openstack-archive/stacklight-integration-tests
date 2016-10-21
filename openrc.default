@@ -1,5 +1,49 @@
-export ENV_NAME=fuel_stacklight_plugin
-export VENV_PATH=$HOME/venv-stacklight-tests
+if [ $# -gt 1 ]; then
+	echo "No more than 1 argument"
+	return
+fi
+if [ $# -eq 1 ]; then
+	MOS_VERSION=$1
+else
+	MOS_VERSION=8.0
+fi
+
+# Network characteristics reset (mainly for MOS 7.0)
+unset NEUTRON_ENABLE
+unset NEUTRON_SEGMENT_TYPE
+unset VENV_PREFIX
+
+case "${MOS_VERSION}" in
+"7.0")
+	# Location for fuel-qa
+	export FUELQA_GITREF=stable/7.0
+	# Network characteristics
+	export NEUTRON_ENABLE=true
+	export NEUTRON_SEGMENT_TYPE=vlan
+	;;
+"8.0")
+	# Location for fuel-qa
+	export FUELQA_GITREF=stable/8.0
+	;;
+"9.0" | "9.1")
+	# Location for fuel-qa
+	export FUELQA_GITREF=stable/mitaka
+	;;
+*)
+	echo "Unsupported MOS version $MOS_VERSION. Should be one of 7.0, 8.0, 9.0 or 9.1"
+	return
+	;;
+esac
+
+# Locations for MOS
+export ISO_BASE=${MY_ISO_BASE:-$HOME/iso}
+export ISO_PATH=${ISO_BASE}/MirantisOpenStack-${MOS_VERSION}.iso
+
+export ENV_PREFIX=${MY_ENV_PREFIX:-fuel_stacklight_plugin}
+export ENV_NAME=${ENV_PREFIX}-${MOS_VERSION}
+export VENV_BASE=${MY_VENV_BASE:-$HOME}
+export VENV_PREFIX=${VENV_PREFIX:-stacklight-tests}
+export VENV_PATH=${VENV_BASE}/venv-${VENV_PREFIX}-${MOS_VERSION}
 
 # Change this if you didn't use the default database password
 export DEVOPS_DB_PASSWORD=devops
@@ -9,18 +53,20 @@ export ADMIN_NODE_MEMORY=4096
 export ADMIN_NODE_CPU=2
 export SLAVE_NODE_MEMORY=5120
 
-# Locations for fuel-qa, MOS and plugins artefacts
-export FUELQA_GITREF=stable/mitaka
-export ISO_PATH=$HOME/iso/MirantisOpenStack-9.0.iso
-export LMA_COLLECTOR_PLUGIN_PATH=$HOME/plugins/lma_collector-0.9-0.9.0-1.noarch.rpm
-export LMA_INFRA_ALERTING_PLUGIN_PATH=$HOME/plugins/lma_infrastructure_alerting-0.9-0.9.0-1.noarch.rpm
-export ELASTICSEARCH_KIBANA_PLUGIN_PATH=$HOME/plugins/elasticsearch_kibana-0.9-0.9.0-1.noarch.rpm
-export INFLUXDB_GRAFANA_PLUGIN_PATH=$HOME/plugins/influxdb_grafana-0.9-0.9.0-1.noarch.rpm
+# Locations for plugins artefacts
+export PLUGINS_HOME=${MY_PLUGINS_HOME:-$HOME/plugins}
+
+# Stacklight/LMA plugins
+export LMA_COLLECTOR_PLUGIN_PATH=${PLUGINS_HOME}/lma_collector-0.9-0.9.0-1.noarch.rpm
+export LMA_INFRA_ALERTING_PLUGIN_PATH=${PLUGINS_HOME}/lma_infrastructure_alerting-0.9-0.9.0-1.noarch.rpm
+export ELASTICSEARCH_KIBANA_PLUGIN_PATH=${PLUGINS_HOME}/elasticsearch_kibana-0.9-0.9.0-1.noarch.rpm
+export INFLUXDB_GRAFANA_PLUGIN_PATH=${PLUGINS_HOME}/influxdb_grafana-0.9-0.9.0-1.noarch.rpm
+
 # Zabbix plugins
-export ZABBIX_MONITORING_PLUGIN_PATH=$HOME/plugins/zabbix_monitoring-2.5-2.5.1-1.noarch.rpm
-export ZABBIX_MONITORING_SNMPTRAPD_PLUGIN_PATH=$HOME/plugins/zabbix_snmptrapd-1.1-1.1.0-1.noarch.rpm
-export ZABBIX_MONITORING_EMC_PLUGIN_PATH=$HOME/plugins/zabbix_monitoring_emc-1.1-1.1.0-1.noarch.rpm
-export ZABBIX_MONITORING_EXTREME_NETWORKS_PLUGIN_PATH=$HOME/plugins/zabbix_monitoring_extreme_networks-1.1-1.1.0-1.noarch.rpm
+export ZABBIX_MONITORING_PLUGIN_PATH=${PLUGINS_HOME}/zabbix_monitoring-2.5-2.5.1-1.noarch.rpm
+export ZABBIX_MONITORING_SNMPTRAPD_PLUGIN_PATH=${PLUGINS_HOME}/zabbix_snmptrapd-1.1-1.1.0-1.noarch.rpm
+export ZABBIX_MONITORING_EMC_PLUGIN_PATH=${PLUGINS_HOME}/zabbix_monitoring_emc-1.1-1.1.0-1.noarch.rpm
+export ZABBIX_MONITORING_EXTREME_NETWORKS_PLUGIN_PATH=${PLUGINS_HOME}/zabbix_monitoring_extreme_networks-1.1-1.1.0-1.noarch.rpm
 
 # UI Tests settings
 export SELENIUM_HEADLESS=True
