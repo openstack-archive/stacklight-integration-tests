@@ -255,13 +255,21 @@ class TestFunctionalToolchain(api.ToolchainApi):
 
         alerting_plugin = self.LMA_INFRASTRUCTURE_ALERTING
         services_names_in_nagios = {}
-        for service in components:
-            nagios_service_name = (
-                service
-                if alerting_plugin.settings.version.startswith("0.")
-                else "global-{}".format(service)
-            )
-            services_names_in_nagios[service] = nagios_service_name
+        services_names_in_influx = {}
+        for component in components:
+            influx_service_name = component
+            if alerting_plugin.settings.version.startswith("0."):
+                nagios_service_name = component
+            else:
+                nagios_service_name = "global-{}".format(component)
+                if component in ("nova", "neutron", "cinder"):
+                    nagios_service_name = "{}-control-plane".format(
+                        nagios_service_name)
+                    influx_service_name = "{}-control-plane".format(
+                        influx_service_name)
+
+            services_names_in_nagios[component] = nagios_service_name
+            services_names_in_influx[component] = influx_service_name
 
         lma_devops_node = self.helpers.get_node_with_vip(
             self.settings.stacklight_roles,
@@ -285,7 +293,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
                     logger.info("Checking service {0}".format(service))
                     self.change_verify_service_state(
                         service_name=[
-                            service, component,
+                            service,
+                            services_names_in_influx[component],
                             services_names_in_nagios[component],
                             haproxy_backend],
                         action="stop",
@@ -297,7 +306,8 @@ class TestFunctionalToolchain(api.ToolchainApi):
                         nagios_driver=driver)
                     self.change_verify_service_state(
                         service_name=[
-                            service, component,
+                            service,
+                            services_names_in_influx[component],
                             services_names_in_nagios[component],
                             haproxy_backend],
                         action="start",
