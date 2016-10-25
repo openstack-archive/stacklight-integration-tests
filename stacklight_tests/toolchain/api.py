@@ -461,8 +461,8 @@ class ToolchainApi(object):
         with self.fuel_web.get_ssh_for_nailgun_node(
                 controller_nodes[0]) as remote:
             self.remote_ops.fill_up_filesystem(
-                remote, "/dev/mapper/mysql-root", percent,
-                "/var/lib/mysql/test/bigfile")
+                remote, self.settings.mysql_fs, percent,
+                self.settings.mysql_fs_alarm_test_file)
 
         self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
             nagios_driver, {services[0]: "OK"})
@@ -475,8 +475,8 @@ class ToolchainApi(object):
         with self.fuel_web.get_ssh_for_nailgun_node(
                 controller_nodes[1]) as remote:
             self.remote_ops.fill_up_filesystem(
-                remote, "/dev/mapper/mysql-root", percent,
-                "/var/lib/mysql/test/bigfile")
+                remote, self.settings.mysql_fs, percent,
+                self.settings.mysql_fs_alarm_test_file)
 
         for node in controller_nodes:
             self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(
@@ -492,8 +492,8 @@ class ToolchainApi(object):
 
         for node in controller_nodes:
             with self.fuel_web.get_ssh_for_nailgun_node(node) as remote:
-                self.remote_ops.clean_filesystem(remote,
-                                                 "/var/lib/mysql/test/bigfile")
+                self.remote_ops.clean_filesystem(
+                    remote, self.settings.mysql_fs_alarm_test_file)
 
         for node in controller_nodes:
             self.LMA_INFRASTRUCTURE_ALERTING.wait_service_state_on_nagios(

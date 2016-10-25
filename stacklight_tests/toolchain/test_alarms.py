@@ -134,8 +134,8 @@ class TestToolchainAlarms(api.ToolchainApi):
         controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
             self.helpers.cluster_id, ["controller"])[0]
         self._check_filesystem_alarms(
-            controller, "/dev/mapper/mysql-root", "mysql-fs",
-            "/var/lib/mysql/test/bigfile", "mysql-nodes")
+            controller, self.settings.mysql_fs, "mysql-fs",
+            self.settings.mysql_fs_alarm_test_file, "mysql-nodes")
 
     @test(depends_on_groups=["deploy_toolchain"],
           groups=["check_rabbitmq_disk_alarm", "toolchain", "alarms"])
