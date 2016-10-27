@@ -97,8 +97,8 @@ class TestToolchainPostInstallation(api.ToolchainApi):
             # "manually" for the existing nodes on MOS 8. With later versions
             # of MOS, these tasks should be re-executed automatically.
             self.helpers.run_tasks(
-                existing_nodes, tasks=['hiera'], start="post_deployment_start",
-                timeout=20 * 60)
+                existing_nodes, tasks=['hiera', 'install-ocf-script'],
+                start="post_deployment_start", timeout=20 * 60)
 
         self.check_plugins_online()
 
