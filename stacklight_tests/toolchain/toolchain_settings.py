@@ -58,3 +58,6 @@ full_ha_nodes = {
     'slave-08': stacklight_roles,
     'slave-09': stacklight_roles
 }
+
+mysql_fs = "/dev/mapper/mysql-root"
+mysql_fs_alarm_test_file = "/var/lib/mysql/bigfile"
