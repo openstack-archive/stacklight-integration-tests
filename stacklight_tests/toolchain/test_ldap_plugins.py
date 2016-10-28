@@ -166,8 +166,6 @@ class TestToolchainLDAP(api.ToolchainApi):
         for plugin in plugins_ldap.values():
             plugin[0].check_plugin_ldap(authz=authz)
 
-        self.env.make_snapshot("deploy_toolchain_with_ldap", is_make=True)
-
     @staticmethod
     def _activate_ldap_plugin(plugin, ufilter, dashboard_name, ldap_server,
                               authz=False, protocol="ldap"):
