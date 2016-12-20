@@ -26,14 +26,18 @@ default_options = {
     "environment_label/value": "deploy_lma_toolchain",
     "elasticsearch_mode/value": "remote",
     "influxdb_mode/value": "remote",
-    "alerting_mode/value": "local",
     "elasticsearch_address/value": "127.0.0.1",
     "influxdb_address/value": "127.0.0.1"
 }
+if version.startswith("0."):
+    # Only 0.x versions expose the alerting_mode parameter
+    default_options["alerting_mode/value"] = "local"
 
 toolchain_options = {
     "environment_label/value": "deploy_lma_toolchain",
     "elasticsearch_mode/value": "local",
     "influxdb_mode/value": "local",
-    "alerting_mode/value": "local"
 }
+if version.startswith("0."):
+    # Only 0.x versions expose the alerting_mode parameter
+    toolchain_options["alerting_mode/value"] = "local"

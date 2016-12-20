@@ -132,7 +132,7 @@ class TestToolchainDedicatedEnvironment(api.ToolchainApi):
         )
         logger.info("New cluster id: {}".format(self.helpers.cluster_id))
 
-        self.LMA_COLLECTOR.activate_plugin(options={
+        options = {
             "environment_label/value": "deploy_env_using_standalone_backends",
             "elasticsearch_mode/value": "remote",
             "elasticsearch_address/value": elasticsearch_ip,
@@ -141,8 +141,12 @@ class TestToolchainDedicatedEnvironment(api.ToolchainApi):
             "influxdb_database/value": "lma",
             "influxdb_user/value": influxdb_settings.influxdb_user,
             "influxdb_password/value": influxdb_settings.influxdb_pass,
-            "alerting_mode/value": "local"
-        })
+        }
+        if self.LMA_COLLECTOR.settings.version.startswith("0."):
+            # Only 0.x versions expose the alerting_mode parameter
+            options["alerting_mode/value"] = "local"
+
+        self.LMA_COLLECTOR.activate_plugin(options=options)
         self.disable_plugin(self.ELASTICSEARCH_KIBANA)
         self.disable_plugin(self.INFLUXDB_GRAFANA)
         self.disable_plugin(self.LMA_INFRASTRUCTURE_ALERTING)
