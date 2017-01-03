@@ -29,7 +29,7 @@ default_options = {
     "elasticsearch_address/value": "127.0.0.1",
     "influxdb_address/value": "127.0.0.1"
 }
-if version.startswith("0."):
+if version and version.startswith("0."):
     # Only 0.x versions expose the alerting_mode parameter
     default_options["alerting_mode/value"] = "local"
 
@@ -38,6 +38,6 @@ toolchain_options = {
     "elasticsearch_mode/value": "local",
     "influxdb_mode/value": "local",
 }
-if version.startswith("0."):
+if version and version.startswith("0."):
     # Only 0.x versions expose the alerting_mode parameter
     toolchain_options["alerting_mode/value"] = "local"
