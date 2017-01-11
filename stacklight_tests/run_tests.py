@@ -74,6 +74,7 @@ def import_tests():
     from stacklight_tests.zabbix import test_functional  # noqa
     from stacklight_tests.zabbix import test_smoke_bvt  # noqa
     from stacklight_tests.zabbix import test_system  # noqa
+    from stacklight_tests.zabbix import test_regression  # noqa
 
 
 def run_tests():
