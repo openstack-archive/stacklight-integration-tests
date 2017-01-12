@@ -107,10 +107,10 @@ class InfluxdbPluginApi(base_test.PluginApi):
         self.do_influxdb_query("show measurements")
 
         logger.info("Check that the InfluxDB user doesn't have admin rights")
-        self.do_influxdb_query("show servers", expected_code=401)
+        self.do_influxdb_query("show stats", expected_code=401)
 
         logger.info("Check that the InfluxDB root user has admin rights")
-        self.do_influxdb_query("show servers",
+        self.do_influxdb_query("show stats",
                                user=plugin_settings.influxdb_rootuser,
                                password=plugin_settings.influxdb_rootpass)
 
@@ -131,6 +131,7 @@ class InfluxdbPluginApi(base_test.PluginApi):
             auth=(plugin_settings.grafana_user, 'rogue'), expected_code=401)
 
     def check_influxdb_nodes_count(self, count=1):
+        # TODO(all): this is broken with InfluxDB 1.1
         logger.debug('Check the number of InfluxDB servers')
         response = self.do_influxdb_query(
             "show servers",
