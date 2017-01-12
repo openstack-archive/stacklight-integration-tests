@@ -110,7 +110,7 @@ class InfluxdbPluginApi(base_test.PluginApi):
         self.do_influxdb_query("show servers", expected_code=401)
 
         logger.info("Check that the InfluxDB root user has admin rights")
-        self.do_influxdb_query("show servers",
+        self.do_influxdb_query("show stats",
                                user=plugin_settings.influxdb_rootuser,
                                password=plugin_settings.influxdb_rootpass)
 
