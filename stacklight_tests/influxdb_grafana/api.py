@@ -107,7 +107,9 @@ class InfluxdbPluginApi(base_test.PluginApi):
         self.do_influxdb_query("show measurements")
 
         logger.info("Check that the InfluxDB user doesn't have admin rights")
-        self.do_influxdb_query("show stats", expected_code=401)
+
+        # 401 is for InfluxDB 0.11 and 403 for InfluxDB 1.1
+        self.do_influxdb_query("show stats", expected_code=[401, 403])
 
         logger.info("Check that the InfluxDB root user has admin rights")
         self.do_influxdb_query("show stats",

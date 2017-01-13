@@ -38,8 +38,8 @@ def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
 
     :param url: the requested URL
     :type url: str
-    :param expected_code: the expected HTTP response code. Defaults to 200
-    :type expected_code: int
+    :param expected_code: the expected HTTP response code(s). Defaults to 200
+    :type expected_code: list(int) or int
     :param msg: the assertion message. Defaults to None
     :type msg: str
     :returns: HTTP response object
@@ -50,8 +50,12 @@ def check_http_get_response(url, expected_code=200, msg=None, **kwargs):
     cert = helpers.get_fixture("https/rootCA.pem")
     msg = msg or "%s responded with {0}, expected {1}" % url
     r = s.get(url, verify=cert, **kwargs)
-    asserts.assert_equal(
-        r.status_code, expected_code, msg.format(r.status_code, expected_code))
+    if isinstance(expected_code, int):
+        expected_code = [expected_code]
+
+    asserts.assert_true(
+        r.status_code in expected_code,
+        msg.format(r.status_code, expected_code))
     return r
 
 
