@@ -267,6 +267,53 @@ class PluginHelper(object):
                                           check_services=check_services,
                                           timeout=timeout)
 
+    def create_aggregate(self, name, availability_zone=None,
+                         metadata=None, hosts=None):
+        """Create nova aggregate if not provide by fuel-qa
+
+        :param name: name of aggregate
+        :availability_zone: name of availability zone (optional)
+        :metadata: metadata to be added to aggregate (optional)
+        :hosts: list of hosts names to be added to aggregate (optional)
+        :returns: created aggregate
+        """
+        os_conn = self.os_conn
+        aggregate = os_conn.nova.aggregates.create(
+            name=name, availability_zone=availability_zone)
+        for host in hosts or []:
+            aggregate.add_host(host)
+        if metadata:
+            aggregate.set_metadata(metadata)
+        return aggregate
+
+    def create_nova_aggregates(self, aggregates):
+        """Create nova aggregates after cluster deployment.
+
+        :param aggregates: dictionnary containing aggregate name and
+         list of hosts names keypairs.
+        :type aggregates: dict
+        :returns: None
+        """
+        node_list = self.fuel_web.client.list_cluster_nodes(self.cluster_id)
+        os_conn = self.os_conn
+        # Iterate on aggregates
+        for agg_name, agg_nodes in aggregates.iteritems():
+            hosts_names = []
+            for snode in agg_nodes:
+                for anode in node_list:
+                    if anode['name'].startswith(snode):
+                        hosts_names.append(anode['fqdn'])
+            logger.info("Creating aggreate {0} with hosts {1}".format(
+                agg_name, hosts_names))
+            try:
+                os_conn.create_aggregate(
+                    agg_name,
+                    hosts=hosts_names)
+            except AttributeError:
+                self.create_aggregate(
+                    agg_name,
+                    hosts=hosts_names)
+
     def run_ostf(self, *args, **kwargs):
         """Run the OpenStack health checks."""
         self.fuel_web.run_ostf(self.cluster_id, *args, **kwargs)

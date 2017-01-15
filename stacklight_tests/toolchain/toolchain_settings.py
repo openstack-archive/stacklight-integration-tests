@@ -39,6 +39,15 @@ base_nodes = {
     'slave-03': stacklight_roles
 }
 
+nova_nodes = {
+    'slave-01': ['controller', 'cinder'],
+    'slave-02': ['compute'],
+    'slave-03': ['compute'],
+    'slave-04': ['compute'],
+    'slave-05': ['compute'],
+    'slave-06': stacklight_roles
+}
+
 ha_controller_nodes = {
     'slave-01': ['controller'],
     'slave-02': ['controller'],
