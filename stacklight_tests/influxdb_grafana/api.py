@@ -133,19 +133,21 @@ class InfluxdbPluginApi(base_test.PluginApi):
             auth=(plugin_settings.grafana_user, 'rogue'), expected_code=401)
 
     def check_influxdb_nodes_count(self, count=1):
-        # TODO(all): this is broken with InfluxDB 1.1
-        logger.debug('Check the number of InfluxDB servers')
-        response = self.do_influxdb_query(
-            "show servers",
-            user=self.settings.influxdb_rootuser,
-            password=self.settings.influxdb_rootpass)
+        # This test is only executed for plugins 0.x, because
+        # cluster has been removed with plugin 1.0 (InfluxDB 1.1)
+        if self.settings.version.startswith("0."):
+            logger.debug('Check the number of InfluxDB servers')
+            response = self.do_influxdb_query(
+                "show servers",
+                user=self.settings.influxdb_rootuser,
+                password=self.settings.influxdb_rootpass)
 
-        nodes_count_responsed = len(
-            response.json()["results"][0]["series"][0]["values"])
+            nodes_count_responsed = len(
+                response.json()["results"][0]["series"][0]["values"])
 
-        msg = "Expected {0} InfluxDB nodes, got {1}".format(
-            count, nodes_count_responsed)
-        asserts.assert_equal(count, nodes_count_responsed, msg)
+            msg = "Expected {0} InfluxDB nodes, got {1}".format(
+                count, nodes_count_responsed)
+            asserts.assert_equal(count, nodes_count_responsed, msg)
 
     def uninstall_plugin(self):
         return self.helpers.uninstall_plugin(self.settings.name,
