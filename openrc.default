@@ -1,3 +1,4 @@
+#!/bin/bash
 if [ $# -gt 1 ]; then
 	echo "No more than 1 argument"
 	return
@@ -13,6 +14,15 @@ unset NEUTRON_ENABLE
 unset NEUTRON_SEGMENT_TYPE
 unset VENV_PREFIX
 
+# MOS update reset
+unset UPDATE_MASTER
+unset UPDATE_MASTER_VIA_MOS_MU
+unset FUEL_RELEASE_VERSION
+
+# Locations for MOS
+export ISO_BASE=${ISO_BASE:-$HOME/iso}
+export ISO_PATH=${ISO_BASE}/MirantisOpenStack-${MOS_VERSION}.iso
+
 case "${MOS_VERSION}" in
 "7.0")
 	# Location for fuel-qa
@@ -25,33 +35,41 @@ case "${MOS_VERSION}" in
 	# Location for fuel-qa
 	export FUELQA_GITREF=stable/8.0
 	;;
-"9.0" | "9.1")
+"9.0" | "9.1" | "9.2")
 	# Location for fuel-qa
 	export FUELQA_GITREF=stable/mitaka
+	if [ "${MOS_VERSION}" != "9.0" ]; then
+		export UPDATE_MASTER=True
+		export UPDATE_MASTER_VIA_MOS_MU=False
+		export FUEL_RELEASE_VERSION=9.0
+		export ISO_PATH=${ISO_BASE}/MirantisOpenStack-${FUEL_RELEASE_VERSION}.iso
+	fi
+	;;
+"10.0")
+	# Location for fuel-qa
+	export FUELQA_GITREF=stable/newton
 	;;
 *)
-	echo "Unsupported MOS version $MOS_VERSION. Should be one of 7.0, 8.0, 9.0 or 9.1"
+	echo "Unsupported MOS version $MOS_VERSION. Should be one of 7.0, 8.0, 9.[0-2] or 10.0"
 	return
 	;;
 esac
 
-# Locations for MOS
-export ISO_BASE=${MY_ISO_BASE:-$HOME/iso}
-export ISO_PATH=${ISO_BASE}/MirantisOpenStack-${MOS_VERSION}.iso
+export MOS_SHORT_VERSION=$(echo $MOS_VERSION | sed -e 's/\.//g')
 
 export ENV_PREFIX=${MY_ENV_PREFIX:-fuel_stacklight_plugin}
-export ENV_NAME=${ENV_PREFIX}-${MOS_VERSION}
+export ENV_NAME=${ENV_PREFIX}${MOS_SHORT_VERSION}
 export VENV_BASE=${MY_VENV_BASE:-$HOME}
 export VENV_PREFIX=${VENV_PREFIX:-stacklight-tests}
-export VENV_PATH=${VENV_BASE}/venv-${VENV_PREFIX}-${MOS_VERSION}
+export VENV_PATH=${VENV_BASE}/venv-${VENV_PREFIX}${MOS_SHORT_VERSION}
 
 # Change this if you didn't use the default database password
-export DEVOPS_DB_PASSWORD=devops
+export DEVOPS_DB_PASSWORD=fuel_devops
 
 # Nodes characteristics
 export ADMIN_NODE_MEMORY=4096
 export ADMIN_NODE_CPU=2
-export SLAVE_NODE_MEMORY=5120
+export SLAVE_NODE_MEMORY=3072
 
 # Locations for plugins artefacts
 export PLUGINS_HOME=${MY_PLUGINS_HOME:-$HOME/plugins}
