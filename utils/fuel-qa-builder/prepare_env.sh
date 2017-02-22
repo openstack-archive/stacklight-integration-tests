@@ -22,8 +22,11 @@ if [ -z "${FUELQA_GITREF}" ]; then
     8.0)
         FUELQA_GITREF="stable/8.0"
         ;;
-    9.0)
+    9.0 | 9.1 | 9.2)
         FUELQA_GITREF="stable/mitaka"
+        ;;
+    10.0)
+        FUELQA_GITREF="stable/newton"
         ;;
     *)
         echo "Don't know which fuel-qa branch to use for ${ISO_PATH}"
@@ -32,7 +35,7 @@ if [ -z "${FUELQA_GITREF}" ]; then
     esac
 fi
 
-FUEL_REV=`echo $FUELQA_GITREF | sed -e 's?stable/??' -e 's/\.0.*//' -e 's/mitaka/9/'`
+FUEL_REV=`echo $FUELQA_GITREF | sed -e 's?stable/??' -e 's/\.0.*//' -e 's/mitaka/9/' -e's/newton/10/'`
 
 # Create the virtual environment if it doesn't exist yet
 if [[ ! -f "$VENV_PATH"/bin/activate ]]; then

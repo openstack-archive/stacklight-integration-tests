@@ -18,6 +18,8 @@ for the detailed procedure).
         cp openrc.default openrc
         # Edit the openrc file as needed
         . openrc
+        # You can also pass a MOS version (default is 9.0 it not specified)
+        . openrc 7.0
         ./utils/fuel-qa-builder/prepare_env.sh
 
 3. Activate the Python virtual environment:
@@ -36,7 +38,7 @@ for the detailed procedure).
 
 The test cases include comments that can be turned into human-readable documentation:
 
-        tox -edocs
+        tox -e docs
 
 The generated documentation is available at `doc/_build/html/index.html`.
 
@@ -53,7 +55,12 @@ system.
 
 Guidelines:
 
-* Run `tox` before submitting a review.
+* Run `tox` before submitting a review. You can change MOS version depending on what argument you specified earlier (default is mos9)
+
+```
+VERSION=mos7 MOS_VERSION=7.0 tox
+VERSION=mos9 MOS_VERSION=9.1 tox
+```
 
 * Declare test groups using the @test decorator (see the [Proboscis](https://pythonhosted.org/proboscis) documentation for details)
 
