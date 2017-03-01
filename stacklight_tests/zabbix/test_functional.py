@@ -164,7 +164,7 @@ class TestFunctionalZabbix(api.ZabbixApi):
         controller = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
             self.helpers.cluster_id, ['controller'])[0]
         with self.fuel_web.get_ssh_for_nailgun_node(controller) as remote:
-            remote.check_call("stop neutron-server",
+            remote.check_call("systemctl stop neutron-server.service",
                               "Cannot stop neutron-server on {0}!".format(
                                   controller['name']))
 
