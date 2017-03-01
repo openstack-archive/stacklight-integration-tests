@@ -186,7 +186,7 @@ class ZabbixApi(base_test.PluginApi):
                         found = True
                         if line["priority"] != trigger["priority"]:
                             logger.error(
-                                "Trigger '{0}' has wrong priority! Expecteed"
+                                "Trigger '{0}' has wrong priority! Expected"
                                 " '{1}' but found '{2}'".format(
                                     line["description"], trigger["priority"],
                                     line["priority"]))
