@@ -126,23 +126,39 @@ class TestFunctionalZabbix(api.ZabbixApi):
           groups=["test_triggers", "zabbix", "functional"])
     @log_snapshot_after_test
     def test_triggers(self):
-        """Verify that zabbix login works correctly.
+        """Verify that some of zabbix triggers work correctly.
 
         Scenario:
-            1. Revert snapshot with zabbix ha configuration
-            2. Check that all services have '0' status
+            1. Configure 4GB RAM for controllers
+            2. Revert snapshot with zabbix ha configuration
+            3. Get all triggers that have '1' status
+            4. Should be several triggers related to amount of controllers
+               with '1' status and with description
+               "Lack of free swap space on {HOST.NAME}"
 
         Duration 10m
         """
 
         self.env.revert_snapshot("deploy_zabbix_monitoring_ha")
 
-        result = self.get_zabbix_api().do_request('trigger.get', {
-            "output": ["triggerid"], "filter": {"value": 1},
-            "sortfield": "priority"})
-        asserts.assert_true(len(result['result']) == 0,
-                            "Some triggers have '1' status: {0}".format(
-                                result['result']))
+        trigger_description = "Lack of free swap space on {HOST.NAME}"
+
+        filter = { 'filter': {'value': 1}, 'sortfield': 'priority' }
+
+        result = self.get_zabbix_api().do_request('trigger.get', filter)
+        triggers = result['result']
+
+        controllers = self.fuel_web.get_nailgun_cluster_nodes_by_roles(
+            self.helpers.cluster_id, ['controller'])
+
+        asserts.assert_equal(len(triggers), len(controllers),
+                             "Amount of triggers isn't equal to amount of "
+                             "controllers.")
+        for trigger in triggers:
+            asserts.assert_true(trigger_description in trigger['description'],
+                                "'{0}' should be in '{1}'".format(
+                                    trigger_description,
+                                    trigger['description']))
 
     @test(depends_on_groups=["deploy_zabbix_monitoring_ha"],
           groups=["test_trigger_api", "zabbix", "functional"])
