@@ -11,6 +11,7 @@
 #    WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 #    License for the specific language governing permissions and limitations
 #    under the License.
+
 import bs4
 import requests
 import urllib
@@ -20,12 +21,10 @@ from devops.helpers import helpers as devops_helpers
 from fuelweb_test import logger
 from proboscis import asserts
 from pyzabbix import ZabbixAPI
-
+from stacklight_tests import base_test
 from stacklight_tests.helpers import checkers
 from stacklight_tests.helpers import helpers
 from stacklight_tests.helpers import remote_ops
-
-from stacklight_tests import base_test
 from stacklight_tests.zabbix import plugin_settings as zabbix_plugin_settings
 
 
@@ -84,9 +83,9 @@ class ZabbixApi(base_test.PluginApi):
     def get_plugin_settings(self):
         return zabbix_plugin_settings
 
-    def prepare_plugin(self, dependat_plugins=False):
+    def prepare_plugin(self, dependant_plugins=False):
         self.helpers.prepare_plugin(self.settings.plugin_path)
-        if dependat_plugins:
+        if dependant_plugins:
             for plugin in self.settings.dependant_plugins:
                 self.helpers.prepare_plugin(
                     self.settings.dependant_plugins[plugin]["plugin_path"])
