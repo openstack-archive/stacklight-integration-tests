@@ -282,13 +282,16 @@ class PluginHelper(object):
             mode='ha_compact')
         return self._cluster_id
 
-    def deploy_cluster(self, nodes_roles, verify_network=False,
+    def deploy_cluster(self, nodes_roles,
+                       nodes_hostnames=None, verify_network=False,
                        update_interfaces=True, check_services=True,
                        timeout=getattr(conf, 'DEPLOYMENT_TIMEOUT', 7800)):
         """Assign roles to nodes and deploy the cluster.
 
         :param nodes_roles: nodes to roles mapping.
         :type nodes_roles: dict
+        :param nodes_hostnames: nodes to hostnames mapping (default: None).
+        :type nodes_hostnames: dict
         :param verify_network: whether or not network verification should be
         run before the deployment (default: False).
         :type verify_network: boolean
@@ -305,11 +308,62 @@ class PluginHelper(object):
         """
         self.fuel_web.update_nodes(self.cluster_id, nodes_roles,
                                    update_interfaces=update_interfaces)
+        if nodes_hostnames:
+            for node in self.fuel_web.client.list_cluster_nodes(
+                    self.cluster_id):
+                for k in nodes_hostnames.keys():
+                    if node['name'].startswith(k):
+                        logger.info(
+                            ("Setting hostname for Node Id {0} Name {1}" +
+                             "to {2}").format(
+                                node['id'], k, nodes_hostnames[k]))
+                        self.fuel_web.client.set_hostname(
+                            node['id'],
+                            nodes_hostnames[k])
         if verify_network:
             self.fuel_web.verify_network(self.cluster_id)
         self.fuel_web.deploy_cluster_wait(self.cluster_id,
                                           check_services=check_services,
                                           timeout=timeout)
+
+    def verify_custom_hostnames(self, nodes_hostnames):
+        """Verify nodes hostnames after cluster deployment.
+
+        :param nodes_hostnames: nodes to hostnames mapping (default: None).
+        :type nodes_hostnames: dict
+        :returns: None
+        """
+        # Verify that new hostnames are applied on the nodes
+        for node in self.fuel_web.client.list_cluster_nodes(self.cluster_id):
+            prev_node_name = filter(
+                lambda(x): node['name'].startswith(x),
+                nodes_hostnames.keys())
+            asserts.assert_true(
+                len(prev_node_name) > 0,
+                "Can not retrieve any node for name {0}".format(node['name']))
+            asserts.assert_true(
+                len(prev_node_name) == 1,
+                "Too many match for node name {0}: {1}".format(
+                    node['name'], prev_node_name))
+            custom_hostname = nodes_hostnames[prev_node_name[0]]
+            devops_node = self.fuel_web.get_devops_node_by_nailgun_node(
+                node)
+            logger.info("Checking node name: {0} hostname: {1}".format(
+                node['name'], node['hostname']))
+            with self.env.d_env.get_admin_remote() as admin_remote:
+                # Must add SSH options because of cinder node(s)
+                cmd = ("ssh -o StrictHostKeyChecking=no -q {0}" +
+                       " hostname -s").format(node['hostname'])
+                logger.debug("Launching ssh cmd: {0}".format(cmd))
+                cmd_ret = admin_remote.execute(cmd)
+                logger.debug("ssh cmd results: {0}".format(cmd_ret))
+                hostname = cmd_ret['stdout'][0].strip()
+                asserts.assert_equal(
+                    custom_hostname,
+                    hostname,
+                    "Failed to apply the new '{0}' hostname to '{1}' node. "
+                    "Current hostname is '{2}'".format(
+                        custom_hostname, devops_node.name, hostname))
 
     def run_ostf(self, *args, **kwargs):
         """Run the OpenStack health checks."""
