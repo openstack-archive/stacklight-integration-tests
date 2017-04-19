@@ -13,6 +13,7 @@
 #    under the License.
 
 from fuelweb_test.helpers.decorators import log_snapshot_after_test
+from fuelweb_test import logger
 from proboscis import asserts
 from proboscis import test
 from pyzabbix import ZabbixAPIException
@@ -126,7 +127,7 @@ class TestFunctionalZabbix(api.ZabbixApi):
           groups=["test_triggers", "zabbix", "functional"])
     @log_snapshot_after_test
     def test_triggers(self):
-        """Verify that zabbix login works correctly.
+        """Verify that zabbix triggers have 0 status for all services.
 
         Scenario:
             1. Revert snapshot with zabbix ha configuration
@@ -138,9 +139,29 @@ class TestFunctionalZabbix(api.ZabbixApi):
         self.env.revert_snapshot("deploy_zabbix_monitoring_ha")
 
         result = self.get_zabbix_api().do_request('trigger.get', {
-            "output": ["triggerid"], "filter": {"value": 1},
-            "sortfield": "priority"})
-        asserts.assert_true(len(result['result']) == 0,
+            "output": ["triggerid", "description"], "filter": {"value": 1},
+            "sortfield": "priority", "selectHosts": "extend"})
+        results_size = len(result['result'])
+        if results_size:
+            for t in result['result']:
+                # Common/expected triggers can be removed from list
+                # 1: lack of free swap space as defined in template
+                #    Template_Fuel_OS_Linux.xml and which triggers when < 50%
+                # 2: occurs when restoring from old deploy_zabbix_monitoring_ha
+                #    snapshot due to slaves time resync
+                if (t['description'].startswith('Lack of free swap space') or
+                    t['description'].startswith(
+                        'More than 100 items having' +
+                        ' missing data for more than 10 minutes')):
+                    logger.info('Ignoring Trigger ID {} on Host {}: {}'.format(
+                        t['triggerid'], t['hosts'][0]['name'], t['description']
+                    ))
+                    results_size -= 1
+                else:
+                    logger.error('Trigger ID {} on Host {}: {}'.format(
+                        t['triggerid'], t['hosts'][0]['name'], t['description']
+                    ))
+        asserts.assert_true(results_size == 0,
                             "Some triggers have '1' status: {0}".format(
                                 result['result']))
 
