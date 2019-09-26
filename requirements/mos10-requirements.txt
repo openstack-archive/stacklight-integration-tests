@@ -1,3 +1,0 @@
--r requirements.txt
-oslo.i18n>=3.1.0  # the more recent python-*client (dependencies of fuel-qa) require at least this version of oslo.i18n
-python-ceilometerclient>=2.4
